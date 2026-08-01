@@ -1,0 +1,7 @@
+,Pass
+finite_net_returns,True
+non_negative_costs,True
+forecast_in_minus_one_plus_one,True
+shock_multiplier_bounded,True
+positions_change_only_at_month_boundary,True
+oos_exceeds_five_years,True

@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "delta1-trading-strategy"
+version = "0.2.0"
+description = "Auditable, cost-aware cross-asset futures trend-following research"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+  "numpy>=2.0",
+  "pandas>=2.2",
+  "matplotlib>=3.9",
+]
+
+[project.optional-dependencies]
+notebook = ["jupyter>=1.1", "nbconvert>=7.16"]
+
+[project.scripts]
+delta1-cta = "delta1_cta:main"
+delta1-institutional = "institutional_strategy:main"
+
+[tool.setuptools]
+py-modules = ["delta1_cta", "institutional_strategy"]

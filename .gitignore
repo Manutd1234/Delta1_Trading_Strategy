@@ -209,6 +209,11 @@ tempCodeRunnerFile.py
 # PyPI configuration file
 .pypirc
 
+# Local market data and OS metadata
+data/
+Round1AllData/
+.DS_Store
+
 # Marimo
 marimo/_static/
 marimo/_lsp/
