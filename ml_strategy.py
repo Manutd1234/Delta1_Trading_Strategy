@@ -11,9 +11,8 @@ same risk, execution, and accounting pipeline as the baseline.
 from __future__ import annotations
 
 import argparse
-import json
 import math
-from dataclasses import asdict, dataclass, replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Callable
 
@@ -519,29 +518,6 @@ def robustness_table(
     return pd.DataFrame(rows).set_index("Scenario")
 
 
-def _subperiod_metrics(results: list[BacktestResult]) -> pd.DataFrame:
-    windows = {
-        "2005-2009": ("2005-01-01", "2009-12-31"),
-        "2010-2014": ("2010-01-01", "2014-12-31"),
-        "Global Financial Crisis 2008": ("2008-01-01", "2008-12-31"),
-    }
-    rows = []
-    for window, (start, end) in windows.items():
-        for result in results:
-            metrics = performance_metrics(result, start, end)
-            rows.append(
-                {
-                    "Window": window,
-                    "Strategy": result.name,
-                    "CAGR": metrics["CAGR"],
-                    "Volatility": metrics["Annualized volatility"],
-                    "Sharpe": metrics["Sharpe (rf=0)"],
-                    "Max drawdown": metrics["Max drawdown"],
-                }
-            )
-    return pd.DataFrame(rows)
-
-
 def _save_plot(results: list[BacktestResult], base_config: BacktestConfig) -> None:
     import matplotlib
 
@@ -574,44 +550,14 @@ def _save_plot(results: list[BacktestResult], base_config: BacktestConfig) -> No
 def save_outputs(
     output: MLPipelineOutput,
     base_config: BacktestConfig,
-    ml_config: MLConfig,
 ) -> None:
     directory = base_config.output_dir
     directory.mkdir(parents=True, exist_ok=True)
     output.metrics.to_csv(directory / "ml_metrics.csv")
-    output.walk_forward.predictions.to_csv(directory / "ml_walk_forward_predictions.csv", index=False)
-    output.walk_forward.model_selection.to_csv(directory / "ml_model_selection.csv", index=False)
-    output.walk_forward.feature_importance.to_csv(directory / "ml_feature_importance.csv", index=False)
     output.robustness.to_csv(directory / "ml_robustness.csv")
     output.bootstrap.to_csv(directory / "ml_bootstrap.csv")
     classification_metrics(output.walk_forward.predictions, base_config.oos_start).to_csv(
         directory / "ml_classification_metrics.csv", header=True
-    )
-    _subperiod_metrics([output.hybrid, output.ml_only, output.baseline]).to_csv(
-        directory / "ml_subperiod_metrics.csv", index=False
-    )
-    curves = pd.concat(
-        {
-            result.name: (
-                1 + result.daily.loc[base_config.oos_start : base_config.oos_end, "net_return"]
-            ).cumprod()
-            for result in (output.hybrid, output.ml_only, output.baseline)
-        },
-        axis=1,
-    )
-    curves.to_csv(directory / "ml_equity_curves.csv", index_label="Date")
-    config_json = {
-        "backtest": {
-            **asdict(base_config),
-            "data_dir": "${DELTA1_DATA_DIR}",
-            "output_dir": "outputs",
-        },
-        "machine_learning": asdict(ml_config),
-        "features": list(FEATURE_COLUMNS),
-        "external_data_timing": "FRED values lagged one business day",
-    }
-    (directory / "ml_run_config.json").write_text(
-        json.dumps(config_json, indent=2), encoding="utf-8"
     )
     _save_plot([output.hybrid, output.ml_only, output.baseline], base_config)
 
@@ -669,7 +615,7 @@ def run_ml_pipeline(
         robustness=robustness,
         bootstrap=bootstrap,
     )
-    save_outputs(output, base_config, ml_config)
+    save_outputs(output, base_config)
     return output
 
 

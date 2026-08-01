@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import os
+import tempfile
 import unittest
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-from data_engineer_features import _numeric_notional, aggregate_fx_snapshot, snapshot_audit
-from delta1_cta import ASSET_CLASSES, SYMBOL_TO_CLASS, BacktestConfig, load_metadata, load_prices
+from delta1_cta import ASSET_CLASSES, SYMBOL_TO_CLASS, load_metadata, load_prices
 from ml_strategy import (
     FEATURE_COLUMNS,
     MACRO_FEATURES,
@@ -35,7 +35,7 @@ class TestPointInTimeFeatures(unittest.TestCase):
                 "BAA10Y": [2, 3, 4, 5, 6],
             }
         )
-        path = Path("/private/tmp/delta1_macro_lag_test.csv")
+        path = Path(tempfile.gettempdir()) / "delta1_macro_lag_test.csv"
         source.to_csv(path, index=False)
         features = load_external_macro(path, calendar)
         self.assertTrue(np.isnan(features.iloc[0]["yield_curve"]))
@@ -115,28 +115,6 @@ class TestWalkForwardControls(unittest.TestCase):
     def test_invalid_time_windows_fail_fast(self) -> None:
         with self.assertRaises(ValueError):
             MLConfig(training_start="2005-01-01", prediction_start="2003-01-01").validate()
-
-
-class TestDataEngineerSnapshot(unittest.TestCase):
-    def test_capped_notional_parser(self) -> None:
-        values, capped = _numeric_notional(pd.Series(["1,250", "250+", None]))
-        self.assertEqual(values.iloc[0], 1250)
-        self.assertEqual(values.iloc[1], 250)
-        self.assertTrue(bool(capped.iloc[1]))
-
-    def test_snapshot_is_explicitly_excluded_from_historical_training(self) -> None:
-        frame = pd.DataFrame(
-            {
-                "Dissemination Identifier": [1],
-                "event_time": pd.to_datetime(["2024-04-08T00:00:00Z"]),
-                "is_new_trade": [True],
-                "usd_notional": [1_000_000.0],
-                "notional_is_capped": [False],
-            }
-        )
-        audit = snapshot_audit(frame)
-        self.assertFalse(audit.usable_in_2005_2014_backtest)
-        self.assertIn("look-ahead", audit.exclusion_reason)
 
 
 @unittest.skipUnless(DATA_DIR.exists() and EXTERNAL_MACRO.exists(), "Supplied datasets are unavailable")

@@ -1,9 +1,6 @@
-"""Institutional-style, cost-aware extension of the DELTA1 CTA.
+"""Cost-aware adaptive extension of the DELTA1 trend-following CTA.
 
-This module does **not** claim to reproduce any proprietary strategy used by
-Jane Street, Optiver, Citadel, or another trading firm.  It translates public,
-widely understood quant-engineering principles into a daily-futures research
-setting:
+The implementation follows five reviewable research principles:
 
 1. keep the alpha model simple and falsifiable;
 2. separate forecast, risk, execution, and accounting layers;
@@ -11,15 +8,13 @@ setting:
 4. trade only when the desired change is large enough to justify its cost;
 5. make every position and P&L term auditable from contract specifications.
 
-The supplied data are daily continuous futures, so this is a medium-frequency
-portfolio strategy.  It is not an intraday market-making model; the dataset has
-no order book, quotes, queue position, or fill data required for one.
+The supplied observations are daily continuous futures, so this is a
+medium-frequency portfolio strategy rather than an execution model.
 """
 
 from __future__ import annotations
 
 import argparse
-import json
 import math
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -347,7 +342,6 @@ def save_institutional_outputs(
     stress: pd.DataFrame,
     invariants: pd.Series,
     base_config: BacktestConfig,
-    institutional_config: InstitutionalConfig,
 ) -> None:
     output_dir = base_config.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -374,20 +368,6 @@ def save_institutional_outputs(
         },
         axis=1,
     )
-    curves.to_csv(output_dir / "institutional_equity_curves.csv", index_label="Date")
-
-    config_json = {
-        "backtest": {
-            **asdict(base_config),
-            "data_dir": "${DELTA1_DATA_DIR}",
-            "output_dir": "outputs",
-        },
-        "institutional": asdict(institutional_config),
-    }
-    (output_dir / "institutional_run_config.json").write_text(
-        json.dumps(config_json, indent=2), encoding="utf-8"
-    )
-
     import matplotlib
 
     matplotlib.use("Agg")
@@ -427,7 +407,6 @@ def run_pipeline(
         stress,
         invariants,
         base_config,
-        strategy_config,
     )
     return result
 

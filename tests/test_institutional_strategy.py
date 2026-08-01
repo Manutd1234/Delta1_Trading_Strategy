@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import unittest
 import os
+import tempfile
+import unittest
 from pathlib import Path
 
 import numpy as np
@@ -77,7 +78,9 @@ class TestNoTradeBuffer(unittest.TestCase):
 class TestInstitutionalIntegration(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.base = BacktestConfig(DATA_DIR, Path("/private/tmp/delta1_test_outputs"))
+        cls.base = BacktestConfig(
+            DATA_DIR, Path(tempfile.gettempdir()) / "delta1_test_outputs"
+        )
         cls.strategy = InstitutionalConfig()
         prices = load_prices(DATA_DIR)
         metadata = load_metadata(DATA_DIR)

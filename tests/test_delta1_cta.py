@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import unittest
 import os
+import tempfile
+import unittest
 from pathlib import Path
 
 import numpy as np
@@ -52,7 +53,9 @@ class TestSuppliedData(unittest.TestCase):
         self.assertEqual(self.prices.shape[1], 22)
 
     def test_oos_backtest_is_finite(self) -> None:
-        config = BacktestConfig(DATA_DIR, Path("/tmp/delta1_test_outputs"))
+        config = BacktestConfig(
+            DATA_DIR, Path(tempfile.gettempdir()) / "delta1_test_outputs"
+        )
         result = run_backtest(config, prices=self.prices, metadata=self.metadata)
         metrics = performance_metrics(result, config.oos_start)
         for field in ("CAGR", "Annualized volatility", "Sharpe (rf=0)", "Max drawdown"):
