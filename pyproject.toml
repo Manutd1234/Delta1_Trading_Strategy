@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "delta1-trading-strategy"
-version = "0.2.0"
+version = "0.3.0"
 description = "Auditable, cost-aware cross-asset futures trend-following research"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -13,14 +13,17 @@ dependencies = [
   "numpy>=2.0",
   "pandas>=2.2",
   "matplotlib>=3.9",
+  "requests>=2.31",
+  "scikit-learn>=1.5",
 ]
 
 [project.optional-dependencies]
-notebook = ["jupyter>=1.1", "nbconvert>=7.16"]
+notebook = ["jupyter>=1.1", "nbconvert>=7.16", "nbformat>=5.10"]
 
 [project.scripts]
 delta1-cta = "delta1_cta:main"
 delta1-institutional = "institutional_strategy:main"
+delta1-ml = "ml_strategy:main"
 
 [tool.setuptools]
-py-modules = ["delta1_cta", "institutional_strategy"]
+py-modules = ["delta1_cta", "institutional_strategy", "ml_strategy", "data_engineer_features", "download_external_data"]

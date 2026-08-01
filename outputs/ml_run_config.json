@@ -1,0 +1,50 @@
+{
+  "backtest": {
+    "data_dir": "${DELTA1_DATA_DIR}",
+    "output_dir": "outputs",
+    "oos_start": "2005-01-01",
+    "oos_end": "2014-12-31",
+    "horizons": [
+      252
+    ],
+    "vol_span": 60,
+    "portfolio_vol_window": 63,
+    "target_vol": 0.1,
+    "max_leverage": 2.0,
+    "min_leverage": 0.25,
+    "half_spread_ticks": 0.5,
+    "commission_per_contract": 2.5,
+    "annualization": 252
+  },
+  "machine_learning": {
+    "training_start": "1997-01-01",
+    "prediction_start": "2003-01-01",
+    "prediction_end": "2014-12-31",
+    "validation_months": 24,
+    "probability_scale": 0.15,
+    "ml_blend_weight": 0.5,
+    "random_state": 17,
+    "bootstrap_samples": 2000,
+    "bootstrap_block_months": 6
+  },
+  "features": [
+    "trend_21",
+    "trend_63",
+    "trend_126",
+    "trend_252",
+    "vol_ratio_20_120",
+    "breakout_252",
+    "skew_63",
+    "down_day_share_63",
+    "cross_section_rank_252",
+    "class_trend_252",
+    "vix_log",
+    "vix_change_21",
+    "yield_curve",
+    "yield_curve_change_21",
+    "baa_credit_spread",
+    "baa_credit_spread_change_21",
+    "asset_class"
+  ],
+  "external_data_timing": "FRED values lagged one business day"
+}

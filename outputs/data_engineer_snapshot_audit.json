@@ -1,0 +1,12 @@
+{
+  "rows": 30757,
+  "columns": 118,
+  "unique_dissemination_ids": 30757,
+  "event_timestamp_min": "2021-10-19T14:58:42+00:00",
+  "event_timestamp_max": "2024-04-08T23:39:33+00:00",
+  "new_trade_rows": 27818,
+  "usd_notional_coverage": 0.8847868286720828,
+  "capped_notional_share": 0.0013300740527715867,
+  "usable_in_2005_2014_backtest": false,
+  "exclusion_reason": "The cumulative slice is a 2024 publication snapshot, after the 2014 backtest endpoint; injecting it into historical training would be look-ahead bias."
+}

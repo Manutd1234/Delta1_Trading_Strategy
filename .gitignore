@@ -210,7 +210,11 @@ tempCodeRunnerFile.py
 .pypirc
 
 # Local market data and OS metadata
-data/
+# Keep downloaded observations local, but version the source/hash manifest.
+data/*
+!data/external/
+data/external/*
+!data/external/source_manifest.json
 Round1AllData/
 .DS_Store
 

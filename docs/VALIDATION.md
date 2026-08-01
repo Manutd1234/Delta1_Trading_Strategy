@@ -19,6 +19,14 @@ The generated `outputs/institutional_invariants.csv` confirms:
 
 Unit tests also mutate future prices and assert that earlier forecasts do not change.
 
+The ML extension additionally checks:
+
+- every training label ends strictly before January 1 of its prediction year;
+- FRED features are shifted one business day;
+- future price mutations cannot change earlier monthly features;
+- probability and blended forecasts remain inside `[-1, 1]`;
+- the 2024 DTCC snapshot is explicitly excluded from historical fitting.
+
 ## Stress scenarios
 
 `stress_test_table()` reports:
@@ -43,6 +51,19 @@ The table is an ablation and sensitivity exercise, not a parameter optimizer. Al
 | Annual cost drag | 0.12% | 0.14% |
 
 The differences are economically plausible but small. They should not be treated as statistically decisive.
+
+## ML falsification result
+
+| Metric | 12m TSMOM | 50% ML hybrid | ML only |
+|---|---:|---:|---:|
+| CAGR | 6.93% | 5.36% | 1.03% |
+| Annualized volatility | 10.69% | 10.80% | 10.49% |
+| Sharpe, rf=0 | 0.68 | 0.54 | 0.15 |
+| Maximum drawdown | -20.19% | -18.22% | -19.19% |
+
+The pooled classifier has 2,618 OOS observations, 50.76% accuracy, 49.84% balanced accuracy, and 0.491 ROC AUC. It does not demonstrate incremental alpha. The benchmark remains the recommended forecast; promoting a smaller blend after viewing OOS sensitivities would be data mining.
+
+Six-month-block bootstrap Sharpe intervals and every blend/cost sensitivity are retained under `outputs/`. These capture serial sampling variation, not model-selection or macro-revision uncertainty.
 
 ## Known model risks
 

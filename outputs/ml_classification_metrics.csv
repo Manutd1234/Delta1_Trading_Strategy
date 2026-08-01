@@ -1,0 +1,8 @@
+,Walk-forward classifier
+Observations,2618.0
+Accuracy,0.5076394194041253
+Balanced accuracy,0.49843283656581583
+ROC AUC,0.4908210257081741
+Log loss,0.7017123318092587
+Brier score,0.25414868366567045
+Unconditional up rate,0.538961038961039

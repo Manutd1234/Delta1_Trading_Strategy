@@ -31,6 +31,23 @@ catalogue + daily CCB files
           +------> metrics / stress tests / invariants / plots
 ```
 
+The optional ML branch adds a point-in-time feature panel before the forecast layer:
+
+```text
+daily futures + lagged FRED macro
+              |
+              v
+ monthly instrument/market features
+              |
+              v
+annual nested walk-forward model selection
+              |
+              v
+bounded probability signal + 12m trend prior
+              |
+              +------> existing risk / execution / accounting layers
+```
+
 ## Layer ownership
 
 ### Data layer
@@ -40,6 +57,8 @@ catalogue + daily CCB files
 ### Forecast layer
 
 `trend_signal()` implements the baseline. `build_institutional_forecast()` returns both its bounded forecast and the components needed to explain it. Forecast code never performs portfolio construction.
+
+`build_feature_panel()` creates monthly point-in-time observations. `walk_forward_predict()` owns the annual fit/validation/test boundary. `predictions_to_signal_matrix()` is the only bridge from probabilities to the portfolio engine.
 
 ### Risk layer
 
@@ -75,3 +94,5 @@ The one-row shift in `_held_positions()` encodes this boundary centrally.
 - Replace the no-trade band with an optimizer using forecast benefit versus expected cost.
 - Add integer contract sizing after fractional research positions are generated.
 - Stream invariant results to monitoring without changing the alpha model.
+- Replace revised FRED histories with vintage-aware release data behind `load_external_macro()`.
+- Accumulate daily DTCC snapshots into a dated feature store for a post-2024 forward experiment.
