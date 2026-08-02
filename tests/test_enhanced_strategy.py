@@ -173,6 +173,50 @@ class TestSleeveBlending(unittest.TestCase):
         self.assertAlmostEqual(blend.iloc[0, 0], 0.5)
 
 
+class TestRiskManagedSizing(unittest.TestCase):
+    def setUp(self) -> None:
+        self.index = pd.bdate_range("2000-01-03", periods=900)
+        rng = np.random.default_rng(41)
+        # second half is far more volatile than the first
+        steps = np.r_[rng.normal(0, 0.5, 450), rng.normal(0, 3.0, 450)]
+        self.prices = pd.DataFrame({"X": 100 + steps.cumsum()}, index=self.index)
+        self.forecast = pd.DataFrame({"X": 1.0}, index=self.index)
+
+    def test_stale_volatility_estimate_gets_less_risk(self) -> None:
+        # Because the strategy return is already divided by volatility, this
+        # scaling does not react to high volatility per se — it reacts when a
+        # regime shift makes the trailing volatility estimate stale, which is
+        # exactly when realized P&L per unit of forecast risk blows out.
+        from enhanced_strategy import risk_managed_forecast
+
+        scaled = risk_managed_forecast(self.forecast, self.prices, vol_span=60)
+        settled = scaled["X"].iloc[300:440].dropna()
+        just_after_shift = scaled["X"].iloc[470:580].dropna()
+        self.assertGreater(len(just_after_shift), 0)
+        self.assertLess(float(just_after_shift.mean()), float(settled.mean()))
+        self.assertLessEqual(float(scaled.abs().max().max()), 1.0)
+
+    def test_future_mutation_cannot_change_past_scaling(self) -> None:
+        from enhanced_strategy import risk_managed_forecast
+
+        baseline = risk_managed_forecast(self.forecast, self.prices, vol_span=60)
+        altered = self.prices.copy()
+        altered.loc[self.index[700] :, "X"] *= -3
+        changed = risk_managed_forecast(self.forecast, altered, vol_span=60)
+        pd.testing.assert_frame_equal(
+            baseline.loc[: self.index[699]], changed.loc[: self.index[699]]
+        )
+
+    def test_scaling_never_flips_the_forecast_sign(self) -> None:
+        from enhanced_strategy import risk_managed_forecast
+
+        signed = self.forecast.copy()
+        signed.loc[self.index[450] :, "X"] = -1.0
+        scaled = risk_managed_forecast(signed, self.prices, vol_span=60)
+        both = pd.concat([signed["X"], scaled["X"]], axis=1).dropna()
+        self.assertTrue(bool((np.sign(both.iloc[:, 0]) == np.sign(both.iloc[:, 1])).all()))
+
+
 class TestEwmaLeverage(unittest.TestCase):
     def test_flat_history_stays_neutral_and_bounds_hold(self) -> None:
         from delta1_cta import BacktestConfig as Config

@@ -262,6 +262,110 @@ diversification gain (effective bets are unchanged at ~16), and adopting a
 56%-commodity concentration on that evidence would fail this document's own
 standard.
 
+## Addendum (v2.3): second alpha search under nested validation
+
+Round 2 targets a higher Sharpe and a lower drawdown with two protocol
+changes, both frozen before any candidate ran.
+
+**Nested windows.** Round 1 searched the whole primary window and checked
+replication only on the reporting window, which is how a specification bug
+survived to the final stage. The primary window is now itself split:
+
+    DISCOVERY    1990-1997   search freely
+    CONFIRMATION 1998-2004   must replicate here; untouched during search
+    REPORTING    2005-2014   opened once, after the sleeve set is frozen
+
+Incumbent two-sleeve book for reference: DISCOVERY Sharpe 1.671 (max drawdown
+-15.8%), CONFIRMATION Sharpe 1.811 (max drawdown -9.0%).
+
+**Adoption rule (all five must hold).** (1) blend improvement >= 0.05 in
+DISCOVERY; (2) blend improvement >= 0.00 in CONFIRMATION, i.e. independent
+replication; (3) |correlation with the incumbent book| <= 0.60 in both;
+(4) truncation-invariant; (5) max drawdown not worsened by more than 2
+percentage points in either window — drawdown is a first-class criterion this
+round, not an afterthought.
+
+**Candidates, each implemented faithfully from its source paper.** Risk-managed
+momentum (Barroso-Santa-Clara 2015) and dynamic crash protection
+(Daniel-Moskowitz 2016) target drawdown directly; residual momentum (Blitz-Huij
+-Martens 2011), cross-sectional carry (Koijen-Moskowitz-Pedersen-Vrugt 2018),
+cross-sectional seasonality (Heston-Sadka; a pre-declared re-test of the
+variant round 1 honestly refused to claim), short-horizon reversal (MOP 2012),
+trend-filtering estimators (Bruder-Dao-Richard-Roncalli 2013), double-sorted
+momentum and term structure (Fuertes-Miffre-Rallis 2010), and inventory/basis
+state (Gorton-Hayashi-Rouwenhorst 2013) target breadth.
+
+**Combination rule:** equal risk weight across all adopted sleeves, unchanged
+from round 1 and not re-optimized. **Reporting:** every candidate published
+with its numbers whether adopted or rejected; the DSR trial count rises by the
+number of candidates tested.
+
+### Round-2 result: ten candidates, none adopted — and the protocol proved its worth
+
+| Candidate | disc blend | conf blend | Outcome |
+|---|---:|---:|---|
+| Trend filtering (Bruder et al. 2013) | +0.097 | **-0.154** | passed discovery, FAILED replication |
+| Cross-sectional carry (Koijen et al. 2018) | +0.065 | **-0.091** | passed discovery, FAILED replication |
+| Double-sort momentum x term structure | +0.044 | -0.002 | failed both |
+| Momentum crash protection (Daniel-Moskowitz) | +0.039 | +0.013 | short of the 0.05 bar |
+| Risk-managed momentum (Barroso-Santa-Clara) | +0.031 | +0.003 | correlation 0.98 with the book |
+| Vol-of-vol risk state | -0.033 | +0.029 | failed discovery |
+| Residual momentum (Blitz et al. 2011) | -0.026 | 0.000 | failed discovery |
+| Inventory / basis state (Gorton et al. 2013) | -0.109 | -0.065 | failed both |
+| Cross-sectional seasonality (Heston-Sadka) | -0.124 | +0.228 | failed discovery |
+| Short-horizon reversal (MOP 2012) | -0.478 | -0.052 | failed both |
+
+The two strongest discovery results — trend filtering and cross-sectional
+carry — both reversed sign in confirmation. Under the round-1 protocol, which
+searched the whole primary window at once, they would have been scored on the
+average of the two and could have reached the reporting window. That is the
+nested split doing exactly the job it was added for. Cross-sectional
+seasonality is the mirror image: it failed discovery and looked strong in
+confirmation, which vindicates the round-1 agent who refused to claim it.
+
+**No sleeve adopted. The forecast is unchanged.**
+
+## Addendum (v2.4): per-market risk-managed sizing
+
+The round-2 search rejected Barroso & Santa-Clara (2015) as a *sleeve*
+because a positive rescaling of an existing forecast correlates ~0.98 with it
+by construction. But its standalone Sharpe beat the incumbent in both search
+windows, which is a claim about SIZING, not forecasting. Retested in the
+correct architectural slot — scaling each market's forecast by the inverse
+volatility of that market's own strategy returns, so a market whose trend
+book has turned erratic is cut back even when its price volatility alone
+would not say so.
+
+Specification frozen at the paper's own values before the reporting window
+was opened: 126-day realized-volatility window (Barroso & Santa-Clara eq. 3),
+scale capped at 2.0 (the pipeline's existing `max_leverage`), forecast and
+volatility both lagged one day so the scale applied on day *t* is known at the
+close of *t-1*.
+
+Search-window evidence, with no parameter chosen after the fact — all six
+configurations tested improve Sharpe in both windows:
+
+| Configuration | disc Sharpe | disc maxDD | conf Sharpe | conf maxDD |
+|---|---:|---:|---:|---:|
+| Incumbent | 1.671 | -15.8% | 1.811 | -9.0% |
+| 63-day | 1.738 | -12.2% | 1.899 | -10.7% |
+| **126-day (adopted)** | **1.692** | **-13.2%** | **1.920** | **-10.7%** |
+| 252-day | 1.718 | -12.8% | 1.888 | -9.5% |
+
+On the search-window evidence this was adopted, the reporting window was then
+opened once, and **it did not replicate**: Sharpe 1.168 -> 1.147 and maximum
+drawdown -15.3% -> -17.4%. Both claimed benefits — the Sharpe gain and the
+drawdown reduction — reversed. It is therefore **reported and not adopted**,
+under the same default-to-simpler rule applied to the carry sleeve in v2.1 and
+to the pre-fix basis momentum in v2.2. The function ships in the module with
+tests, and the strategy is unchanged.
+
+That makes three consecutive changes that improved every window available at
+design time and then failed on the reporting window. The consistent reading is
+not that each was unlucky: it is that this architecture is at its ceiling, and
+that search-window improvements of +0.02 to +0.11 Sharpe are inside the noise
+band of a 7-to-8-year window. The measured ceiling stands at Sharpe ~1.17.
+
 ## Deviation log
 
 - 2026-08-02, after the official run: fixed a unit bug in the deflated-Sharpe

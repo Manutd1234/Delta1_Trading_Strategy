@@ -155,6 +155,9 @@ class EnhancedConfig:
     carry_weight: float = 0.5
     basis_weight: float = 0.5
     vol_decay: float | None = 0.94
+    # Tested and reported, not adopted: per-market risk-managed sizing improved
+    # both search windows but did not replicate on the reporting window.
+    risk_managed_window: int | None = None
     candidates: tuple[ForecastCandidate, ...] = CANDIDATES
 
     def validate(self) -> None:
@@ -402,6 +405,34 @@ def _shock_multiplier(prices: pd.DataFrame, config: InstitutionalConfig) -> pd.D
     return (1 - progress * (1 - config.shock_floor)).where(ratio.notna())
 
 
+def risk_managed_forecast(
+    forecast: pd.DataFrame,
+    prices: pd.DataFrame,
+    vol_span: int,
+    window: int = 126,
+    cap: float = 2.0,
+) -> pd.DataFrame:
+    """Scale each market's forecast by the inverse volatility of its own P&L.
+
+    Barroso & Santa-Clara (2015) manage momentum's crashes with the strategy's
+    own realized volatility rather than the asset's. Applied per market, this
+    cuts risk in a market whose trend book has turned erratic even when its
+    price volatility alone would not say so — a distinction the portfolio-level
+    volatility target cannot see, because it only observes the aggregate.
+
+    ``u`` is the market's strategy return in risk units: yesterday's forecast
+    times today's price change over yesterday's volatility. Both inputs are
+    lagged, so the scale applied on day t is known at the close of t-1.
+    """
+    daily_vol = prices.diff().ewm(span=vol_span, min_periods=vol_span, adjust=False).std()
+    strategy_return = (
+        forecast.shift(1) * prices.diff() / daily_vol.shift(1).replace(0, np.nan)
+    )
+    realized = strategy_return.pow(2).rolling(window, min_periods=window).mean() ** 0.5
+    weight = (1.0 / realized.replace(0, np.nan)).clip(upper=cap)
+    return (forecast * weight).clip(-1, 1).where(forecast.notna())
+
+
 def _ewma_portfolio_leverage(
     base_gross_returns: pd.Series,
     config: BacktestConfig,
@@ -433,11 +464,16 @@ def run_signal_backtest(
     tradeable: pd.DataFrame | None = None,
     cost_multiplier: pd.Series | None = None,
     vol_decay: float | None = None,
+    risk_managed_window: int | None = None,
 ) -> BacktestResult:
     """Run any forecast through the shared risk-execution-accounting pipeline."""
     asset_classes = asset_classes or EXPANDED_ASSET_CLASSES
     shock = _shock_multiplier(prices, inst_config)
     forecast = (signal * shock).clip(-1, 1)
+    if risk_managed_window is not None:
+        forecast = risk_managed_forecast(
+            forecast, prices, base_config.vol_span, window=risk_managed_window
+        )
     if tradeable is not None:
         forecast = forecast.where(tradeable.reindex_like(forecast), np.nan)
 
@@ -1256,7 +1292,12 @@ def run_enhanced_pipeline(
     headline = run_signal_backtest(
         headline_signal, prices, metadata, base_config, InstitutionalConfig(),
         name="Breadth TSMOM + Basis Momentum (43 markets)", tradeable=tradeable,
-        vol_decay=config.vol_decay,
+        vol_decay=config.vol_decay, risk_managed_window=config.risk_managed_window,
+    )
+    risk_managed = run_signal_backtest(
+        headline_signal, prices, metadata, base_config, InstitutionalConfig(),
+        name="+ Risk-managed sizing (tested, not adopted)", tradeable=tradeable,
+        vol_decay=config.vol_decay, risk_managed_window=126,
     )
     trend_only = replace(
         walk_forward.candidate_results["Sign 12m"],
@@ -1300,6 +1341,7 @@ def run_enhanced_pipeline(
 
     lineup = [
         headline,
+        risk_managed,
         trend_only,
         carry_variant,
         walk_forward.backtest,
@@ -1359,8 +1401,10 @@ def run_enhanced_pipeline(
     # + the v2.1 blueprint experiments (2 vol estimators x carry weights
     # {0, 25, 50, 75, 100} minus overlaps, plus the absorption overlay) = 42
     # + the v2.2 alpha search: 8 candidate sleeves, 2 blend weights, the
-    # 3-sleeve variant, 5 sizing/class schemes = 58.
-    n_trials = 58
+    # 3-sleeve variant, 5 sizing/class schemes = 58
+    # + the v2.3 search: 10 further candidate sleeves, and the v2.4
+    # risk-managed sizing sweep of 6 configurations = 74.
+    n_trials = 74
     dsr = pd.Series(
         {
             window_name: deflated_sharpe_ratio(
