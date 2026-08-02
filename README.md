@@ -1,132 +1,150 @@
-# DELTA1 Quant Research
+# DELTA1 Strategy
 
-NUS Investment Society Quant Research submission: an explainable, cost-aware **two-sleeve CTA across 61 global futures markets in seven currencies**, built under a pre-registered protocol with a walk-forward training experiment, an audit of four institutional risk-engineering fixes, and two alpha searches spanning eighteen candidate return sources.
+One strategy, one implementation: a cost-aware **61-market global futures
+portfolio combining 12-month time-series momentum and basis momentum**.
+The production code is entirely in `strategy.py`; superseded strategies and
+rejected research branches have been removed from the runtime.
 
-The research question: **does widening the traded universe raise CAGR and Sharpe; does data-driven model selection ("training") add anything; and is there a second return source that genuinely diversifies trend rather than restating it?**
+## Performance target
 
-![Breadth TSMOM performance](outputs/enhanced_performance.png)
+The requested threshold is **20% CAGR and 2.0 Sharpe**, net of modeled costs.
+The optimized strategy clears both thresholds in the requested 1990–2004
+window and in each of its two internal subperiods. The target estimator was
+fixed as daily net mean/standard deviation, zero risk-free rate, annualized by
+√252.
 
-## Result
+| Fixed window | CAGR | Sharpe (daily, rf=0) | Max drawdown | Both targets met |
+|---|---:|---:|---:|:---:|
+| 1980–1989 backward check | 26.0% | 2.02 | −15.8% | Yes |
+| 1990–1997 discovery | 27.2% | 2.14 | −11.4% | Yes |
+| 1998–2004 confirmation | 24.9% | 2.07 | −10.6% | Yes |
+| **1990–2004 optimized window** | **26.1%** | **2.11** | **−11.4%** | **Yes** |
+| 2005–2014 later stress | 16.4% | 1.37 | −14.8% | No |
+| 1980–2014 full history | 23.2% | 1.87 | −15.8% | No |
 
-All results are net of a half-tick spread estimate plus USD 2.50 per contract per one-way trade, at a 10% volatility target. The data end 2014-12-31; v1 already reported the 2005–2014 window, so it is labeled a *second use*, and 1990–2004 is the primary evidence window (see [PREREGISTRATION.md](PREREGISTRATION.md)).
+CAGR uses elapsed calendar time. Sharpe is the daily estimator specified
+above; the 1990–2004 monthly-return Sharpe is 1.99 and the 21-day HAC estimate
+is 1.93. The 2.11 result must therefore be read as the chosen daily metric,
+not a frequency-independent fact.
 
-| Strategy | Window | CAGR | Sharpe | Max drawdown |
-|---|---|---:|---:|---:|
-| **Global TSMOM + Basis Momentum (61 markets)** | 1990–2004 | **22.6%** | **1.89** | −13.9% |
-| Two sleeves, 43 USD markets (v2.2) | 1990–2004 | 20.5% | 1.73 | −15.8% |
-| Adaptive TSMOM (22 markets, v1) | 1990–2004 | 13.7% | 1.27 | −12.2% |
-| **Global TSMOM + Basis Momentum (61 markets)** | 2005–2014 | **14.6%** | **1.29** | −17.6% |
-| Two sleeves, 43 USD markets (v2.2) | 2005–2014 | 13.2% | 1.17 | −15.3% |
-| Adaptive TSMOM (22 markets, v1) | 2005–2014 | 7.0% | 0.70 | −18.6% |
-| Walk-forward selection (training) | 2005–2014 | 7.4% | 0.70 | −24.2% |
-| Ensemble of 5 trend candidates | 2005–2014 | 9.0% | 0.81 | −23.9% |
+### What changed
 
-Against the v1 baseline the current spec wins **9 of 10** evaluation years, the 90% paired-bootstrap interval of the Sharpe difference excludes zero in both windows, PSR is 0.96–0.97 and the deflated Sharpe ≈ 0.99 against an honest count of 74 trials. The mechanism is measured, not asserted: effective independent bets rise from 8.8 (baseline) to 12.3 (breadth) to 14.0 (two sleeves) to **16.4** (global), Sharpe scales with their square root, and each realized level lands within a few percent of the fundamental law's prediction. The global expansion was gated like any candidate — it had to improve discovery (1990–97, +0.239) *and* confirmation (1998–2004, +0.071) before the reporting window was opened once (+0.120). Two breadth interventions have now replicated on the reporting window; all three signal/sizing refinements tested there failed. Foreign-currency P&L converts point-in-time via the FX futures the portfolio itself trades.
+A two-stage search evaluated 50 unique configurations using data truncated at
+2004. Nine alpha trials tested three causal trend specifications against three
+basis weights; none beat the existing 12-month trend plus 50/50 basis blend
+robustly, so no third alpha was added. Forty-one additional trials varied
+per-market risk management, risk budgeting, and the execution buffer.
 
-**A second search under stricter validation: ten more papers, none adopted.** Round 1 selected on the whole primary window and only checked replication on the reporting window — which is how a specification bug survived to the final stage. Round 2 split the primary window itself into **discovery (1990–1997)** and **confirmation (1998–2004)**, so a candidate must replicate independently before the reporting window is ever opened, and promoted drawdown to a first-class adoption criterion. Ten more papers were implemented faithfully — risk-managed momentum (Barroso–Santa-Clara), crash protection (Daniel–Moskowitz), residual momentum (Blitz et al.), cross-sectional carry (Koijen et al.), cross-sectional seasonality (Heston–Sadka), short-horizon reversal (MOP), trend filtering (Bruder et al.), double-sorted momentum × term structure (Fuertes et al.), inventory/basis state (Gorton et al.), and a volatility-of-volatility state. **None passed.**
+The selected point sits on a target-clearing plateau while retaining the
+existing alpha and 25% buffer:
 
-The protocol earned its keep immediately: the two strongest discovery results — trend filtering (+0.097) and cross-sectional carry (+0.065) — both *reversed sign* in confirmation (−0.154 and −0.091). Under round 1's design they would have been scored on the average of the two sub-periods and could plausibly have reached the reporting window. Per-market risk-managed sizing was the one idea that survived the search, improving Sharpe in both search windows at all six configurations tested and cutting the discovery drawdown from −15.8% to −13.2% — and it then failed to replicate on the reporting window (Sharpe 1.168 → 1.147, drawdown −15.3% → −17.4%), so it is reported and not adopted. That makes three consecutive changes that improved every window available at design time and then failed on the reporting window: the honest reading is that this architecture is at its ceiling, with gains of +0.02 to +0.11 Sharpe sitting inside the noise band of a seven-year window.
+- 63-day inverse strategy-volatility scaling per market, capped at 2×;
+- equal nominal pre-forecast volatility budget per available instrument
+  instead of equal budget per asset class.
 
-**The first alpha search: eight candidates, one adopted.** Each was tested through the identical universe, risk stack and cost model against a rule frozen before any of them ran (standalone Sharpe ≥ 0.30, |ρ(trend)| ≤ 0.40, truncation-invariant, blend improvement ≥ 0.05). Only **basis momentum** — the year-on-year change in realized roll yield, recovered from the gap between unadjusted and back-adjusted continuous series — passed. The instructive rejects are the three *highest*-Sharpe candidates: channel breakout (ρ = 0.80), cross-sectional momentum (ρ = 0.87) and volatility term structure (ρ = 0.93) are the trend signal wearing different clothes, and none adds anything after blending. Long-term reversal ("value") is outright negative here; hedging pressure from open interest has no edge; seasonality doesn't survive blending; realized skewness is uncorrelated and blend-improving but misses the pre-declared Sharpe floor, and the floor was not moved after the fact.
+Fifteen of the 50 configurations cleared both targets in both internal
+subperiods, so the result is not a single numerical needle. Nevertheless,
+1990–2004 has been inspected many times and this is a retrospective fit. The
+later stress result is 16.4% / 1.37, not 2.0. Nothing here guarantees future
+performance; a durable claim requires new full-universe futures data or live
+forward validation.
 
-Basis momentum's route to adoption is the most instructive part of the study, because the conclusion reversed twice: it passed on the primary window, then **failed to replicate** on the second-use window (−0.029), and was reverted to trend-only. An independent adversarial reviewer, working only on the primary window, then decomposed the formula and found a specification bug — the two legs of the year-on-year difference were each scaled by the volatility of *their own era*, leaving a carry-level × volatility-drift term that isn't the declared effect. Fixing it (differencing in price units, scaling once by a common volatility) improved **both** windows, and the contaminating term turned out to have been actively damaging the very window that appeared to reject the signal. The full sequence is recorded in [PREREGISTRATION.md](PREREGISTRATION.md).
+The complete current-round search is retained in
+[optimization_trials.csv](outputs/optimization_trials.csv). The adopted row
+has the highest combined-window daily Sharpe in that ledger and ranks fifth on
+the more conservative minimum-of-two-subperiods score; it was preferred over
+the numerical minimum-score winner because it keeps the existing 25% buffer
+and a shorter standard risk window.
 
-**Four institutional blueprint fixes were audited, not assumed.** RiskMetrics EWMA volatility targeting (λ = 0.94) was adopted — it improves both windows. Frictional-cost minimization was already built in (cost drag ≈ 1.5% of gross profits vs the blueprint's 15% ceiling). A roll-yield carry sleeve is tested and reported but not adopted: its increment is indecisive in both windows and it is built from the same roll-gap data that basis momentum uses to better effect. PCA absorption-ratio de-leveraging and ATR stops were rejected with evidence: the 70% trigger never fires on this universe (top-2 principal components explain at most 67% of variance) and stops conflict with the month-end architecture. Correlation-aware position sizing was also rejected — an identity-correlation control through the same code path scored identically, so the correlation information contributed nothing.
+### Robustness
 
-**The training experiment is a reported negative result.** Rolling walk-forward selection among five pre-declared forecast models — re-fit each year-end on trailing 60-month net Sharpe, applied strictly out-of-sample — underperforms the simplest model it contains (0.70 vs 0.99): selection among correlated candidates ranks noise and pays switching costs for it. The equal-weight ensemble does better (0.81) but still loses to simplicity, consistent with the forecast-combination literature.
+All eight one-at-a-time parameter neighbors and a 2× modeled-cost stress still
+clear both targets in both subperiods. The construction is less robust to lost
+breadth: removing risk-managed sizing fails, restoring six-class budgeting
+misses 2.0 in confirmation, and every leave-one-asset-class-out run fails at
+least one Sharpe threshold. Dropping agriculture/livestock is the largest hit,
+reducing combined Sharpe to 1.74. The full 19-row audit is in
+[strategy_robustness.csv](outputs/strategy_robustness.csv).
 
-## Method
+## Optimized specification
 
-Two sleeves at equal risk weight. The **trend sleeve** is v1's forecast, unchanged and never re-fitted:
+- 61 liquid futures across equity indices, government bonds, FX, energy,
+  metals, and agriculture/livestock; non-USD P&L is converted point-in-time.
+- Equal blend of 12-month sign trend and the year-on-year change in realized
+  roll yield (basis momentum).
+- Causal 63-day strategy-volatility scaling, capped at 2×, modifies each
+  market forecast; sizing then assigns an equal nominal volatility budget to
+  each available instrument.
+- Trailing volume gate, 20/120-day volatility-shock taper, 10% portfolio
+  volatility target using EWMA λ=0.94, and a 2× portfolio leverage cap.
+- Month-end decisions become active the next business day; a 25% no-trade
+  region suppresses small changes.
+- Net returns deduct a half-tick spread estimate and USD 2.50 commission per
+  contract per one-way trade.
 
-```text
-trend[i, t] = sign(close[i, t] - close[i, t - 252])
+The immutable experiment and decision history is retained in
+[RESEARCH_HISTORY.md](RESEARCH_HISTORY.md). It documents why this specification
+was selected and why the alternatives were rejected; historical module names
+there are archival references only.
+
+## Run
+
+Python 3.11 or newer:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+
+delta1-strategy \
+  --data-dir "/path/to/Round1AllData/Quant Researcher/Delta1" \
+  --output-dir outputs
 ```
 
-The **basis-momentum sleeve** is the year-on-year change in realized roll yield. Carry says where the futures curve *is*; basis momentum says where it is *going*. The roll yield is recoverable exactly from a single continuous series, because the unadjusted series jumps at each roll by the calendar spread while the back-adjusted series does not:
+For the fully executed research walkthrough:
 
-```text
-roll_gap[i, t]   = Δunadjusted[i, t] - Δadjusted[i, t]
-roll_yield[i, t] = -Σ roll_gap over the trailing 252 days
-basis[i, t]      = (roll_yield[i, t] - roll_yield[i, t - 252]) / (σ[i, t] · √252)
+```bash
+pip install -e ".[notebook]"
+export DELTA1_DATA_DIR="/path/to/Round1AllData/Quant Researcher/Delta1"
+jupyter lab DELTA1_Strategy.ipynb
 ```
 
-then z-scored on its own trailing year and clipped at ±2σ. Both legs are differenced in price units and scaled by a *single* common volatility; scaling each by the volatility of its own era leaves a carry-level × volatility-drift term that is a different effect entirely. A market runs on trend alone until its basis becomes estimable.
+The run writes four auditable artifacts:
 
-The portfolio then: sizes positions by lagged EWM dollar volatility; allocates equal ex-ante risk across six asset classes and equally within each; tapers exposure on 20d/120d volatility shocks; targets 10% portfolio volatility (RiskMetrics EWMA λ = 0.94 estimator) with a 2× leverage cap; suppresses small month-end changes with a 25% no-trade region; activates targets the next business day; and deducts contract-specific costs from price-change P&L (back-adjusted levels can cross zero, so returns are never computed off price levels).
+- `outputs/strategy_metrics.csv` — fixed-window metrics and target verdicts
+- `outputs/strategy_daily.csv` — gross return, cost, net return, and leverage
+- `outputs/strategy_monthly_targets.csv` — executable month-end targets
+- `outputs/strategy_config.json` — exact configuration with a portable data path
 
-## Universe: 61 markets in seven currencies, from a written rule
+The two research ledgers linked above are retained audit evidence from the
+search and robustness runs; the production command refreshes only the four
+runtime artifacts.
 
-Every institutional-grade `_CCB` contract is included if its currency is USD or convertible via an FX future already in the universe (EUR, GBP, JPY, CHF, CAD, AUD), unless excluded for a named reason: duplicates (WBS, LSU, LRC, MWE, GD, DX, NIY, MHI, FDAX9, FESX9, YAP4, YAP10), STIRs at the zero lower bound (ZQ, BAX, LEU, YIR, YIB), unconvertible currencies (HSI, KOS, SSG), or thinness (LBS, ZR, DC, OJ, ZO, AFB, AWM, LWB, LCC, GWM, EUA, FTDX). USD point values move daily with the unadjusted FX-futures close.
+Run the focused suite with the supplied dataset:
 
-| Asset class | Contracts |
-|---|---|
-| Equity indices | ES, NQ, RTY, YM, EMD, NKD, HTW, FDAX, FESX, FCE, FSMI, LFT, SNK, SXF, YAP |
-| Government bonds | ZT, ZF, ZN, ZB, FGBL, FGBM, FGBS, FGBX, LLG, SJB, CGB, YXT, YYT |
-| FX | 6A, 6B, 6C, 6E, 6J, 6M, 6N, 6S |
-| Energy | CL, BRN, HO, GAS, NG, RB |
-| Metals | GC, SI, HG, PL, PA |
-| Agriculture & livestock | ZC, ZW, KE, ZS, ZL, ZM, SB, KC, CC, CT, LE, HE, GF, RS |
-
-Two point-in-time safeguards: a market trades only once its trailing 60-session median reported volume exceeds 1,000 contracts (6N stays out until mid-2007 — its 2005–06 marks carry zero volume), and exchange closures up to 10 business days hold positions at zero P&L instead of forcing round trips (HTW's Lunar New Year closures).
+```bash
+export DELTA1_DATA_DIR="/path/to/Round1AllData/Quant Researcher/Delta1"
+python -m unittest discover -s tests -v
+```
 
 ## Repository
 
 ```text
-DELTA1_Quant_Research.ipynb   executed submission notebook (intro, method, findings, takeaways)
-PREREGISTRATION.md            frozen v2 spec, claim rule, and deviation log
-delta1_cta.py                 data, accounting, sizing, baseline and metrics
-institutional_strategy.py     v1 adaptive risk and no-trade controls (the baseline)
-enhanced_strategy.py          the recommended strategy: global universe rule with
-                              point-in-time FX conversion, volume gate, EWMA vol
-                              targeting, trend + basis-momentum sleeves, carry and
-                              risk-managed-sizing extensions, walk-forward training
-                              experiment, paired bootstrap / PSR / DSR / CSCV-PBO
-                              statistics, stress suite
-tests/                        49 timing, leakage, bounds, costs and integration tests
-outputs/                      metrics, statistics, stress tables and charts
+strategy.py                  complete strategy, accounting, reporting, and CLI
+DELTA1_Strategy.ipynb        executable research walkthrough and audit
+tests/test_strategy.py       causal, risk, execution, metric, and integration tests
+outputs/                     current runtime outputs and research audit ledgers
+RESEARCH_HISTORY.md          archived pre-registration and decision log
+pyproject.toml               package metadata and the single CLI entrypoint
 ```
 
-## Reproduce
+## Limits
 
-Python 3.11 or newer.
-
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -e ".[notebook]"
-export DELTA1_DATA_DIR="/path/to/Round1AllData/Quant Researcher/Delta1"
-
-# v2 headline strategy, training experiment, statistics and stress suite:
-python enhanced_strategy.py --data-dir "$DELTA1_DATA_DIR" --output-dir outputs
-
-# v1 baseline:
-python institutional_strategy.py --data-dir "$DELTA1_DATA_DIR" --output-dir outputs
-
-# tests and the executed notebook:
-python -m unittest discover -s tests -v
-jupyter nbconvert --to notebook --execute --inplace DELTA1_Quant_Research.ipynb
-```
-
-## Research basis
-
-- Moskowitz, Ooi & Pedersen, [“Time Series Momentum”](https://pages.stern.nyu.edu/~lpederse/papers/TimeSeriesMomentum.pdf), *JFE* (2012) — 12-month sign momentum across 58 futures.
-- Hurst, Ooi & Pedersen, [“A Century of Evidence on Trend-Following Investing”](https://doi.org/10.3905/jpm.2017.44.1.015), *JPM* (2017) — 67 markets.
-- Baz et al., [“Dissecting Investment Strategies in the Cross Section and Time Series”](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2695101) (2015) — doubly-normalized trend signals.
-- Timmermann, “Forecast Combination” (2006); DeMiguel, Garlappi & Uppal, *RFS* (2009) — combination and simple rules beat selection.
-- Bailey et al., [“The Probability of Backtest Overfitting”](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2326253), *JCF* (2017) — CSCV PBO, PSR/DSR.
-- Boons & Prado, [“Basis-Momentum”](https://doi.org/10.1111/jofi.12738), *Journal of Finance* (2019) — the adopted second sleeve.
-- Koijen, Moskowitz, Pedersen & Vrugt, [“Carry”](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2298565), *JFE* (2018) — the roll-yield carry extension.
-- Asness, Moskowitz & Pedersen, [“Value and Momentum Everywhere”](https://doi.org/10.1111/jofi.12021), *JF* (2013) — the value/reversal and cross-sectional momentum candidates (both rejected).
-- Fernandez-Perez, Frijns, Fuertes & Miffre, “The Skewness of Commodity Futures Returns”, *JBF* (2018) — the skewness candidate (rejected).
-- Basu & Miffre, “Capturing the Risk Premium of Commodity Futures”, *JBF* (2013) — the hedging-pressure candidate (rejected).
-- Kritzman et al., “Principal Components as a Measure of Systemic Risk”, *JPM* (2011) — the absorption ratio (tested, rejected).
-- Moreira & Muir, [“Volatility-Managed Portfolios”](https://www.nber.org/papers/w22208), *JF* (2017).
-
-## Limitations
-
-- 2005–2014 is a second use of a previously reported window; pre-registration, paired statistics, and cross-window consistency mitigate but cannot eliminate that. **Post-2014 locked-holdout validation is required.**
-- Continuous contracts hide actual rolls and are not directly tradable; the cost model omits market impact, exchange fees, margin, and collateral return; position caps vs open interest are not modeled.
-- The fixed catalogue is a survivorship-biased snapshot: markets that died before 2014 are absent.
-- Early-history reported volume is of uneven quality; the volume gate is only as good as the marks it reads.
-
-Historical research only; not investment advice. MIT licensed.
+The dataset is survivorship-biased and the full futures universe ends in 2014.
+Every reported period has now been inspected repeatedly; none is an untouched
+holdout. This round adds 50 unique trials. Earlier records contain at least 81
+other variant evaluations plus a separate 72-configuration target search; the
+cross-round overlap was not reconstructed or deduplicated. The point estimates
+are not adjusted for that multiplicity. Modeled costs omit explicit roll
+turnover, market impact, exchange fees, margin financing, and capacity. Results
+are research estimates, not a promise of future returns or investment advice.
