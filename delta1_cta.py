@@ -131,6 +131,7 @@ def _base_target_positions(
     config: BacktestConfig,
     asset_classes: dict[str, tuple[str, ...]] | None = None,
     class_weights: dict[str, float] | None = None,
+    point_values: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     asset_classes = asset_classes or ASSET_CLASSES
     price_change = prices.diff()
@@ -139,9 +140,12 @@ def _base_target_positions(
         min_periods=config.vol_span,
         adjust=False,
     ).std()
-    annual_dollar_vol = daily_price_vol.mul(
-        metadata["point_value"], axis=1
-    ) * math.sqrt(config.annualization)
+    if point_values is not None:
+        annual_dollar_vol = daily_price_vol * point_values * math.sqrt(config.annualization)
+    else:
+        annual_dollar_vol = daily_price_vol.mul(
+            metadata["point_value"], axis=1
+        ) * math.sqrt(config.annualization)
 
     positions = pd.DataFrame(index=prices.index, columns=prices.columns, dtype=float)
     for asset_class, symbols in asset_classes.items():
@@ -168,8 +172,14 @@ def _gross_returns(
     held_positions: pd.DataFrame,
     prices: pd.DataFrame,
     metadata: pd.DataFrame,
+    point_values: pd.DataFrame | None = None,
 ) -> pd.Series:
-    contract_pnl = prices.diff().mul(metadata["point_value"], axis=1)
+    # point_values, when given, is a date x symbol frame of USD point values
+    # (native point value times the day's FX rate) for non-USD contracts.
+    if point_values is not None:
+        contract_pnl = prices.diff() * point_values
+    else:
+        contract_pnl = prices.diff().mul(metadata["point_value"], axis=1)
     return (held_positions * contract_pnl).sum(axis=1, min_count=1).fillna(0.0)
 
 
@@ -285,9 +295,13 @@ def contribution_by_class(
     result: BacktestResult,
     config: BacktestConfig,
     asset_classes: dict[str, tuple[str, ...]] | None = None,
+    point_values: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     asset_classes = asset_classes or ASSET_CLASSES
-    contract_pnl = result.prices.diff().mul(result.metadata["point_value"], axis=1)
+    if point_values is not None:
+        contract_pnl = result.prices.diff() * point_values
+    else:
+        contract_pnl = result.prices.diff().mul(result.metadata["point_value"], axis=1)
     contribution = result.positions * contract_pnl
     contribution = contribution.loc[config.oos_start : config.oos_end]
     out = {}

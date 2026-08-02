@@ -1,6 +1,6 @@
 # DELTA1 Quant Research
 
-NUS Investment Society Quant Research submission: an explainable, cost-aware **two-sleeve CTA across 43 global futures markets**, built under a pre-registered protocol with a walk-forward training experiment, an audit of four institutional risk-engineering fixes, and two alpha searches spanning eighteen candidate return sources.
+NUS Investment Society Quant Research submission: an explainable, cost-aware **two-sleeve CTA across 61 global futures markets in seven currencies**, built under a pre-registered protocol with a walk-forward training experiment, an audit of four institutional risk-engineering fixes, and two alpha searches spanning eighteen candidate return sources.
 
 The research question: **does widening the traded universe raise CAGR and Sharpe; does data-driven model selection ("training") add anything; and is there a second return source that genuinely diversifies trend rather than restating it?**
 
@@ -12,16 +12,16 @@ All results are net of a half-tick spread estimate plus USD 2.50 per contract pe
 
 | Strategy | Window | CAGR | Sharpe | Max drawdown |
 |---|---|---:|---:|---:|
-| **Trend + Basis Momentum (43 markets)** | 1990–2004 | **20.5%** | **1.73** | −15.8% |
-| Trend sleeve only (43 markets) | 1990–2004 | 18.4% | 1.59 | −11.9% |
+| **Global TSMOM + Basis Momentum (61 markets)** | 1990–2004 | **22.6%** | **1.89** | −13.9% |
+| Two sleeves, 43 USD markets (v2.2) | 1990–2004 | 20.5% | 1.73 | −15.8% |
 | Adaptive TSMOM (22 markets, v1) | 1990–2004 | 13.7% | 1.27 | −12.2% |
-| **Trend + Basis Momentum (43 markets)** | 2005–2014 | **13.2%** | **1.17** | **−15.3%** |
-| Trend sleeve only (43 markets) | 2005–2014 | 11.0% | 0.99 | −20.8% |
+| **Global TSMOM + Basis Momentum (61 markets)** | 2005–2014 | **14.6%** | **1.29** | −17.6% |
+| Two sleeves, 43 USD markets (v2.2) | 2005–2014 | 13.2% | 1.17 | −15.3% |
 | Adaptive TSMOM (22 markets, v1) | 2005–2014 | 7.0% | 0.70 | −18.6% |
 | Walk-forward selection (training) | 2005–2014 | 7.4% | 0.70 | −24.2% |
 | Ensemble of 5 trend candidates | 2005–2014 | 9.0% | 0.81 | −23.9% |
 
-Against the v1 baseline the 90% paired-bootstrap interval of the Sharpe difference now **excludes zero in both windows** (+0.326 primary, +0.385 second-use), with 8 of 10 winning evaluation years, PSR 0.89/0.90 and a deflated Sharpe of 0.97–1.00 against an honest count of 74 trials. The mechanism is measured, not asserted: effective independent bets rise from 8.8 (baseline) to 12.3 (breadth) to **14.0** (two sleeves), and Sharpe scales with their square root. It survives 3× costs, 5× costs on the six thinnest markets, dropping any single asset class, and excluding 2008–09 (Sharpe 1.21 without the crisis).
+Against the v1 baseline the current spec wins **9 of 10** evaluation years, the 90% paired-bootstrap interval of the Sharpe difference excludes zero in both windows, PSR is 0.96–0.97 and the deflated Sharpe ≈ 0.99 against an honest count of 74 trials. The mechanism is measured, not asserted: effective independent bets rise from 8.8 (baseline) to 12.3 (breadth) to 14.0 (two sleeves) to **16.4** (global), Sharpe scales with their square root, and each realized level lands within a few percent of the fundamental law's prediction. The global expansion was gated like any candidate — it had to improve discovery (1990–97, +0.239) *and* confirmation (1998–2004, +0.071) before the reporting window was opened once (+0.120). Two breadth interventions have now replicated on the reporting window; all three signal/sizing refinements tested there failed. Foreign-currency P&L converts point-in-time via the FX futures the portfolio itself trades.
 
 **A second search under stricter validation: ten more papers, none adopted.** Round 1 selected on the whole primary window and only checked replication on the reporting window — which is how a specification bug survived to the final stage. Round 2 split the primary window itself into **discovery (1990–1997)** and **confirmation (1998–2004)**, so a candidate must replicate independently before the reporting window is ever opened, and promoted drawdown to a first-class adoption criterion. Ten more papers were implemented faithfully — risk-managed momentum (Barroso–Santa-Clara), crash protection (Daniel–Moskowitz), residual momentum (Blitz et al.), cross-sectional carry (Koijen et al.), cross-sectional seasonality (Heston–Sadka), short-horizon reversal (MOP), trend filtering (Bruder et al.), double-sorted momentum × term structure (Fuertes et al.), inventory/basis state (Gorton et al.), and a volatility-of-volatility state. **None passed.**
 
@@ -55,18 +55,18 @@ then z-scored on its own trailing year and clipped at ±2σ. Both legs are diffe
 
 The portfolio then: sizes positions by lagged EWM dollar volatility; allocates equal ex-ante risk across six asset classes and equally within each; tapers exposure on 20d/120d volatility shocks; targets 10% portfolio volatility (RiskMetrics EWMA λ = 0.94 estimator) with a 2× leverage cap; suppresses small month-end changes with a 25% no-trade region; activates targets the next business day; and deducts contract-specific costs from price-change P&L (back-adjusted levels can cross zero, so returns are never computed off price levels).
 
-## Universe: 43 markets from a written rule
+## Universe: 61 markets in seven currencies, from a written rule
 
-Every USD-denominated `_CCB` contract in the supplied catalogue (56) is included unless excluded for a named reason: duplicates/baskets (WBS, LSU, LRC, MWE, GD, DX), broken mechanics (VX not delta-one; ZQ near-zero volatility at the zero lower bound), or a ~$100M median daily dollar-volume liquidity rule (LBS, ZR, DC, OJ, ZO).
+Every institutional-grade `_CCB` contract is included if its currency is USD or convertible via an FX future already in the universe (EUR, GBP, JPY, CHF, CAD, AUD), unless excluded for a named reason: duplicates (WBS, LSU, LRC, MWE, GD, DX, NIY, MHI, FDAX9, FESX9, YAP4, YAP10), STIRs at the zero lower bound (ZQ, BAX, LEU, YIR, YIB), unconvertible currencies (HSI, KOS, SSG), or thinness (LBS, ZR, DC, OJ, ZO, AFB, AWM, LWB, LCC, GWM, EUA, FTDX). USD point values move daily with the unadjusted FX-futures close.
 
 | Asset class | Contracts |
 |---|---|
-| Equity indices | ES, NQ, RTY, NKD, YM, EMD, HTW |
-| US government bonds | ZT, ZF, ZN, ZB |
+| Equity indices | ES, NQ, RTY, YM, EMD, NKD, HTW, FDAX, FESX, FCE, FSMI, LFT, SNK, SXF, YAP |
+| Government bonds | ZT, ZF, ZN, ZB, FGBL, FGBM, FGBS, FGBX, LLG, SJB, CGB, YXT, YYT |
 | FX | 6A, 6B, 6C, 6E, 6J, 6M, 6N, 6S |
 | Energy | CL, BRN, HO, GAS, NG, RB |
 | Metals | GC, SI, HG, PL, PA |
-| Agriculture & livestock | ZC, ZW, KE, ZS, ZL, ZM, SB, KC, CC, CT, LE, HE, GF |
+| Agriculture & livestock | ZC, ZW, KE, ZS, ZL, ZM, SB, KC, CC, CT, LE, HE, GF, RS |
 
 Two point-in-time safeguards: a market trades only once its trailing 60-session median reported volume exceeds 1,000 contracts (6N stays out until mid-2007 — its 2005–06 marks carry zero volume), and exchange closures up to 10 business days hold positions at zero P&L instead of forcing round trips (HTW's Lunar New Year closures).
 
@@ -77,12 +77,13 @@ DELTA1_Quant_Research.ipynb   executed submission notebook (intro, method, findi
 PREREGISTRATION.md            frozen v2 spec, claim rule, and deviation log
 delta1_cta.py                 data, accounting, sizing, baseline and metrics
 institutional_strategy.py     v1 adaptive risk and no-trade controls (the baseline)
-enhanced_strategy.py          the recommended strategy: universe rule, volume gate,
-                              EWMA vol targeting, trend + basis-momentum sleeves,
-                              carry extension, walk-forward training experiment,
-                              paired bootstrap / PSR / DSR / CSCV-PBO statistics,
-                              stress suite
-tests/                        45 timing, leakage, bounds, costs and integration tests
+enhanced_strategy.py          the recommended strategy: global universe rule with
+                              point-in-time FX conversion, volume gate, EWMA vol
+                              targeting, trend + basis-momentum sleeves, carry and
+                              risk-managed-sizing extensions, walk-forward training
+                              experiment, paired bootstrap / PSR / DSR / CSCV-PBO
+                              statistics, stress suite
+tests/                        49 timing, leakage, bounds, costs and integration tests
 outputs/                      metrics, statistics, stress tables and charts
 ```
 

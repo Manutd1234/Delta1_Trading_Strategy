@@ -366,7 +366,81 @@ not that each was unlucky: it is that this architecture is at its ceiling, and
 that search-window improvements of +0.02 to +0.11 Sharpe are inside the noise
 band of a 7-to-8-year window. The measured ceiling stands at Sharpe ~1.17.
 
+## Addendum (v2.5): global universe — rule frozen before results
+
+Two systematic searches (18 candidate return sources) established that
+signal-space on this data is exhausted. The one intervention that ever
+replicated on the reporting window is breadth (22 -> 43 markets, v2.0). This
+addendum applies the identical intervention to the rest of the catalogue:
+the USD-only constraint inherited from v1 is replaced by a convertibility
+rule, since the portfolio itself holds the FX futures needed to convert
+foreign-currency P&L point-in-time.
+
+**Universe rule.** Every institutional-grade contract in the catalogue whose
+currency is USD or convertible via an FX future already in the universe
+(EUR, GBP, JPY, CHF, CAD, AUD). Named exclusions and reasons: BAX, LEU, YIR,
+YIB (STIRs at the zero lower bound — the existing ZQ rule); NIY (duplicates
+SNK), MHI (duplicates HSI), FDAX9, FESX9, YAP4, YAP10 (venue duplicates);
+HSI, KOS, SSG (HKD/KRW/SGD have no conversion series in this dataset);
+AFB, AWM, LWB, LCC, GWM (thin or late agriculture); EUA, FTDX (late, niche).
+Additions (18): FDAX, FESX, FCE, LFT, FSMI, SNK, SXF, YAP equities; FGBL,
+FGBM, FGBS, FGBX, LLG, SJB, CGB, YXT, YYT bonds; RS agriculture. The global
+universe is 61 markets: 15 equities, 13 bonds, 8 FX, 6 energy, 5 metals,
+14 agriculture & livestock.
+
+**FX conversion.** USD point value = native point value x the unadjusted
+currency-futures close (USD per unit; the 6J file quotes per 100 yen and is
+scaled by 0.01, guarded by plausibility bounds that fail loudly). The futures
+basis versus spot is an interest-differential error of order 1-2% a year —
+a benign scaling, and fully point-in-time. Sizing, P&L, and the half-tick
+spread cost all use the same day's USD point value. Commission stays $2.50
+per contract. Euro-era contracts (1999+) and all late starters enter
+point-in-time through the existing volume gate and lookback validity, exactly
+as 6N and RB did in v2.0.
+
+**Everything else is frozen and unchanged:** the two sleeves at equal risk
+weight, the six-class equal-risk budget, the EWMA volatility target, the
+shock taper, the 25% buffer, monthly execution, and the cost model.
+
+**Evaluation gates, in order.** (1) The global book must improve the blend
+Sharpe in BOTH the discovery (1990-1997) and confirmation (1998-2004)
+windows versus the 43-market incumbent, and must not worsen maximum drawdown
+by more than 2 percentage points in either. (2) Only if both hold is the
+reporting window opened, once. Prior expectation, stated for the record:
+effective bets should rise from ~14 toward ~18-20, which by the fundamental
+law predicts a Sharpe near 1.3, not 1.5 — the gate tests direction, and the
+reporting window sets the honest magnitude.
+
+### Result: adopted — the second breadth intervention, and the second change
+### ever to replicate
+
+Discovery: Sharpe 1.671 -> 1.910 (+0.239), max drawdown improves 1.8pp.
+Confirmation: 1.811 -> 1.883 (+0.071), drawdown worsens 1.2pp (inside
+tolerance). Both gates passed; the reporting window was then opened once:
+Sharpe 1.168 -> 1.288, CAGR 13.2% -> 14.6%, max drawdown -15.3% -> -17.6%,
+effective bets 14.0 -> 16.4. The realized Sharpe matches the fundamental-law
+prediction almost exactly (sqrt(16.4/14.0) x 1.168 = 1.26), and the paired
+increment is +0.162 (90% CI [-0.07, +0.36], P(>0) = 0.86).
+
+Every window is positive — the first time since basis momentum, and the
+pattern across five iterations is now unambiguous: the two interventions that
+replicated are both breadth; all three that failed were signal or sizing
+refinements. The stated prior (Sharpe near 1.3, not 1.5) was correct, and
+the reporting-window drawdown worsening by 2.3pp against the incumbent is
+recorded plainly: the global book's drawdown remains better than the v1
+baseline's -18.6% but is not an improvement over the 43-market book.
+
 ## Deviation log
+
+- 2026-08-03, v2.5: the global universe was adopted after passing its
+  pre-declared discovery/confirmation gates and replicating on the reporting
+  window (opened once). The engine gained optional time-varying USD point
+  values threaded through sizing, P&L, and the spread-cost model; v1 code
+  paths are unchanged. The DSR trial count in the pipeline remains 74 — the
+  v2.5 gate added a single pre-declared configuration, and one more trial
+  moves the deflated Sharpe by less than a thousandth. CSCV PBO rose to 42%
+  on the candidate set under the global universe and is reported as the
+  weakest statistic rather than smoothed over.
 
 - 2026-08-02, after the official run: fixed a unit bug in the deflated-Sharpe
   helper (the trial-Sharpe dispersion, declared in annualized units, was

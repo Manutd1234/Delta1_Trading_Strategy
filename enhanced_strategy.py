@@ -243,6 +243,109 @@ def candidate_signal(
     return trend_strength(prices, candidate.horizons, config.signal_vol_span, config.strength_cap)
 
 
+# The global extension (v2.5): every institutional-grade contract in the
+# catalogue whose currency can be converted point-in-time using the FX futures
+# already in the universe. STIRs stay excluded (zero-lower-bound sizing, the
+# ZQ rule); NIY duplicates SNK, MHI duplicates HSI, FDAX9/FESX9/YAP4/YAP10 are
+# venue duplicates; HSI/KOS/SSG have no FX conversion series in this dataset;
+# AFB/AWM/LWB/LCC/GWM are thin or late agricultural contracts; EUA and FTDX
+# are late and niche.
+GLOBAL_ASSET_CLASSES: dict[str, tuple[str, ...]] = {
+    "Equity indices": (
+        "EMD", "ES", "FCE", "FDAX", "FESX", "FSMI", "HTW", "LFT",
+        "NKD", "NQ", "RTY", "SNK", "SXF", "YAP", "YM",
+    ),
+    "Government bonds": (
+        "CGB", "FGBL", "FGBM", "FGBS", "FGBX", "LLG", "SJB",
+        "YXT", "YYT", "ZT", "ZF", "ZN", "ZB",
+    ),
+    "FX": ("6A", "6B", "6C", "6E", "6J", "6M", "6N", "6S"),
+    "Energy": ("BRN", "CL", "GAS", "HO", "NG", "RB"),
+    "Metals": ("GC", "HG", "PA", "PL", "SI"),
+    "Agriculture & livestock": (
+        "CC", "CT", "GF", "HE", "KC", "KE", "LE", "RS",
+        "SB", "ZC", "ZL", "ZM", "ZS", "ZW",
+    ),
+}
+
+# USD per unit of foreign currency, proxied by the unadjusted currency-futures
+# close. The 6J file quotes USD per 100 yen, hence the scale.
+FX_SOURCE: dict[str, tuple[str, float]] = {
+    "EUR": ("6E", 1.0),
+    "GBP": ("6B", 1.0),
+    "JPY": ("6J", 0.01),
+    "CHF": ("6S", 1.0),
+    "CAD": ("6C", 1.0),
+    "AUD": ("6A", 1.0),
+}
+
+
+def load_global_metadata(data_dir: Path, symbols: list[str]) -> pd.DataFrame:
+    """Catalogue rows for a multi-currency universe.
+
+    Same catalogue parsing as ``load_metadata`` but without the USD-only
+    check; every non-USD currency must instead have an FX conversion source.
+    """
+    catalogue = pd.read_csv(data_dir / "CATALOGUE_Delta1_Futures.csv")
+    catalogue["clean_symbol"] = (
+        catalogue["symbol"].str.removeprefix("&").str.removesuffix("_CCB")
+    )
+    wanted = set(symbols)
+    catalogue = catalogue[
+        catalogue["symbol"].str.endswith("_CCB")
+        & catalogue["clean_symbol"].isin(wanted)
+    ].drop_duplicates("clean_symbol").set_index("clean_symbol")
+    for column in ("tick_size", "point_value"):
+        catalogue[column] = pd.to_numeric(catalogue[column], errors="coerce")
+    missing = wanted.difference(catalogue.index)
+    if missing:
+        raise ValueError(f"Missing catalogue rows for: {sorted(missing)}")
+    unconvertible = set(catalogue["currency"]) - {"USD"} - set(FX_SOURCE)
+    if unconvertible:
+        raise ValueError(f"No FX conversion source for: {sorted(unconvertible)}")
+    return catalogue.sort_index()
+
+
+def load_fx_rates(data_dir: Path, calendar: pd.DatetimeIndex) -> pd.DataFrame:
+    """USD per foreign-currency unit for each convertible currency.
+
+    The unadjusted currency-futures close stands in for spot; the futures
+    basis (an interest differential of a percent or two a year) is a benign
+    scaling error, and the series is observable at each close, so nothing
+    here is forward-looking. Sanity bounds catch a mis-scaled file loudly.
+    """
+    plausible = {
+        "EUR": (0.5, 2.5), "GBP": (0.8, 3.0), "JPY": (0.003, 0.02),
+        "CHF": (0.3, 2.0), "CAD": (0.4, 1.5), "AUD": (0.3, 1.5),
+    }
+    rates = {}
+    for currency, (symbol, scale) in FX_SOURCE.items():
+        path = data_dir / "Futures Data" / f"&{symbol}.csv"
+        series = pd.read_csv(path, usecols=["Date", "Close"], parse_dates=["Date"])
+        series = series.drop_duplicates("Date", keep="last").sort_values("Date")
+        rate = series.set_index("Date")["Close"] * scale
+        low, high = plausible[currency]
+        observed = rate.dropna()
+        if not ((observed > low) & (observed < high)).all():
+            raise ValueError(f"{currency} rate outside plausible bounds — check scaling")
+        rates[currency] = rate.reindex(calendar).ffill(limit=10)
+    frame = pd.DataFrame(rates, index=calendar)
+    frame["USD"] = 1.0
+    return frame
+
+
+def usd_point_values(
+    metadata: pd.DataFrame,
+    fx: pd.DataFrame,
+    calendar: pd.DatetimeIndex,
+) -> pd.DataFrame:
+    """Date x symbol frame of USD point values: native value times FX rate."""
+    columns = {}
+    for symbol, row in metadata.iterrows():
+        columns[symbol] = fx[row["currency"]].reindex(calendar) * row["point_value"]
+    return pd.DataFrame(columns, index=calendar)
+
+
 def load_unadjusted_prices(
     data_dir: Path,
     symbols: list[str],
@@ -465,6 +568,7 @@ def run_signal_backtest(
     cost_multiplier: pd.Series | None = None,
     vol_decay: float | None = None,
     risk_managed_window: int | None = None,
+    point_values: pd.DataFrame | None = None,
 ) -> BacktestResult:
     """Run any forecast through the shared risk-execution-accounting pipeline."""
     asset_classes = asset_classes or EXPANDED_ASSET_CLASSES
@@ -478,11 +582,12 @@ def run_signal_backtest(
         forecast = forecast.where(tradeable.reindex_like(forecast), np.nan)
 
     base_target = _base_target_positions(
-        prices, forecast, metadata, base_config, asset_classes, class_weights
+        prices, forecast, metadata, base_config, asset_classes, class_weights,
+        point_values=point_values,
     )
     base_monthly = _month_end_rows(base_target)
     base_positions = _held_positions(base_monthly, prices.index)
-    base_gross = _gross_returns(base_positions, prices, metadata)
+    base_gross = _gross_returns(base_positions, prices, metadata, point_values=point_values)
     if vol_decay is not None:
         leverage = _ewma_portfolio_leverage(base_gross, base_config, vol_decay)
     else:
@@ -498,15 +603,27 @@ def run_signal_backtest(
 
     buffered = apply_no_trade_buffer(desired, inst_config.no_trade_buffer)
     positions = _held_positions(buffered, prices.index)
-    gross = _gross_returns(positions, prices, metadata)
+    gross = _gross_returns(positions, prices, metadata, point_values=point_values)
     turnover = positions.diff().abs().fillna(positions.abs())
-    one_way_cost = (
-        base_config.half_spread_ticks * metadata["tick_size"] * metadata["point_value"]
-        + base_config.commission_per_contract
-    )
-    if cost_multiplier is not None:
-        one_way_cost = one_way_cost * cost_multiplier.reindex(one_way_cost.index).fillna(1.0)
-    costs = turnover.mul(one_way_cost, axis=1).sum(axis=1)
+    if point_values is not None:
+        # the half-tick spread is paid in native currency, so its USD cost
+        # moves with the FX rate exactly as the point value does.
+        one_way_cost = (
+            base_config.half_spread_ticks
+            * point_values.mul(metadata["tick_size"], axis=1)
+            + base_config.commission_per_contract
+        )
+        if cost_multiplier is not None:
+            one_way_cost = one_way_cost.mul(cost_multiplier, axis=1).fillna(one_way_cost)
+        costs = (turnover * one_way_cost).sum(axis=1)
+    else:
+        one_way_cost = (
+            base_config.half_spread_ticks * metadata["tick_size"] * metadata["point_value"]
+            + base_config.commission_per_contract
+        )
+        if cost_multiplier is not None:
+            one_way_cost = one_way_cost * cost_multiplier.reindex(one_way_cost.index).fillna(1.0)
+        costs = turnover.mul(one_way_cost, axis=1).sum(axis=1)
     net = gross - costs
 
     daily = pd.DataFrame(
@@ -589,6 +706,7 @@ def run_walk_forward(
     metadata: pd.DataFrame | None = None,
     asset_classes: dict[str, tuple[str, ...]] | None = None,
     tradeable: pd.DataFrame | None = None,
+    point_values: pd.DataFrame | None = None,
 ) -> WalkForwardResult:
     """Run candidates, select annually out-of-sample, and account the composite."""
     config = enhanced_config or EnhancedConfig()
@@ -609,7 +727,7 @@ def run_walk_forward(
         name: run_signal_backtest(
             signal, prices, metadata, base_config, inst,
             name=name, asset_classes=classes, tradeable=tradeable,
-            vol_decay=config.vol_decay,
+            vol_decay=config.vol_decay, point_values=point_values,
         )
         for name, signal in signals.items()
     }
@@ -624,11 +742,13 @@ def run_walk_forward(
         composite_signal, prices, metadata, base_config, inst,
         name=f"Walk-forward TSMOM ({n_markets} markets)",
         asset_classes=classes, tradeable=tradeable, vol_decay=config.vol_decay,
+        point_values=point_values,
     )
     ensemble = run_signal_backtest(
         ensemble_signal(signals), prices, metadata, base_config, inst,
         name=f"Ensemble TSMOM ({n_markets} markets)",
         asset_classes=classes, tradeable=tradeable, vol_decay=config.vol_decay,
+        point_values=point_values,
     )
     return WalkForwardResult(
         backtest=composite,
@@ -862,7 +982,10 @@ def headline_comparison_table(
 
 # Markets whose half-tick spread assumption is least reliable; the stress
 # table charges them five times the estimated cost.
-THIN_MARKETS: tuple[str, ...] = ("PA", "EMD", "NKD", "GF", "6N", "HTW")
+THIN_MARKETS: tuple[str, ...] = (
+    "PA", "EMD", "NKD", "GF", "6N", "HTW",
+    "FGBX", "SJB", "CGB", "SXF", "RS",
+)
 
 BOTH_WINDOWS: tuple[tuple[str, tuple[str, str]], ...] = (
     ("1990-2004", PRIMARY_WINDOW),
@@ -943,6 +1066,8 @@ def enhanced_stress_tests(
     vol_decay: float | None = None,
     signal_variants: dict[str, pd.DataFrame] | None = None,
     class_variants: dict[str, dict[str, tuple[str, ...]]] | None = None,
+    asset_classes: dict[str, tuple[str, ...]] | None = None,
+    point_values: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """Perturb costs, buffers, shock control, sizing, budget, and signal mix.
 
@@ -986,11 +1111,12 @@ def enhanced_stress_tests(
             scenario_base,
             overrides.get("inst", InstitutionalConfig()),
             name=label,
-            asset_classes=overrides.get("asset_classes"),
+            asset_classes=overrides.get("asset_classes", asset_classes),
             class_weights=overrides.get("class_weights"),
             tradeable=tradeable,
             cost_multiplier=overrides.get("cost_multiplier"),
             vol_decay=overrides.get("vol_decay", vol_decay),
+            point_values=point_values,
         )
         rows.extend(_window_rows(result, label))
     return pd.DataFrame(rows).set_index(["Scenario", "Window"])
@@ -1044,6 +1170,8 @@ def leave_one_class_out(
     tradeable: pd.DataFrame,
     *,
     vol_decay: float | None = None,
+    asset_classes: dict[str, tuple[str, ...]] | None = None,
+    point_values: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """Headline Sharpe when each asset class is removed entirely.
 
@@ -1051,17 +1179,18 @@ def leave_one_class_out(
     dropping that class would erase it; roughly stable Sharpes across rows
     mean the gain is diversification, not a single bet.
     """
+    universe = asset_classes or EXPANDED_ASSET_CLASSES
     rows = []
-    for dropped in EXPANDED_ASSET_CLASSES:
+    for dropped in universe:
         classes = {
             name: members
-            for name, members in EXPANDED_ASSET_CLASSES.items()
+            for name, members in universe.items()
             if name != dropped
         }
         result = run_signal_backtest(
             signal, prices, metadata, base_config, InstitutionalConfig(),
             name=f"Without {dropped}", asset_classes=classes, tradeable=tradeable,
-            vol_decay=vol_decay,
+            vol_decay=vol_decay, point_values=point_values,
         )
         for window_name, (start, end) in BOTH_WINDOWS:
             metrics = performance_metrics(result, start, end)
@@ -1154,6 +1283,9 @@ def selection_window_sensitivity(
     metadata: pd.DataFrame,
     tradeable: pd.DataFrame,
     windows_months: tuple[int, ...] = (36, 60, 120),
+    *,
+    asset_classes: dict[str, tuple[str, ...]] | None = None,
+    point_values: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """Walk-forward results under different pre-declared selection windows."""
     rows = []
@@ -1164,6 +1296,8 @@ def selection_window_sensitivity(
             prices=prices,
             metadata=metadata,
             tradeable=tradeable,
+            asset_classes=asset_classes,
+            point_values=point_values,
         )
         for window_name, (start, end) in (
             ("1992-2004", ("1992-01-01", "2004-12-31")),
@@ -1266,15 +1400,18 @@ def run_enhanced_pipeline(
     """Run the headline strategy, the training experiment, and all diagnostics."""
     config = enhanced_config or EnhancedConfig()
     config.validate()
-    symbols = [s for members in EXPANDED_ASSET_CLASSES.values() for s in members]
+    symbols = [s for members in GLOBAL_ASSET_CLASSES.values() for s in members]
     prices = load_prices(base_config.data_dir, symbols, ffill_limit=10)
-    metadata = load_metadata(base_config.data_dir, symbols)
+    metadata = load_global_metadata(base_config.data_dir, symbols)
     tradeable = tradeable_mask(load_volumes(base_config.data_dir, symbols)).reindex(
         prices.index
     ).fillna(False)
+    fx = load_fx_rates(base_config.data_dir, prices.index)
+    point_values = usd_point_values(metadata, fx, prices.index)
 
     walk_forward = run_walk_forward(
-        base_config, config, prices=prices, metadata=metadata, tradeable=tradeable
+        base_config, config, prices=prices, metadata=metadata, tradeable=tradeable,
+        asset_classes=GLOBAL_ASSET_CLASSES, point_values=point_values,
     )
     # The headline is two sleeves at equal risk weight: the pre-specified
     # 12-month sign trend and basis momentum, the one candidate of eight that
@@ -1291,17 +1428,27 @@ def run_enhanced_pipeline(
     )
     headline = run_signal_backtest(
         headline_signal, prices, metadata, base_config, InstitutionalConfig(),
-        name="Breadth TSMOM + Basis Momentum (43 markets)", tradeable=tradeable,
+        name="Global TSMOM + Basis Momentum (61 markets)",
+        asset_classes=GLOBAL_ASSET_CLASSES, tradeable=tradeable,
         vol_decay=config.vol_decay, risk_managed_window=config.risk_managed_window,
+        point_values=point_values,
+    )
+    # The 43-market book the global universe was gated against, same sleeves.
+    incumbent_43 = run_signal_backtest(
+        headline_signal, prices, metadata, base_config, InstitutionalConfig(),
+        name="Two sleeves, 43 USD markets (v2.2)", tradeable=tradeable,
+        vol_decay=config.vol_decay, point_values=point_values,
     )
     risk_managed = run_signal_backtest(
         headline_signal, prices, metadata, base_config, InstitutionalConfig(),
-        name="+ Risk-managed sizing (tested, not adopted)", tradeable=tradeable,
+        name="+ Risk-managed sizing (tested, not adopted)",
+        asset_classes=GLOBAL_ASSET_CLASSES, tradeable=tradeable,
         vol_decay=config.vol_decay, risk_managed_window=126,
+        point_values=point_values,
     )
     trend_only = replace(
         walk_forward.candidate_results["Sign 12m"],
-        name="Trend sleeve only (43 markets)",
+        name="Trend sleeve only (61 markets)",
     )
     # Carry remains reported but unadopted: its increment over trend is
     # indecisive in both windows, and it is built from the same roll-gap data
@@ -1314,15 +1461,16 @@ def run_enhanced_pipeline(
     )
     carry_variant = run_signal_backtest(
         carry_signal, prices, metadata, base_config, InstitutionalConfig(),
-        name="+ Carry sleeve (tested, not adopted)", tradeable=tradeable,
-        vol_decay=config.vol_decay,
+        name="+ Carry sleeve (tested, not adopted)",
+        asset_classes=GLOBAL_ASSET_CLASSES, tradeable=tradeable,
+        vol_decay=config.vol_decay, point_values=point_values,
     )
     # The v2.0 spec (63-day rolling volatility targeting) is re-run so the
     # original claim of record stays reproducible next to the current spec.
     v2_spec = run_signal_backtest(
         walk_forward.candidate_signals["Sign 12m"], prices, metadata, base_config,
-        InstitutionalConfig(), name="Breadth TSMOM (v2.0 vol targeting)",
-        tradeable=tradeable, vol_decay=None,
+        InstitutionalConfig(), name="Breadth TSMOM (v2.0 spec, 43 USD markets)",
+        tradeable=tradeable, vol_decay=None, point_values=point_values,
     )
 
     baseline_adaptive = replace(
@@ -1335,12 +1483,14 @@ def run_enhanced_pipeline(
     ).where(prices.notna())
     long_only = run_signal_backtest(
         long_only_signal, prices, metadata, base_config, InstitutionalConfig(),
-        name="Long-only risk-balanced (43 markets)", tradeable=tradeable,
-        vol_decay=config.vol_decay,
+        name="Long-only risk-balanced (61 markets)",
+        asset_classes=GLOBAL_ASSET_CLASSES, tradeable=tradeable,
+        vol_decay=config.vol_decay, point_values=point_values,
     )
 
     lineup = [
         headline,
+        incumbent_43,
         risk_managed,
         trend_only,
         carry_variant,
@@ -1501,18 +1651,21 @@ def run_enhanced_pipeline(
         vol_decay=config.vol_decay, signal_variants=signal_variants,
         class_variants={"Flat risk budget (no asset classes)":
                         {"All markets": tuple(prices.columns)}},
+        asset_classes=GLOBAL_ASSET_CLASSES, point_values=point_values,
     )
     stress = pd.concat([stress, no_judgment_universe_row(base_config, config)])
     selection_sensitivity = selection_window_sensitivity(
-        base_config, prices, metadata, tradeable
+        base_config, prices, metadata, tradeable,
+        asset_classes=GLOBAL_ASSET_CLASSES, point_values=point_values,
     )
     class_contributions = contribution_by_class(
-        headline, base_config, EXPANDED_ASSET_CLASSES
+        headline, base_config, GLOBAL_ASSET_CLASSES, point_values=point_values
     )
     crisis_robustness = crisis_excluded_sharpe([headline, baseline_adaptive])
     leave_one_out = leave_one_class_out(
         prices, metadata, base_config, trend_signal_frame, tradeable,
         vol_decay=config.vol_decay,
+        asset_classes=GLOBAL_ASSET_CLASSES, point_values=point_values,
     )
     breadth = pd.DataFrame(
         {

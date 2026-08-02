@@ -419,6 +419,55 @@ class TestConfigValidation(unittest.TestCase):
         self.assertFalse(set(symbols) & set(EXCLUDED_CONTRACTS))
 
 
+class TestFxPointValues(unittest.TestCase):
+    def test_time_varying_point_values_price_the_pnl_day_by_day(self) -> None:
+        from delta1_cta import _gross_returns
+
+        index = pd.bdate_range("2005-01-03", periods=4)
+        prices = pd.DataFrame({"X": [100.0, 102.0, 101.0, 105.0]}, index=index)
+        positions = pd.DataFrame({"X": [1.0, 1.0, 1.0, 1.0]}, index=index)
+        metadata = pd.DataFrame({"point_value": [1000.0]}, index=["X"])
+        fx = pd.DataFrame({"X": [1.0, 1.1, 1.2, 1.3]}, index=index) * 1000.0
+        pnl = _gross_returns(positions, prices, metadata, point_values=fx)
+        # day 2: +2 points at 1100 USD/pt; day 3: -1 at 1200; day 4: +4 at 1300
+        self.assertAlmostEqual(pnl.iloc[1], 2 * 1100.0)
+        self.assertAlmostEqual(pnl.iloc[2], -1 * 1200.0)
+        self.assertAlmostEqual(pnl.iloc[3], 4 * 1300.0)
+
+    def test_global_universe_is_a_superset_with_no_duplicates(self) -> None:
+        from enhanced_strategy import EXPANDED_ASSET_CLASSES, GLOBAL_ASSET_CLASSES
+
+        expanded = {s for m in EXPANDED_ASSET_CLASSES.values() for s in m}
+        global_syms = [s for m in GLOBAL_ASSET_CLASSES.values() for s in m]
+        self.assertEqual(len(global_syms), len(set(global_syms)))
+        self.assertTrue(expanded.issubset(set(global_syms)))
+        self.assertEqual(len(global_syms), 61)
+
+
+@unittest.skipUnless(DATA_DIR.exists(), "Supplied DELTA1 data directory is not available")
+class TestGlobalUniverseData(unittest.TestCase):
+    def test_fx_rates_are_plausible_and_jpy_is_scaled(self) -> None:
+        from enhanced_strategy import load_fx_rates
+
+        calendar = pd.bdate_range("2000-01-03", "2014-12-31")
+        fx = load_fx_rates(DATA_DIR, calendar)
+        self.assertAlmostEqual(float(fx["USD"].iloc[-1]), 1.0)
+        self.assertLess(float(fx["JPY"].dropna().max()), 0.02)  # USD per yen
+        self.assertGreater(float(fx["GBP"].dropna().min()), 0.8)
+
+    def test_usd_point_values_constant_for_usd_and_varying_for_eur(self) -> None:
+        from enhanced_strategy import (
+            load_fx_rates, load_global_metadata, usd_point_values,
+        )
+
+        calendar = pd.bdate_range("2005-01-03", "2014-12-31")
+        metadata = load_global_metadata(DATA_DIR, ["ES", "FGBL"])
+        fx = load_fx_rates(DATA_DIR, calendar)
+        pv = usd_point_values(metadata, fx, calendar)
+        self.assertEqual(float(pv["ES"].nunique()), 1.0)  # USD contract: constant
+        self.assertGreater(float(pv["FGBL"].dropna().nunique()), 100)  # EUR: moves with FX
+
+
 @unittest.skipUnless(DATA_DIR.exists(), "Supplied DELTA1 data directory is not available")
 class TestEnhancedIntegration(unittest.TestCase):
     @classmethod
