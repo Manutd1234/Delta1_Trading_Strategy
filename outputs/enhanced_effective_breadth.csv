@@ -1,3 +1,3 @@
 ,Markets traded,Average pairwise P&L correlation,Effective independent bets
-Breadth TSMOM (43 markets),43.0,0.0594074912022569,12.302886899567198
+Breadth TSMOM + Basis Momentum (43 markets),43.0,0.04917968489774097,14.026861531211829
 Adaptive TSMOM (22 markets),22.0,0.07130289395672558,8.809299896533718

@@ -98,6 +98,81 @@ class TestCarryStrength(unittest.TestCase):
         self.assertAlmostEqual(blend.iloc[2, 0], 0.8)
 
 
+class TestBasisMomentum(unittest.TestCase):
+    def setUp(self) -> None:
+        self.index = pd.bdate_range("2000-01-03", periods=1500)
+        rng = np.random.default_rng(31)
+        self.prices = pd.DataFrame(
+            {"X": 100 + rng.normal(0, 0.9, len(self.index)).cumsum()}, index=self.index
+        )
+        # Curve slope flips: contango (rolls jump up) for the first three
+        # years, backwardation (rolls jump down) afterwards. Roll sizes are
+        # jittered so the year-on-year difference is not identically zero,
+        # which would make its trailing standard deviation degenerate.
+        gaps = np.zeros(len(self.index))
+        n_rolls = len(gaps[::21])
+        jitter = rng.uniform(0.6, 1.8, n_rolls)
+        signs = np.where(np.arange(n_rolls) * 21 < 756, 1.0, -1.0)
+        gaps[::21] = jitter * signs
+        self.unadjusted = self.prices + pd.DataFrame(
+            {"X": gaps.cumsum()}, index=self.index
+        )
+
+    def test_curve_moving_to_backwardation_scores_positive(self) -> None:
+        from enhanced_strategy import basis_momentum
+
+        signal = basis_momentum(self.prices, self.unadjusted, vol_span=60, cap=2.0)
+        after_flip = signal["X"].loc["2004":].dropna()
+        self.assertGreater(float(after_flip.mean()), 0.0)
+        self.assertLessEqual(float(signal.abs().max().max()), 1.0)
+
+    def test_future_mutation_cannot_change_past_signal(self) -> None:
+        from enhanced_strategy import basis_momentum
+
+        baseline = basis_momentum(self.prices, self.unadjusted, vol_span=60, cap=2.0)
+        altered_prices = self.prices.copy()
+        altered_unadjusted = self.unadjusted.copy()
+        altered_prices.loc[self.index[1200] :, "X"] += 40
+        altered_unadjusted.loc[self.index[1200] :, "X"] -= 40
+        changed = basis_momentum(altered_prices, altered_unadjusted, vol_span=60, cap=2.0)
+        pd.testing.assert_frame_equal(
+            baseline.loc[: self.index[1199]], changed.loc[: self.index[1199]]
+        )
+
+    def test_signal_is_invariant_to_a_price_level_shift(self) -> None:
+        from enhanced_strategy import basis_momentum
+
+        original = basis_momentum(self.prices, self.unadjusted, vol_span=60, cap=2.0)
+        shifted = basis_momentum(
+            self.prices - 300, self.unadjusted - 300, vol_span=60, cap=2.0
+        )
+        pd.testing.assert_frame_equal(original, shifted)
+
+
+class TestSleeveBlending(unittest.TestCase):
+    def test_anchor_defines_coverage_and_weights_are_respected(self) -> None:
+        from enhanced_strategy import blend_sleeves
+
+        index = pd.bdate_range("2005-01-03", periods=3)
+        anchor = pd.DataFrame({"X": [0.8, 0.8, np.nan]}, index=index)
+        other = pd.DataFrame({"X": [np.nan, -0.4, 1.0]}, index=index)
+        blend = blend_sleeves(
+            anchor, {"a": anchor, "b": other}, {"a": 1.0, "b": 1.0}
+        )
+        self.assertAlmostEqual(blend.iloc[0, 0], 0.8)   # sleeve b unestimable
+        self.assertAlmostEqual(blend.iloc[1, 0], 0.2)   # (0.8 - 0.4) / 2
+        self.assertTrue(np.isnan(blend.iloc[2, 0]))     # anchor unestimable
+
+    def test_unequal_weights_shift_the_blend(self) -> None:
+        from enhanced_strategy import blend_sleeves
+
+        index = pd.bdate_range("2005-01-03", periods=1)
+        anchor = pd.DataFrame({"X": [1.0]}, index=index)
+        other = pd.DataFrame({"X": [-1.0]}, index=index)
+        blend = blend_sleeves(anchor, {"a": anchor, "b": other}, {"a": 3.0, "b": 1.0})
+        self.assertAlmostEqual(blend.iloc[0, 0], 0.5)
+
+
 class TestEwmaLeverage(unittest.TestCase):
     def test_flat_history_stays_neutral_and_bounds_hold(self) -> None:
         from delta1_cta import BacktestConfig as Config

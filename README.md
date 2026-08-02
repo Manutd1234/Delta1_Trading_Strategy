@@ -1,8 +1,8 @@
 # DELTA1 Quant Research
 
-NUS Investment Society Quant Research submission: an explainable, cost-aware trend-following strategy — **same one-line forecast, 43 global futures markets instead of 22**, with a pre-registered evaluation, a walk-forward training experiment, and an audited pass over four institutional risk-engineering fixes.
+NUS Investment Society Quant Research submission: an explainable, cost-aware **two-sleeve CTA across 43 global futures markets**, built under a pre-registered protocol with a walk-forward training experiment, an audit of four institutional risk-engineering fixes, and an eight-candidate alpha search.
 
-The research question is simple: **does widening the traded universe — the improvement the fundamental law of active management predicts most reliably — raise CAGR and Sharpe, and does data-driven model selection ("training") add anything beyond it?**
+The research question: **does widening the traded universe raise CAGR and Sharpe; does data-driven model selection ("training") add anything; and is there a second return source that genuinely diversifies trend rather than restating it?**
 
 ![Breadth TSMOM performance](outputs/enhanced_performance.png)
 
@@ -12,29 +12,44 @@ All results are net of a half-tick spread estimate plus USD 2.50 per contract pe
 
 | Strategy | Window | CAGR | Sharpe | Max drawdown |
 |---|---|---:|---:|---:|
-| **Breadth TSMOM (43 markets)** | 1990–2004 | **18.4%** | **1.59** | −11.9% |
+| **Trend + Basis Momentum (43 markets)** | 1990–2004 | **20.5%** | **1.73** | −15.8% |
+| Trend sleeve only (43 markets) | 1990–2004 | 18.4% | 1.59 | −11.9% |
 | Adaptive TSMOM (22 markets, v1) | 1990–2004 | 13.7% | 1.27 | −12.2% |
-| **Breadth TSMOM (43 markets)** | 2005–2014 | **11.0%** | **0.99** | −20.8% |
-| + Carry extension (tested, not headline) | 2005–2014 | 10.7% | 1.00 | −11.9% |
+| **Trend + Basis Momentum (43 markets)** | 2005–2014 | **13.2%** | **1.17** | **−15.3%** |
+| Trend sleeve only (43 markets) | 2005–2014 | 11.0% | 0.99 | −20.8% |
 | Adaptive TSMOM (22 markets, v1) | 2005–2014 | 7.0% | 0.70 | −18.6% |
 | Walk-forward selection (training) | 2005–2014 | 7.4% | 0.70 | −24.2% |
-| Ensemble of 5 candidates | 2005–2014 | 9.0% | 0.81 | −23.9% |
+| Ensemble of 5 trend candidates | 2005–2014 | 9.0% | 0.81 | −23.9% |
 
-The breadth improvement **passed the pre-registered claim rule under the v2.0 spec of record**: primary-window 90% paired-bootstrap interval [+0.002, +0.464] and 8 of 10 winning evaluation years. Re-evaluated under the current spec (EWMA volatility targeting), the point estimates are unchanged (P(diff > 0) ≈ 95% in each window) and the evaluation-window interval [+0.004, +0.368] excludes zero, while the primary 5% quantile sits at −0.006 — both verdicts are computed live in `outputs/enhanced_claim_rule.csv` and discussed in the notebook rather than resolved by picking the friendlier spec. The gain is breadth, measured: effective independent bets rise from ~9 to ~12, and it survives 3× costs, 5× costs on the six thinnest markets, dropping any single asset class, and excluding 2008–09.
+Against the v1 baseline the 90% paired-bootstrap interval of the Sharpe difference now **excludes zero in both windows** (+0.326 primary, +0.385 second-use), with 8 of 10 winning evaluation years, PSR 0.89/0.90 and a deflated Sharpe of 0.97–1.00 against an honest count of 58 trials. The mechanism is measured, not asserted: effective independent bets rise from 8.8 (baseline) to 12.3 (breadth) to **14.0** (two sleeves), and Sharpe scales with their square root. It survives 3× costs, 5× costs on the six thinnest markets, dropping any single asset class, and excluding 2008–09 (Sharpe 1.21 without the crisis).
 
-**Four institutional blueprint fixes were audited, not assumed.** RiskMetrics EWMA volatility targeting (λ = 0.94) was adopted — it improves both windows (+0.10 evaluation Sharpe). Frictional-cost minimization was already built in (cost drag ≈ 1.5% of gross profits vs the 15% ceiling). A roll-yield carry sleeve (Koijen-Moskowitz-Pedersen style, estimated from roll gaps between unadjusted and back-adjusted series) improves point estimates and halves the evaluation drawdown, but its paired Sharpe increment over trend alone is indecisive (P = 0.52), so the standing default-to-simpler rule keeps it as a shipped, tested extension rather than the headline. PCA absorption-ratio de-leveraging and ATR stops were rejected with evidence: the 70% trigger never fires on this universe (top-2 principal components explain at most 67% of variance) and stops conflict with the month-end architecture.
+**The alpha search: eight candidates, one adopted.** Each was tested through the identical universe, risk stack and cost model against a rule frozen before any of them ran (standalone Sharpe ≥ 0.30, |ρ(trend)| ≤ 0.40, truncation-invariant, blend improvement ≥ 0.05). Only **basis momentum** — the year-on-year change in realized roll yield, recovered from the gap between unadjusted and back-adjusted continuous series — passed. The instructive rejects are the three *highest*-Sharpe candidates: channel breakout (ρ = 0.80), cross-sectional momentum (ρ = 0.87) and volatility term structure (ρ = 0.93) are the trend signal wearing different clothes, and none adds anything after blending. Long-term reversal ("value") is outright negative here; hedging pressure from open interest has no edge; seasonality doesn't survive blending; realized skewness is uncorrelated and blend-improving but misses the pre-declared Sharpe floor, and the floor was not moved after the fact.
+
+Basis momentum's route to adoption is the most instructive part of the study, because the conclusion reversed twice: it passed on the primary window, then **failed to replicate** on the second-use window (−0.029), and was reverted to trend-only. An independent adversarial reviewer, working only on the primary window, then decomposed the formula and found a specification bug — the two legs of the year-on-year difference were each scaled by the volatility of *their own era*, leaving a carry-level × volatility-drift term that isn't the declared effect. Fixing it (differencing in price units, scaling once by a common volatility) improved **both** windows, and the contaminating term turned out to have been actively damaging the very window that appeared to reject the signal. The full sequence is recorded in [PREREGISTRATION.md](PREREGISTRATION.md).
+
+**Four institutional blueprint fixes were audited, not assumed.** RiskMetrics EWMA volatility targeting (λ = 0.94) was adopted — it improves both windows. Frictional-cost minimization was already built in (cost drag ≈ 1.5% of gross profits vs the blueprint's 15% ceiling). A roll-yield carry sleeve is tested and reported but not adopted: its increment is indecisive in both windows and it is built from the same roll-gap data that basis momentum uses to better effect. PCA absorption-ratio de-leveraging and ATR stops were rejected with evidence: the 70% trigger never fires on this universe (top-2 principal components explain at most 67% of variance) and stops conflict with the month-end architecture. Correlation-aware position sizing was also rejected — an identity-correlation control through the same code path scored identically, so the correlation information contributed nothing.
 
 **The training experiment is a reported negative result.** Rolling walk-forward selection among five pre-declared forecast models — re-fit each year-end on trailing 60-month net Sharpe, applied strictly out-of-sample — underperforms the simplest model it contains (0.70 vs 0.99): selection among correlated candidates ranks noise and pays switching costs for it. The equal-weight ensemble does better (0.81) but still loses to simplicity, consistent with the forecast-combination literature.
 
 ## Method
 
-The forecast is unchanged from v1:
+Two sleeves at equal risk weight. The **trend sleeve** is v1's forecast, unchanged and never re-fitted:
 
 ```text
-direction[i, t] = sign(close[i, t] - close[i, t - 252])
+trend[i, t] = sign(close[i, t] - close[i, t - 252])
 ```
 
-The portfolio then: sizes positions by lagged EWM dollar volatility; allocates equal ex-ante risk across six asset classes and equally within each; tapers exposure on 20d/120d volatility shocks; targets 10% portfolio volatility (RiskMetrics EWMA λ = 0.94 estimator, the one v2.1 change to the risk stack) with a 2× leverage cap; suppresses small month-end changes with a 25% no-trade region; activates targets the next business day; and deducts contract-specific costs from price-change P&L (back-adjusted levels can cross zero, so returns are never computed off price levels).
+The **basis-momentum sleeve** is the year-on-year change in realized roll yield. Carry says where the futures curve *is*; basis momentum says where it is *going*. The roll yield is recoverable exactly from a single continuous series, because the unadjusted series jumps at each roll by the calendar spread while the back-adjusted series does not:
+
+```text
+roll_gap[i, t]   = Δunadjusted[i, t] - Δadjusted[i, t]
+roll_yield[i, t] = -Σ roll_gap over the trailing 252 days
+basis[i, t]      = (roll_yield[i, t] - roll_yield[i, t - 252]) / (σ[i, t] · √252)
+```
+
+then z-scored on its own trailing year and clipped at ±2σ. Both legs are differenced in price units and scaled by a *single* common volatility; scaling each by the volatility of its own era leaves a carry-level × volatility-drift term that is a different effect entirely. A market runs on trend alone until its basis becomes estimable.
+
+The portfolio then: sizes positions by lagged EWM dollar volatility; allocates equal ex-ante risk across six asset classes and equally within each; tapers exposure on 20d/120d volatility shocks; targets 10% portfolio volatility (RiskMetrics EWMA λ = 0.94 estimator) with a 2× leverage cap; suppresses small month-end changes with a 25% no-trade region; activates targets the next business day; and deducts contract-specific costs from price-change P&L (back-adjusted levels can cross zero, so returns are never computed off price levels).
 
 ## Universe: 43 markets from a written rule
 
@@ -59,10 +74,11 @@ PREREGISTRATION.md            frozen v2 spec, claim rule, and deviation log
 delta1_cta.py                 data, accounting, sizing, baseline and metrics
 institutional_strategy.py     v1 adaptive risk and no-trade controls (the baseline)
 enhanced_strategy.py          the recommended strategy: universe rule, volume gate,
-                              EWMA vol targeting, roll-gap carry extension,
-                              walk-forward training experiment, paired bootstrap /
-                              PSR / DSR / CSCV-PBO statistics, stress suite
-tests/                        37 timing, leakage, bounds, costs and integration tests
+                              EWMA vol targeting, trend + basis-momentum sleeves,
+                              carry extension, walk-forward training experiment,
+                              paired bootstrap / PSR / DSR / CSCV-PBO statistics,
+                              stress suite
+tests/                        42 timing, leakage, bounds, costs and integration tests
 outputs/                      metrics, statistics, stress tables and charts
 ```
 
@@ -93,7 +109,11 @@ jupyter nbconvert --to notebook --execute --inplace DELTA1_Quant_Research.ipynb
 - Baz et al., [“Dissecting Investment Strategies in the Cross Section and Time Series”](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2695101) (2015) — doubly-normalized trend signals.
 - Timmermann, “Forecast Combination” (2006); DeMiguel, Garlappi & Uppal, *RFS* (2009) — combination and simple rules beat selection.
 - Bailey et al., [“The Probability of Backtest Overfitting”](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2326253), *JCF* (2017) — CSCV PBO, PSR/DSR.
+- Boons & Prado, [“Basis-Momentum”](https://doi.org/10.1111/jofi.12738), *Journal of Finance* (2019) — the adopted second sleeve.
 - Koijen, Moskowitz, Pedersen & Vrugt, [“Carry”](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2298565), *JFE* (2018) — the roll-yield carry extension.
+- Asness, Moskowitz & Pedersen, [“Value and Momentum Everywhere”](https://doi.org/10.1111/jofi.12021), *JF* (2013) — the value/reversal and cross-sectional momentum candidates (both rejected).
+- Fernandez-Perez, Frijns, Fuertes & Miffre, “The Skewness of Commodity Futures Returns”, *JBF* (2018) — the skewness candidate (rejected).
+- Basu & Miffre, “Capturing the Risk Premium of Commodity Futures”, *JBF* (2013) — the hedging-pressure candidate (rejected).
 - Kritzman et al., “Principal Components as a Measure of Systemic Risk”, *JPM* (2011) — the absorption ratio (tested, rejected).
 - Moreira & Muir, [“Volatility-Managed Portfolios”](https://www.nber.org/papers/w22208), *JF* (2017).
 

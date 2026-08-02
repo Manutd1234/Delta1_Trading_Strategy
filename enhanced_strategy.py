@@ -1,24 +1,30 @@
-"""Walk-forward enhanced trend CTA: breadth, continuous signals, leakage-safe training.
+"""Multi-sleeve trend CTA: breadth, basis momentum, and leakage-safe training.
 
-Three literature-backed changes to the adaptive TSMOM strategy, in increasing
-order of ambition:
+Changes to the adaptive TSMOM strategy, in the order they were adopted:
 
 1. breadth: trade every investable USD contract in the supplied catalogue
    (43 markets across six asset classes) instead of 22, because diversification
    across weakly correlated trends is the most reliable Sharpe improvement
    available (Moskowitz-Ooi-Pedersen 2012 use 58 markets; Hurst-Ooi-Pedersen
    2017 use 67);
-2. continuous signals: replace the binary sign forecast with volatility-scaled
-   trend strength averaged across pre-declared horizons (Baz et al. 2015),
-   so conviction sizes positions and whipsaw turnover falls;
-3. training: a rolling walk-forward selector re-fits one discrete choice per
-   year — which of five pre-declared forecast models to run next year — using
-   only trailing history, so every reported return after the first selection
-   date is a genuine out-of-sample forecast.
+2. volatility targeting: a RiskMetrics EWMA estimator in place of the 63-day
+   rolling window, so portfolio risk tracks its 10% target through regime
+   changes instead of lagging them;
+3. a second return source: basis momentum (Boons-Prado 2019), the change in
+   roll yield, blended with trend at equal risk weight. It survived a
+   pre-declared adoption rule that rejected seven other candidate sleeves —
+   value, seasonality, skewness, cross-sectional momentum, hedging pressure,
+   breakout, and volatility term structure — most of them because they merely
+   restate the trend signal.
+
+Two experiments are kept because their negative results are informative: a
+rolling walk-forward selector over five pre-declared forecast models (genuine
+out-of-sample training that loses to the simplest model it contains), and a
+roll-yield carry sleeve (subsumed by basis momentum).
 
 Everything downstream of the forecast (risk budgeting, volatility targeting,
-shock de-risking, no-trade buffer, cost accounting) is shared with the
-existing institutional pipeline and is identical for every candidate.
+shock de-risking, no-trade buffer, cost accounting) is shared and identical
+for every sleeve and every candidate.
 """
 
 from __future__ import annotations
@@ -147,6 +153,7 @@ class EnhancedConfig:
     signal_vol_span: int = 60
     strength_cap: float = 2.0
     carry_weight: float = 0.5
+    basis_weight: float = 0.5
     vol_decay: float | None = 0.94
     candidates: tuple[ForecastCandidate, ...] = CANDIDATES
 
@@ -157,6 +164,8 @@ class EnhancedConfig:
             raise ValueError("strength_cap must be positive")
         if not 0 <= self.carry_weight <= 1:
             raise ValueError("carry_weight must be in [0, 1]")
+        if not 0 <= self.basis_weight <= 1:
+            raise ValueError("basis_weight must be in [0, 1]")
         if self.vol_decay is not None and not 0 < self.vol_decay < 1:
             raise ValueError("vol_decay must be in (0, 1)")
         if len({candidate.name for candidate in self.candidates}) != len(self.candidates):
@@ -280,15 +289,76 @@ def carry_strength(
     return z.clip(-cap, cap) / cap
 
 
+def basis_momentum(
+    prices: pd.DataFrame,
+    unadjusted: pd.DataFrame,
+    vol_span: int,
+    cap: float,
+    roll_window: int = 252,
+    lookback: int = 252,
+    normalization_window: int = 252,
+) -> pd.DataFrame:
+    """Change in roll yield over a year — Boons & Prado (2019) basis momentum.
+
+    Carry says where the curve *is*; basis momentum says where it is *going*.
+    The roll yield earned over the trailing year is differenced against the
+    year before it — two non-overlapping years of roll history — so a market
+    whose curve is moving toward backwardation scores positive. This predicts
+    futures returns beyond both price momentum and the carry level, and it is
+    the one sleeve of eight tested here that earned its place.
+
+    Same house conventions as every other signal: roll gaps come from the
+    unadjusted-minus-back-adjusted price change, scaling is by annualized
+    dollar volatility, every window is trailing, and no price level is ever a
+    denominator.
+
+    The two legs are differenced in price units and scaled by a single common
+    volatility. Scaling each leg by the volatility of its own era instead
+    would leave a carry-level-times-volatility-drift term in the signal, which
+    is a different effect wearing this one's name.
+    """
+    roll_gap = unadjusted.reindex_like(prices).diff() - prices.diff()
+    daily_vol = prices.diff().ewm(span=vol_span, min_periods=vol_span, adjust=False).std()
+    roll_sum = -roll_gap.rolling(roll_window, min_periods=roll_window).sum()
+    raw = (roll_sum - roll_sum.shift(lookback)) / (
+        daily_vol.replace(0, np.nan) * math.sqrt(252)
+    )
+    z = raw / raw.rolling(
+        normalization_window, min_periods=normalization_window
+    ).std().replace(0, np.nan)
+    return z.clip(-cap, cap) / cap
+
+
+def blend_sleeves(
+    anchor: pd.DataFrame,
+    sleeves: dict[str, pd.DataFrame],
+    weights: dict[str, float],
+) -> pd.DataFrame:
+    """Combine forecast sleeves at fixed risk weights.
+
+    ``anchor`` defines coverage: a market runs on the anchor alone until the
+    other sleeves become estimable, and never trades while the anchor itself
+    is unestimable. Weights are pre-declared, never fitted.
+    """
+    total = sum(weights.values())
+    combined = sum(
+        sleeves[name].fillna(anchor) * weight for name, weight in weights.items()
+    ) / total
+    return combined.clip(-1, 1).where(anchor.notna())
+
+
 def blend_trend_and_carry(
     trend: pd.DataFrame,
     carry: pd.DataFrame,
     carry_weight: float,
 ) -> pd.DataFrame:
-    """Risk-blend the two return sources; a market runs on trend alone until
-    its carry becomes estimable (about 1.5 years of roll history)."""
-    combined = (1 - carry_weight) * trend + carry_weight * carry.fillna(trend)
-    return combined.clip(-1, 1).where(trend.notna())
+    """Risk-blend trend with carry; a market runs on trend alone until its
+    carry becomes estimable (about 1.5 years of roll history)."""
+    return blend_sleeves(
+        trend,
+        {"trend": trend, "carry": carry},
+        {"trend": 1 - carry_weight, "carry": carry_weight},
+    )
 
 
 def load_volumes(data_dir: Path, symbols: list[str]) -> pd.DataFrame:
@@ -836,6 +906,7 @@ def enhanced_stress_tests(
     *,
     vol_decay: float | None = None,
     signal_variants: dict[str, pd.DataFrame] | None = None,
+    class_variants: dict[str, dict[str, tuple[str, ...]]] | None = None,
 ) -> pd.DataFrame:
     """Perturb costs, buffers, shock control, sizing, budget, and signal mix.
 
@@ -867,6 +938,8 @@ def enhanced_stress_tests(
     ]
     for label, variant_signal in (signal_variants or {}).items():
         scenarios.append((label, {"signal": variant_signal}))
+    for label, classes in (class_variants or {}).items():
+        scenarios.append((label, {"asset_classes": classes}))
     rows = []
     for label, overrides in scenarios:
         scenario_base = overrides.get("base", base_config)
@@ -877,6 +950,7 @@ def enhanced_stress_tests(
             scenario_base,
             overrides.get("inst", InstitutionalConfig()),
             name=label,
+            asset_classes=overrides.get("asset_classes"),
             class_weights=overrides.get("class_weights"),
             tradeable=tradeable,
             cost_multiplier=overrides.get("cost_multiplier"),
@@ -1096,7 +1170,8 @@ class EnhancedPipelineOutput:
     factorial: pd.DataFrame
     claim: pd.DataFrame
     carry_variant: BacktestResult
-    carry_increment: pd.DataFrame
+    trend_only: BacktestResult
+    sleeve_increment: pd.DataFrame
 
 
 def claim_rule_evaluation(
@@ -1165,27 +1240,40 @@ def run_enhanced_pipeline(
     walk_forward = run_walk_forward(
         base_config, config, prices=prices, metadata=metadata, tradeable=tradeable
     )
-    # The headline keeps v1's pre-specified 12-month sign trend — the
-    # walk-forward experiment below shows model selection and richer trend
-    # signals do not beat it — with the EWMA volatility-targeting estimator.
-    headline = replace(
-        walk_forward.candidate_results["Sign 12m"],
-        name="Breadth TSMOM (43 markets)",
-    )
-    # The roll-gap carry blend is a tested extension, not the headline: its
-    # Sharpe increment over trend alone is not statistically decisive, and the
-    # pre-committed rule defaults to the simpler variant. It is reported in
-    # full because its drawdown improvement is material.
+    # The headline is two sleeves at equal risk weight: the pre-specified
+    # 12-month sign trend and basis momentum, the one candidate of eight that
+    # passed the v2.2 adoption rule and improved both evaluation windows.
+    trend_signal_frame = walk_forward.candidate_signals["Sign 12m"]
     unadjusted = load_unadjusted_prices(base_config.data_dir, symbols)
+    basis = basis_momentum(
+        prices, unadjusted, config.signal_vol_span, config.strength_cap
+    )
+    headline_signal = blend_sleeves(
+        trend_signal_frame,
+        {"trend": trend_signal_frame, "basis": basis},
+        {"trend": 1 - config.basis_weight, "basis": config.basis_weight},
+    )
+    headline = run_signal_backtest(
+        headline_signal, prices, metadata, base_config, InstitutionalConfig(),
+        name="Breadth TSMOM + Basis Momentum (43 markets)", tradeable=tradeable,
+        vol_decay=config.vol_decay,
+    )
+    trend_only = replace(
+        walk_forward.candidate_results["Sign 12m"],
+        name="Trend sleeve only (43 markets)",
+    )
+    # Carry remains reported but unadopted: its increment over trend is
+    # indecisive in both windows, and it is built from the same roll-gap data
+    # that basis momentum uses to better effect.
     carry = carry_strength(
         prices, unadjusted, config.signal_vol_span, config.strength_cap
     )
     carry_signal = blend_trend_and_carry(
-        walk_forward.candidate_signals["Sign 12m"], carry, config.carry_weight
+        trend_signal_frame, carry, config.carry_weight
     )
     carry_variant = run_signal_backtest(
         carry_signal, prices, metadata, base_config, InstitutionalConfig(),
-        name="Breadth TSMOM + Carry (43 markets)", tradeable=tradeable,
+        name="+ Carry sleeve (tested, not adopted)", tradeable=tradeable,
         vol_decay=config.vol_decay,
     )
     # The v2.0 spec (63-day rolling volatility targeting) is re-run so the
@@ -1212,6 +1300,7 @@ def run_enhanced_pipeline(
 
     lineup = [
         headline,
+        trend_only,
         carry_variant,
         walk_forward.backtest,
         walk_forward.ensemble,
@@ -1268,8 +1357,10 @@ def run_enhanced_pipeline(
     # 2 sizing vol spans + 3 cost multiples + thin-cost + no-judgment
     # + the v1 robustness grid of 12 (4 horizon sets x 3 cost multiples)
     # + the v2.1 blueprint experiments (2 vol estimators x carry weights
-    # {0, 25, 50, 75, 100} minus overlaps, plus the absorption overlay) = 42.
-    n_trials = 42
+    # {0, 25, 50, 75, 100} minus overlaps, plus the absorption overlay) = 42
+    # + the v2.2 alpha search: 8 candidate sleeves, 2 blend weights, the
+    # 3-sleeve variant, 5 sizing/class schemes = 58.
+    n_trials = 58
     dsr = pd.Series(
         {
             window_name: deflated_sharpe_ratio(
@@ -1322,30 +1413,50 @@ def run_enhanced_pipeline(
         )
     claim = pd.DataFrame(claim_columns)
 
-    carry_increment = pd.DataFrame(
+    # Both candidate second sleeves are measured the same way: the paired
+    # Sharpe increment of the blend over the trend sleeve alone. Basis
+    # momentum is positive in both windows and was adopted; carry is
+    # indecisive in both and was not.
+    sleeve_increment = pd.concat(
         {
-            window_name: paired_sharpe_difference(
-                carry_variant.daily["net_return"],
-                headline.daily["net_return"],
-                start,
-                end,
-            )
-            for window_name, (start, end) in BOTH_WINDOWS
+            sleeve.name: pd.DataFrame(
+                {
+                    window_name: paired_sharpe_difference(
+                        sleeve.daily["net_return"],
+                        trend_only.daily["net_return"],
+                        start,
+                        end,
+                    )
+                    for window_name, (start, end) in BOTH_WINDOWS
+                }
+            ).T
+            for sleeve in (headline, carry_variant)
         }
-    ).T
+    )
 
-    trend_signal_frame = walk_forward.candidate_signals["Sign 12m"]
+    three_sleeves = blend_sleeves(
+        trend_signal_frame,
+        {"trend": trend_signal_frame, "carry": carry, "basis": basis},
+        {"trend": 1.0, "carry": 1.0, "basis": 1.0},
+    )
     signal_variants = {
-        "Carry blend 50/50 (extension)": carry_signal,
-        "Carry weight 25%": blend_trend_and_carry(trend_signal_frame, carry, 0.25),
-        "Carry weight 75%": blend_trend_and_carry(trend_signal_frame, carry, 0.75),
+        "Trend sleeve alone (no basis)": trend_signal_frame,
+        "Basis momentum sleeve alone": basis,
+        "Trend + basis 67/33": blend_sleeves(
+            trend_signal_frame, {"trend": trend_signal_frame, "basis": basis},
+            {"trend": 2.0, "basis": 1.0},
+        ),
+        "Trend + carry + basis (equal)": three_sleeves,
+        "Trend + carry 50/50 (tested)": carry_signal,
         "Absorption-ratio overlay (rejected)": absorption_overlay(
             trend_signal_frame, absorption_ratio(prices, config.signal_vol_span)
         ),
     }
     stress = enhanced_stress_tests(
-        prices, metadata, base_config, trend_signal_frame, tradeable,
+        prices, metadata, base_config, headline_signal, tradeable,
         vol_decay=config.vol_decay, signal_variants=signal_variants,
+        class_variants={"Flat risk budget (no asset classes)":
+                        {"All markets": tuple(prices.columns)}},
     )
     stress = pd.concat([stress, no_judgment_universe_row(base_config, config)])
     selection_sensitivity = selection_window_sensitivity(
@@ -1390,7 +1501,8 @@ def run_enhanced_pipeline(
         factorial=factorial,
         claim=claim,
         carry_variant=carry_variant,
-        carry_increment=carry_increment,
+        trend_only=trend_only,
+        sleeve_increment=sleeve_increment,
     )
 
 
@@ -1454,7 +1566,7 @@ def save_enhanced_outputs(
     )
     output.crisis_robustness.to_csv(directory / "enhanced_crisis_robustness.csv")
     output.claim.to_csv(directory / "enhanced_claim_rule.csv")
-    output.carry_increment.to_csv(directory / "enhanced_carry_increment.csv")
+    output.sleeve_increment.to_csv(directory / "enhanced_sleeve_increment.csv")
     output.leave_one_out.to_csv(directory / "enhanced_leave_one_class_out.csv")
     output.breadth.to_csv(directory / "enhanced_effective_breadth.csv")
     output.factorial.to_csv(directory / "enhanced_factorial.csv")
