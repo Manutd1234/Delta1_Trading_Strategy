@@ -54,6 +54,66 @@ class TestTrendStrength(unittest.TestCase):
         pd.testing.assert_frame_equal(original, translated)
 
 
+class TestCarryStrength(unittest.TestCase):
+    def setUp(self) -> None:
+        self.index = pd.bdate_range("2000-01-03", periods=900)
+        rng = np.random.default_rng(19)
+        adjusted = 100 + rng.normal(0, 0.8, len(self.index)).cumsum()
+        self.prices = pd.DataFrame({"X": adjusted}, index=self.index)
+        # contango: every ~21 days the unadjusted front jumps UP by the spread
+        gaps = np.zeros(len(self.index))
+        gaps[::21] = 1.5
+        self.unadjusted = self.prices + pd.DataFrame(
+            {"X": gaps.cumsum()}, index=self.index
+        )
+
+    def test_contango_produces_negative_carry(self) -> None:
+        from enhanced_strategy import carry_strength
+
+        carry = carry_strength(self.prices, self.unadjusted, vol_span=60, cap=2.0)
+        self.assertLess(float(carry["X"].dropna().mean()), 0.0)
+        self.assertLessEqual(float(carry.abs().max().max()), 1.0)
+
+    def test_future_mutation_cannot_change_past_carry(self) -> None:
+        from enhanced_strategy import carry_strength
+
+        baseline = carry_strength(self.prices, self.unadjusted, vol_span=60, cap=2.0)
+        altered_prices = self.prices.copy()
+        altered_unadjusted = self.unadjusted.copy()
+        altered_prices.loc[self.index[800] :, "X"] += 50
+        altered_unadjusted.loc[self.index[800] :, "X"] -= 50
+        changed = carry_strength(altered_prices, altered_unadjusted, vol_span=60, cap=2.0)
+        pd.testing.assert_frame_equal(
+            baseline.loc[: self.index[799]], changed.loc[: self.index[799]]
+        )
+
+    def test_blend_falls_back_to_trend_where_carry_is_missing(self) -> None:
+        from enhanced_strategy import blend_trend_and_carry
+
+        trend = pd.DataFrame({"X": [0.8, 0.8, 0.8]}, index=self.index[:3])
+        carry = pd.DataFrame({"X": [np.nan, -0.4, np.nan]}, index=self.index[:3])
+        blend = blend_trend_and_carry(trend, carry, carry_weight=0.5)
+        self.assertAlmostEqual(blend.iloc[0, 0], 0.8)   # no carry -> pure trend
+        self.assertAlmostEqual(blend.iloc[1, 0], 0.2)   # (0.8 - 0.4) / 2
+        self.assertAlmostEqual(blend.iloc[2, 0], 0.8)
+
+
+class TestEwmaLeverage(unittest.TestCase):
+    def test_flat_history_stays_neutral_and_bounds_hold(self) -> None:
+        from delta1_cta import BacktestConfig as Config
+        from enhanced_strategy import _ewma_portfolio_leverage
+
+        config = Config(Path("unused"), Path("unused"))
+        flat_then_live = pd.Series(
+            np.r_[np.zeros(150), np.random.default_rng(3).normal(0, 6e-3, 250)],
+            index=pd.bdate_range("2000-01-03", periods=400),
+        )
+        leverage = _ewma_portfolio_leverage(flat_then_live, config, decay=0.94)
+        self.assertTrue((leverage.iloc[:150] == 1.0).all())
+        self.assertGreaterEqual(float(leverage.min()), config.min_leverage)
+        self.assertLessEqual(float(leverage.max()), config.max_leverage)
+
+
 class TestWalkForwardSelection(unittest.TestCase):
     def _candidate_returns(self) -> dict[str, pd.Series]:
         index = pd.bdate_range("1990-01-01", "2002-12-31")

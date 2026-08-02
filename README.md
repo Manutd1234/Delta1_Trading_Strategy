@@ -1,6 +1,6 @@
 # DELTA1 Quant Research
 
-NUS Investment Society Quant Research submission: an explainable, cost-aware trend-following strategy, version 2 — **same one-line forecast, 43 global futures markets instead of 22**, with a pre-registered evaluation and a walk-forward training experiment.
+NUS Investment Society Quant Research submission: an explainable, cost-aware trend-following strategy — **same one-line forecast, 43 global futures markets instead of 22**, with a pre-registered evaluation, a walk-forward training experiment, and an audited pass over four institutional risk-engineering fixes.
 
 The research question is simple: **does widening the traded universe — the improvement the fundamental law of active management predicts most reliably — raise CAGR and Sharpe, and does data-driven model selection ("training") add anything beyond it?**
 
@@ -12,16 +12,19 @@ All results are net of a half-tick spread estimate plus USD 2.50 per contract pe
 
 | Strategy | Window | CAGR | Sharpe | Max drawdown |
 |---|---|---:|---:|---:|
-| **Breadth TSMOM (43 markets)** | 1990–2004 | **17.8%** | **1.57** | −12.2% |
+| **Breadth TSMOM (43 markets)** | 1990–2004 | **18.4%** | **1.59** | −11.9% |
 | Adaptive TSMOM (22 markets, v1) | 1990–2004 | 13.7% | 1.27 | −12.2% |
-| **Breadth TSMOM (43 markets)** | 2005–2014 | **9.4%** | **0.89** | −20.4% |
+| **Breadth TSMOM (43 markets)** | 2005–2014 | **11.0%** | **0.99** | −20.8% |
+| + Carry extension (tested, not headline) | 2005–2014 | 10.7% | 1.00 | −11.9% |
 | Adaptive TSMOM (22 markets, v1) | 2005–2014 | 7.0% | 0.70 | −18.6% |
-| Walk-forward selection (training) | 2005–2014 | 6.7% | 0.65 | −24.4% |
-| Ensemble of 5 candidates | 2005–2014 | 8.2% | 0.76 | −23.6% |
+| Walk-forward selection (training) | 2005–2014 | 7.4% | 0.70 | −24.2% |
+| Ensemble of 5 candidates | 2005–2014 | 9.0% | 0.81 | −23.9% |
 
-The pre-registered claim rule passes on both legs: the 90% paired-bootstrap interval of the Sharpe difference excludes zero in 1990–2004 (P(diff > 0) = 95%), and the 2005–2014 difference is positive with 8 of 10 winning calendar years. The gain is breadth, measured: effective independent bets rise from ~9 to ~12 (average pairwise P&L correlation ≈ 0.06), and it survives 3× costs, 5× costs on the six thinnest markets, dropping any single asset class, and excluding 2008–09.
+The breadth improvement **passed the pre-registered claim rule under the v2.0 spec of record**: primary-window 90% paired-bootstrap interval [+0.002, +0.464] and 8 of 10 winning evaluation years. Re-evaluated under the current spec (EWMA volatility targeting), the point estimates are unchanged (P(diff > 0) ≈ 95% in each window) and the evaluation-window interval [+0.004, +0.368] excludes zero, while the primary 5% quantile sits at −0.006 — both verdicts are computed live in `outputs/enhanced_claim_rule.csv` and discussed in the notebook rather than resolved by picking the friendlier spec. The gain is breadth, measured: effective independent bets rise from ~9 to ~12, and it survives 3× costs, 5× costs on the six thinnest markets, dropping any single asset class, and excluding 2008–09.
 
-**The training experiment is a reported negative result.** Rolling walk-forward selection among five pre-declared forecast models — re-fit each year-end on trailing 60-month net Sharpe, applied strictly out-of-sample — underperforms the simplest model it contains (0.65 vs 0.89): selection among correlated candidates ranks noise and pays switching costs for it. The equal-weight ensemble does better (0.76) but still loses to simplicity, consistent with the forecast-combination literature. Reporting that negative result avoids recommending a more complicated model simply because it was tried.
+**Four institutional blueprint fixes were audited, not assumed.** RiskMetrics EWMA volatility targeting (λ = 0.94) was adopted — it improves both windows (+0.10 evaluation Sharpe). Frictional-cost minimization was already built in (cost drag ≈ 1.5% of gross profits vs the 15% ceiling). A roll-yield carry sleeve (Koijen-Moskowitz-Pedersen style, estimated from roll gaps between unadjusted and back-adjusted series) improves point estimates and halves the evaluation drawdown, but its paired Sharpe increment over trend alone is indecisive (P = 0.52), so the standing default-to-simpler rule keeps it as a shipped, tested extension rather than the headline. PCA absorption-ratio de-leveraging and ATR stops were rejected with evidence: the 70% trigger never fires on this universe (top-2 principal components explain at most 67% of variance) and stops conflict with the month-end architecture.
+
+**The training experiment is a reported negative result.** Rolling walk-forward selection among five pre-declared forecast models — re-fit each year-end on trailing 60-month net Sharpe, applied strictly out-of-sample — underperforms the simplest model it contains (0.70 vs 0.99): selection among correlated candidates ranks noise and pays switching costs for it. The equal-weight ensemble does better (0.81) but still loses to simplicity, consistent with the forecast-combination literature.
 
 ## Method
 
@@ -31,7 +34,7 @@ The forecast is unchanged from v1:
 direction[i, t] = sign(close[i, t] - close[i, t - 252])
 ```
 
-The portfolio then, exactly as in v1: sizes positions by lagged EWM dollar volatility; allocates equal ex-ante risk across six asset classes and equally within each; tapers exposure on 20d/120d volatility shocks; targets 10% portfolio volatility with a 2× leverage cap; suppresses small month-end changes with a 25% no-trade region; activates targets the next business day; and deducts contract-specific costs from price-change P&L (back-adjusted levels can cross zero, so returns are never computed off price levels).
+The portfolio then: sizes positions by lagged EWM dollar volatility; allocates equal ex-ante risk across six asset classes and equally within each; tapers exposure on 20d/120d volatility shocks; targets 10% portfolio volatility (RiskMetrics EWMA λ = 0.94 estimator, the one v2.1 change to the risk stack) with a 2× leverage cap; suppresses small month-end changes with a 25% no-trade region; activates targets the next business day; and deducts contract-specific costs from price-change P&L (back-adjusted levels can cross zero, so returns are never computed off price levels).
 
 ## Universe: 43 markets from a written rule
 
@@ -56,9 +59,10 @@ PREREGISTRATION.md            frozen v2 spec, claim rule, and deviation log
 delta1_cta.py                 data, accounting, sizing, baseline and metrics
 institutional_strategy.py     v1 adaptive risk and no-trade controls (the baseline)
 enhanced_strategy.py          the recommended strategy: universe rule, volume gate,
+                              EWMA vol targeting, roll-gap carry extension,
                               walk-forward training experiment, paired bootstrap /
                               PSR / DSR / CSCV-PBO statistics, stress suite
-tests/                        33 timing, leakage, bounds, costs and integration tests
+tests/                        37 timing, leakage, bounds, costs and integration tests
 outputs/                      metrics, statistics, stress tables and charts
 ```
 
@@ -89,6 +93,8 @@ jupyter nbconvert --to notebook --execute --inplace DELTA1_Quant_Research.ipynb
 - Baz et al., [“Dissecting Investment Strategies in the Cross Section and Time Series”](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2695101) (2015) — doubly-normalized trend signals.
 - Timmermann, “Forecast Combination” (2006); DeMiguel, Garlappi & Uppal, *RFS* (2009) — combination and simple rules beat selection.
 - Bailey et al., [“The Probability of Backtest Overfitting”](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2326253), *JCF* (2017) — CSCV PBO, PSR/DSR.
+- Koijen, Moskowitz, Pedersen & Vrugt, [“Carry”](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2298565), *JFE* (2018) — the roll-yield carry extension.
+- Kritzman et al., “Principal Components as a Measure of Systemic Risk”, *JPM* (2011) — the absorption ratio (tested, rejected).
 - Moreira & Muir, [“Volatility-Managed Portfolios”](https://www.nber.org/papers/w22208), *JF* (2017).
 
 ## Limitations

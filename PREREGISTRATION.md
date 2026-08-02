@@ -96,6 +96,59 @@ AND (b) the 2005-2014 point estimate is positive with the headline beating the
 baseline in at least 6 of 10 calendar years. Otherwise the result is reported
 as "not decisive" and the v1 strategy stands.
 
+## Addendum (v2.1): institutional risk-engineering fixes
+
+After v2 was evaluated, four externally proposed "institutional blueprint"
+fixes were assessed. Full honesty about provenance: these were tested after
+the v2 freeze, so both windows had been seen; decisions below therefore rest
+on the primary window plus a-priori rules only, both windows are published
+for every variant, and adopted changes were fixed before the single official
+v2.1 run.
+
+**Adopted.**
+1. *Volatility targeting estimator*: the 63-day rolling portfolio volatility
+   is replaced by a RiskMetrics EWMA (λ = 0.94). Same 10% target, same
+   [0.25, 2] clip, same monthly activation — only the estimator reacts
+   faster. Primary window improves (1.59 vs 1.57), the second-use window
+   improves (0.99 vs 0.89), and the choice is the textbook standard. Daily
+   position rescaling was rejected: it would break the month-boundary
+   execution architecture and multiply turnover.
+
+**Tested, reported in full, not adopted as the headline.**
+1. *Carry sleeve*: a roll-yield carry signal estimated from roll gaps — the
+   difference between unadjusted and back-adjusted continuous price changes,
+   summed over a trailing year, volatility-scaled and normalized exactly like
+   the trend signal (Koijen-Moskowitz-Pedersen 2018) — blended 50/50 with
+   trend (the no-information prior for two return sources). Point estimates
+   improve (primary Sharpe 1.62 vs 1.59; second-use max drawdown −11.9% vs
+   −20.8%), but the paired-bootstrap Sharpe increment of the blend over trend
+   alone is not decisive in either window (primary +0.04, 90% CI
+   [−0.24, +0.26], P(>0) = 0.52), and this document's standing rule —
+   default to the simpler variant when the interval includes zero — applies.
+   The blend and 25%/75% weights are published rows in the comparison and
+   stress tables; the carry code is tested and ships in the module.
+   Collateral yield on margin cash is a deployment note, not a backtest
+   input: the dataset has no risk-free series and Sharpe is rf=0.
+
+**Already present** (no change): the liquidity screen, point-in-time volume
+gate, 25% no-trade region, monthly horizon, and cost accounting implement the
+"minimize frictional costs" prescription; realized cost drag is ~1.5% of
+gross profits against the blueprint's 15% ceiling.
+
+**Rejected, with evidence.**
+1. *Absorption-ratio (PCA) de-leveraging*: implemented and published as a
+   stress row. The specified absolute 70% trigger never fires on this
+   universe (the top-2 principal components explain at most 67% of variance,
+   median 31%); a point-in-time percentile version subtracts in both windows.
+   The existing volatility-shock taper already de-risks in stress regimes.
+2. *ATR stop losses*: incompatible with the month-end decision architecture,
+   and the trend signal is itself the exit mechanism; intramonth stops would
+   add path dependency and turnover without a tested benefit.
+3. *Beta-neutralization against equity futures*: appropriate for a
+   market-neutral equity book, not for a long-short CTA whose returns are the
+   directional trends such a hedge would remove; time-varying signs already
+   keep average equity beta near zero.
+
 ## Deviation log
 
 - 2026-08-02, after the official run: fixed a unit bug in the deflated-Sharpe
@@ -116,3 +169,24 @@ as "not decisive" and the v1 strategy stands.
   the same monthly estimator as the PSR itself. Outputs were regenerated after
   these fixes; the claim-rule inputs (paired bootstrap, win years) and the
   headline results are unchanged.
+- 2026-08-02, after a second adversarial code review of the v2.1 additions:
+  the no-judgment-universe stress row had inherited the carry blend from an
+  earlier draft in which the blend was the headline, conflating the universe
+  screens with a signal change; it now runs the same trend-only forecast as
+  the Base row so its delta isolates the screens. The review also confirmed
+  no lookahead in the carry path and noted, as a design property now stated
+  in the notebook, that the normalized carry score saturates at its clip on
+  about two-thirds of days (near-binary behavior).
+- 2026-08-02, v2.1 addendum: an earlier draft of the addendum adopted the
+  carry blend as the headline before its increment test had been run; the
+  paired test then showed the increment is not decisive, and the standing
+  default-to-simpler rule was applied. The final addendum above reflects the
+  tested decision; the blend remains published in full. The claim rule is now
+  reported for both the v2.0 spec of record (passes: primary 90% CI
+  [+0.002, +0.464], 8/10 second-use wins) and the current v2.1 spec, where
+  the EWMA estimator moves the knife-edge primary 5% quantile from +0.002 to
+  −0.006 while the second-use interval [+0.004, +0.368] excludes zero with
+  8/10 wins. Both verdicts are computed live in enhanced_claim_rule.csv;
+  the quantile's ±0.006 sensitivity to an estimator swap is evidence about
+  the quantile, and is reported as such rather than resolved by picking the
+  friendlier spec. DSR trial count raised to 42 for the v2.1 experiments.

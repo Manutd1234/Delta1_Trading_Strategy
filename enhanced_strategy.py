@@ -134,12 +134,20 @@ CANDIDATES: tuple[ForecastCandidate, ...] = (
 
 @dataclass(frozen=True)
 class EnhancedConfig:
-    """Walk-forward and signal settings; risk/execution reuse InstitutionalConfig."""
+    """Walk-forward and signal settings; risk/execution reuse InstitutionalConfig.
+
+    ``carry_weight`` blends the roll-gap carry signal with trend (0.5 = equal
+    risk to the two return sources, the no-information prior). ``vol_decay``
+    is the RiskMetrics EWMA decay for portfolio volatility targeting; None
+    falls back to the v1 63-day rolling estimator.
+    """
 
     selection_window_months: int = 60
     first_selection_year: int = 1990
     signal_vol_span: int = 60
     strength_cap: float = 2.0
+    carry_weight: float = 0.5
+    vol_decay: float | None = 0.94
     candidates: tuple[ForecastCandidate, ...] = CANDIDATES
 
     def validate(self) -> None:
@@ -147,6 +155,10 @@ class EnhancedConfig:
             raise ValueError("selection_window_months must be at least a year")
         if self.strength_cap <= 0:
             raise ValueError("strength_cap must be positive")
+        if not 0 <= self.carry_weight <= 1:
+            raise ValueError("carry_weight must be in [0, 1]")
+        if self.vol_decay is not None and not 0 < self.vol_decay < 1:
+            raise ValueError("vol_decay must be in (0, 1)")
         if len({candidate.name for candidate in self.candidates}) != len(self.candidates):
             raise ValueError("candidate names must be unique")
         for candidate in self.candidates:
@@ -219,6 +231,66 @@ def candidate_signal(
     return trend_strength(prices, candidate.horizons, config.signal_vol_span, config.strength_cap)
 
 
+def load_unadjusted_prices(
+    data_dir: Path,
+    symbols: list[str],
+    ffill_limit: int = 10,
+) -> pd.DataFrame:
+    """Load the unadjusted continuous closes (&SYM, no back-adjustment).
+
+    The difference between unadjusted and back-adjusted price changes isolates
+    the roll gaps, which is what the carry signal is built from.
+    """
+    series = []
+    for symbol in symbols:
+        path = data_dir / "Futures Data" / f"&{symbol}.csv"
+        frame = pd.read_csv(path, usecols=["Date", "Close"], parse_dates=["Date"])
+        frame = frame.drop_duplicates("Date", keep="last").sort_values("Date")
+        series.append(frame.set_index("Date")["Close"].rename(symbol))
+    prices = pd.concat(series, axis=1, sort=False).sort_index()
+    calendar = pd.bdate_range(prices.index.min(), prices.index.max())
+    return prices.reindex(calendar).ffill(limit=ffill_limit)
+
+
+def carry_strength(
+    prices: pd.DataFrame,
+    unadjusted: pd.DataFrame,
+    vol_span: int,
+    cap: float,
+    normalization_window: int = 252,
+) -> pd.DataFrame:
+    """Roll-yield carry in [-1, 1], from roll gaps between the two series.
+
+    At each contract roll the unadjusted series jumps by the calendar spread
+    while the back-adjusted series does not, so (unadjusted change − adjusted
+    change) summed over a trailing year measures the curve slope actually paid
+    or earned: rolls that jump up (contango) are negative carry for a long.
+    The sum is scaled by annualized dollar volatility to a unitless score,
+    then normalized and clipped exactly like the trend-strength signal.
+    Everything reads only past closes.
+    """
+    roll_gap = unadjusted.reindex_like(prices).diff() - prices.diff()
+    daily_vol = prices.diff().ewm(span=vol_span, min_periods=vol_span, adjust=False).std()
+    raw = -roll_gap.rolling(252, min_periods=126).sum() / (
+        daily_vol.replace(0, np.nan) * math.sqrt(252)
+    )
+    z = raw / raw.rolling(
+        normalization_window, min_periods=normalization_window
+    ).std().replace(0, np.nan)
+    return z.clip(-cap, cap) / cap
+
+
+def blend_trend_and_carry(
+    trend: pd.DataFrame,
+    carry: pd.DataFrame,
+    carry_weight: float,
+) -> pd.DataFrame:
+    """Risk-blend the two return sources; a market runs on trend alone until
+    its carry becomes estimable (about 1.5 years of roll history)."""
+    combined = (1 - carry_weight) * trend + carry_weight * carry.fillna(trend)
+    return combined.clip(-1, 1).where(trend.notna())
+
+
 def load_volumes(data_dir: Path, symbols: list[str]) -> pd.DataFrame:
     """Load reported contract volumes aligned to the price calendar."""
     series = []
@@ -260,6 +332,24 @@ def _shock_multiplier(prices: pd.DataFrame, config: InstitutionalConfig) -> pd.D
     return (1 - progress * (1 - config.shock_floor)).where(ratio.notna())
 
 
+def _ewma_portfolio_leverage(
+    base_gross_returns: pd.Series,
+    config: BacktestConfig,
+    decay: float,
+) -> pd.Series:
+    """RiskMetrics EWMA volatility targeting (lambda = decay, e.g. 0.94).
+
+    The exponential estimator reacts to volatility shifts within weeks instead
+    of dragging a 63-day equal-weight window, which is the entire content of
+    the upgrade; the target, clipping, and monthly activation are unchanged.
+    """
+    realized_vol = base_gross_returns.ewm(
+        alpha=1 - decay, min_periods=20
+    ).std() * math.sqrt(config.annualization)
+    ratio = config.target_vol / realized_vol.replace(0.0, np.nan)
+    return ratio.clip(config.min_leverage, config.max_leverage).fillna(1.0)
+
+
 def run_signal_backtest(
     signal: pd.DataFrame,
     prices: pd.DataFrame,
@@ -272,6 +362,7 @@ def run_signal_backtest(
     class_weights: dict[str, float] | None = None,
     tradeable: pd.DataFrame | None = None,
     cost_multiplier: pd.Series | None = None,
+    vol_decay: float | None = None,
 ) -> BacktestResult:
     """Run any forecast through the shared risk-execution-accounting pipeline."""
     asset_classes = asset_classes or EXPANDED_ASSET_CLASSES
@@ -286,7 +377,10 @@ def run_signal_backtest(
     base_monthly = _month_end_rows(base_target)
     base_positions = _held_positions(base_monthly, prices.index)
     base_gross = _gross_returns(base_positions, prices, metadata)
-    leverage = _portfolio_leverage(base_gross, base_config)
+    if vol_decay is not None:
+        leverage = _ewma_portfolio_leverage(base_gross, base_config, vol_decay)
+    else:
+        leverage = _portfolio_leverage(base_gross, base_config)
     # Until the trailing vol window holds only live history, realized vol is
     # diluted by structural zeros and would overstate the safe leverage; stay
     # at neutral 1.0 through the strategy's first vol window instead.
@@ -409,6 +503,7 @@ def run_walk_forward(
         name: run_signal_backtest(
             signal, prices, metadata, base_config, inst,
             name=name, asset_classes=classes, tradeable=tradeable,
+            vol_decay=config.vol_decay,
         )
         for name, signal in signals.items()
     }
@@ -422,12 +517,12 @@ def run_walk_forward(
     composite = run_signal_backtest(
         composite_signal, prices, metadata, base_config, inst,
         name=f"Walk-forward TSMOM ({n_markets} markets)",
-        asset_classes=classes, tradeable=tradeable,
+        asset_classes=classes, tradeable=tradeable, vol_decay=config.vol_decay,
     )
     ensemble = run_signal_backtest(
         ensemble_signal(signals), prices, metadata, base_config, inst,
         name=f"Ensemble TSMOM ({n_markets} markets)",
-        asset_classes=classes, tradeable=tradeable,
+        asset_classes=classes, tradeable=tradeable, vol_decay=config.vol_decay,
     )
     return WalkForwardResult(
         backtest=composite,
@@ -686,14 +781,63 @@ def _window_rows(result: BacktestResult, label: str) -> list[dict]:
     return rows
 
 
+def absorption_ratio(
+    prices: pd.DataFrame,
+    vol_span: int = 60,
+    window: int = 252,
+    min_live: int = 200,
+) -> pd.Series:
+    """Share of variance explained by the top two principal components.
+
+    Kritzman et al. (2011) systemic-risk measure, computed each month-end from
+    the trailing year of volatility-normalized price changes. Values near one
+    mean the markets have collapsed onto a couple of common factors.
+    """
+    daily_vol = prices.diff().ewm(span=vol_span, min_periods=vol_span, adjust=False).std()
+    normalized = (prices.diff() / daily_vol.replace(0, np.nan)).clip(-5, 5)
+    month_ends = _month_end_rows(pd.Series(1.0, index=prices.index)).index
+    values = {}
+    for date in month_ends:
+        trailing = normalized.loc[:date].tail(window)
+        live = trailing.columns[trailing.notna().sum() > min_live]
+        if len(live) < 10:
+            continue
+        eigenvalues = np.linalg.eigvalsh(trailing[live].corr().to_numpy())
+        values[date] = float(eigenvalues[-2:].sum() / eigenvalues.sum())
+    return pd.Series(values, name="Absorption ratio")
+
+
+def absorption_overlay(
+    signal: pd.DataFrame,
+    ratio: pd.Series,
+    quantile: float = 0.90,
+    cut: float = 0.5,
+) -> pd.DataFrame:
+    """Halve exposure when the absorption ratio exceeds its trailing quantile.
+
+    The trigger compares each month-end value only with its own past, so the
+    overlay is point-in-time; it exists as a tested (and rejected) exhibit.
+    """
+    triggered = ratio.expanding(60).apply(
+        lambda history: float(history.iloc[-1] > np.quantile(history[:-1], quantile))
+    ).fillna(0.0)
+    multiplier = pd.Series(
+        np.where(triggered > 0, cut, 1.0), index=ratio.index
+    ).reindex(signal.index).ffill().fillna(1.0)
+    return signal.mul(multiplier, axis=0)
+
+
 def enhanced_stress_tests(
     prices: pd.DataFrame,
     metadata: pd.DataFrame,
     base_config: BacktestConfig,
     signal: pd.DataFrame,
     tradeable: pd.DataFrame,
+    *,
+    vol_decay: float | None = None,
+    signal_variants: dict[str, pd.DataFrame] | None = None,
 ) -> pd.DataFrame:
-    """Perturb costs, buffers, shock control, sizing, and the risk budget.
+    """Perturb costs, buffers, shock control, sizing, budget, and signal mix.
 
     Every scenario is evaluated in both windows so a perturbation that only
     works in the reused 2005-2014 window is visible as such.
@@ -710,6 +854,7 @@ def enhanced_stress_tests(
     )
     scenarios: list[tuple[str, dict]] = [
         ("Base", {}),
+        ("63-day rolling vol targeting (v2.0)", {"vol_decay": None}),
         ("No trade buffer", {"inst": InstitutionalConfig(no_trade_buffer=0.0)}),
         ("Wide 40% buffer", {"inst": InstitutionalConfig(no_trade_buffer=0.40)}),
         ("No volatility shock control", {"inst": InstitutionalConfig(shock_floor=1.0)}),
@@ -720,11 +865,13 @@ def enhanced_stress_tests(
         ("3x trading costs", {"base": costs_times(3)}),
         ("5x costs on thin markets", {"cost_multiplier": thin_multiplier}),
     ]
+    for label, variant_signal in (signal_variants or {}).items():
+        scenarios.append((label, {"signal": variant_signal}))
     rows = []
     for label, overrides in scenarios:
         scenario_base = overrides.get("base", base_config)
         result = run_signal_backtest(
-            signal,
+            overrides.get("signal", signal),
             prices,
             metadata,
             scenario_base,
@@ -733,6 +880,7 @@ def enhanced_stress_tests(
             class_weights=overrides.get("class_weights"),
             tradeable=tradeable,
             cost_multiplier=overrides.get("cost_multiplier"),
+            vol_decay=overrides.get("vol_decay", vol_decay),
         )
         rows.extend(_window_rows(result, label))
     return pd.DataFrame(rows).set_index(["Scenario", "Window"])
@@ -764,10 +912,14 @@ def no_judgment_universe_row(
     tradeable = tradeable_mask(load_volumes(base_config.data_dir, symbols)).reindex(
         prices.index
     ).fillna(False)
-    signal = candidate_signal(prices, enhanced_config.candidates[0], enhanced_config)
+    # Same trend-only forecast as the Base stress row, so the delta between
+    # the two rows isolates the universe screens and nothing else.
+    sign12 = next(c for c in enhanced_config.candidates if c.name == "Sign 12m")
+    signal = candidate_signal(prices, sign12, enhanced_config)
     result = run_signal_backtest(
         signal, prices, metadata, base_config, InstitutionalConfig(),
         name="No-judgment universe", asset_classes=classes, tradeable=tradeable,
+        vol_decay=enhanced_config.vol_decay,
     )
     return pd.DataFrame(
         _window_rows(result, "No-judgment universe (51 markets)")
@@ -780,6 +932,8 @@ def leave_one_class_out(
     base_config: BacktestConfig,
     signal: pd.DataFrame,
     tradeable: pd.DataFrame,
+    *,
+    vol_decay: float | None = None,
 ) -> pd.DataFrame:
     """Headline Sharpe when each asset class is removed entirely.
 
@@ -797,6 +951,7 @@ def leave_one_class_out(
         result = run_signal_backtest(
             signal, prices, metadata, base_config, InstitutionalConfig(),
             name=f"Without {dropped}", asset_classes=classes, tradeable=tradeable,
+            vol_decay=vol_decay,
         )
         for window_name, (start, end) in BOTH_WINDOWS:
             metrics = performance_metrics(result, start, end)
@@ -867,7 +1022,7 @@ def factorial_attribution(
         result = run_signal_backtest(
             signal, prices, metadata, base_config, InstitutionalConfig(),
             name=f"{universe} / {forecast_name}", asset_classes=classes,
-            tradeable=tradeable,
+            tradeable=tradeable, vol_decay=enhanced_config.vol_decay,
         )
         for window_name, (start, end) in BOTH_WINDOWS:
             metrics = performance_metrics(result, start, end)
@@ -939,7 +1094,9 @@ class EnhancedPipelineOutput:
     leave_one_out: pd.DataFrame
     breadth: pd.DataFrame
     factorial: pd.DataFrame
-    claim: pd.Series
+    claim: pd.DataFrame
+    carry_variant: BacktestResult
+    carry_increment: pd.DataFrame
 
 
 def claim_rule_evaluation(
@@ -1008,11 +1165,35 @@ def run_enhanced_pipeline(
     walk_forward = run_walk_forward(
         base_config, config, prices=prices, metadata=metadata, tradeable=tradeable
     )
-    # The headline keeps v1's pre-specified 12-month sign forecast and changes
-    # only breadth: the walk-forward experiment below shows model selection and
-    # richer signals do not beat it, so the simplest forecast is retained.
+    # The headline keeps v1's pre-specified 12-month sign trend — the
+    # walk-forward experiment below shows model selection and richer trend
+    # signals do not beat it — with the EWMA volatility-targeting estimator.
     headline = replace(
-        walk_forward.candidate_results["Sign 12m"], name="Breadth TSMOM (43 markets)"
+        walk_forward.candidate_results["Sign 12m"],
+        name="Breadth TSMOM (43 markets)",
+    )
+    # The roll-gap carry blend is a tested extension, not the headline: its
+    # Sharpe increment over trend alone is not statistically decisive, and the
+    # pre-committed rule defaults to the simpler variant. It is reported in
+    # full because its drawdown improvement is material.
+    unadjusted = load_unadjusted_prices(base_config.data_dir, symbols)
+    carry = carry_strength(
+        prices, unadjusted, config.signal_vol_span, config.strength_cap
+    )
+    carry_signal = blend_trend_and_carry(
+        walk_forward.candidate_signals["Sign 12m"], carry, config.carry_weight
+    )
+    carry_variant = run_signal_backtest(
+        carry_signal, prices, metadata, base_config, InstitutionalConfig(),
+        name="Breadth TSMOM + Carry (43 markets)", tradeable=tradeable,
+        vol_decay=config.vol_decay,
+    )
+    # The v2.0 spec (63-day rolling volatility targeting) is re-run so the
+    # original claim of record stays reproducible next to the current spec.
+    v2_spec = run_signal_backtest(
+        walk_forward.candidate_signals["Sign 12m"], prices, metadata, base_config,
+        InstitutionalConfig(), name="Breadth TSMOM (v2.0 vol targeting)",
+        tradeable=tradeable, vol_decay=None,
     )
 
     baseline_adaptive = replace(
@@ -1026,10 +1207,12 @@ def run_enhanced_pipeline(
     long_only = run_signal_backtest(
         long_only_signal, prices, metadata, base_config, InstitutionalConfig(),
         name="Long-only risk-balanced (43 markets)", tradeable=tradeable,
+        vol_decay=config.vol_decay,
     )
 
     lineup = [
         headline,
+        carry_variant,
         walk_forward.backtest,
         walk_forward.ensemble,
         baseline_adaptive,
@@ -1083,8 +1266,10 @@ def run_enhanced_pipeline(
     # Honest trial count for the deflated Sharpe: 5 candidates + ensemble +
     # walk-forward + 3 selection windows + 2 class schemes + 3 buffers +
     # 2 sizing vol spans + 3 cost multiples + thin-cost + no-judgment
-    # + the v1 robustness grid of 12 (4 horizon sets x 3 cost multiples) = 34.
-    n_trials = 34
+    # + the v1 robustness grid of 12 (4 horizon sets x 3 cost multiples)
+    # + the v2.1 blueprint experiments (2 vol estimators x carry weights
+    # {0, 25, 50, 75, 100} minus overlaps, plus the absorption overlay) = 42.
+    n_trials = 42
     dsr = pd.Series(
         {
             window_name: deflated_sharpe_ratio(
@@ -1107,10 +1292,61 @@ def run_enhanced_pipeline(
         HOLDOUT_WINDOW[1],
         (headline.name, baseline_adaptive.name),
     )
-    claim = claim_rule_evaluation(bootstrap, yearly, headline.name)
+    # The claim rule is evaluated for the v2.0 spec of record and re-evaluated
+    # for the current spec, side by side; neither replaces the other.
+    claim_columns = {}
+    for label, result in (
+        ("v2.0 spec (claim of record)", v2_spec),
+        ("v2.1 spec (current)", headline),
+    ):
+        spec_bootstrap = pd.DataFrame(
+            {
+                window_name: paired_sharpe_difference(
+                    result.daily["net_return"],
+                    baseline_adaptive.daily["net_return"],
+                    start,
+                    end,
+                )
+                for window_name, (start, end) in BOTH_WINDOWS
+            }
+        ).T
+        spec_yearly = yearly_comparison(
+            result.daily["net_return"],
+            baseline_adaptive.daily["net_return"],
+            PRIMARY_WINDOW[0],
+            HOLDOUT_WINDOW[1],
+            (result.name, baseline_adaptive.name),
+        )
+        claim_columns[label] = claim_rule_evaluation(
+            spec_bootstrap, spec_yearly, result.name
+        )
+    claim = pd.DataFrame(claim_columns)
 
-    sign12_signal = walk_forward.candidate_signals["Sign 12m"]
-    stress = enhanced_stress_tests(prices, metadata, base_config, sign12_signal, tradeable)
+    carry_increment = pd.DataFrame(
+        {
+            window_name: paired_sharpe_difference(
+                carry_variant.daily["net_return"],
+                headline.daily["net_return"],
+                start,
+                end,
+            )
+            for window_name, (start, end) in BOTH_WINDOWS
+        }
+    ).T
+
+    trend_signal_frame = walk_forward.candidate_signals["Sign 12m"]
+    signal_variants = {
+        "Carry blend 50/50 (extension)": carry_signal,
+        "Carry weight 25%": blend_trend_and_carry(trend_signal_frame, carry, 0.25),
+        "Carry weight 75%": blend_trend_and_carry(trend_signal_frame, carry, 0.75),
+        "Absorption-ratio overlay (rejected)": absorption_overlay(
+            trend_signal_frame, absorption_ratio(prices, config.signal_vol_span)
+        ),
+    }
+    stress = enhanced_stress_tests(
+        prices, metadata, base_config, trend_signal_frame, tradeable,
+        vol_decay=config.vol_decay, signal_variants=signal_variants,
+    )
     stress = pd.concat([stress, no_judgment_universe_row(base_config, config)])
     selection_sensitivity = selection_window_sensitivity(
         base_config, prices, metadata, tradeable
@@ -1120,12 +1356,13 @@ def run_enhanced_pipeline(
     )
     crisis_robustness = crisis_excluded_sharpe([headline, baseline_adaptive])
     leave_one_out = leave_one_class_out(
-        prices, metadata, base_config, sign12_signal, tradeable
+        prices, metadata, base_config, trend_signal_frame, tradeable,
+        vol_decay=config.vol_decay,
     )
     breadth = pd.DataFrame(
         {
-            "Breadth TSMOM (43 markets)": effective_breadth(headline, *HOLDOUT_WINDOW),
-            "Adaptive TSMOM (22 markets)": effective_breadth(
+            headline.name: effective_breadth(headline, *HOLDOUT_WINDOW),
+            baseline_adaptive.name: effective_breadth(
                 baseline_adaptive, *HOLDOUT_WINDOW
             ),
         }
@@ -1152,6 +1389,8 @@ def run_enhanced_pipeline(
         breadth=breadth,
         factorial=factorial,
         claim=claim,
+        carry_variant=carry_variant,
+        carry_increment=carry_increment,
     )
 
 
@@ -1214,7 +1453,8 @@ def save_enhanced_outputs(
         directory / "enhanced_class_contributions.csv", index_label="Asset class"
     )
     output.crisis_robustness.to_csv(directory / "enhanced_crisis_robustness.csv")
-    output.claim.to_csv(directory / "enhanced_claim_rule.csv", header=True)
+    output.claim.to_csv(directory / "enhanced_claim_rule.csv")
+    output.carry_increment.to_csv(directory / "enhanced_carry_increment.csv")
     output.leave_one_out.to_csv(directory / "enhanced_leave_one_class_out.csv")
     output.breadth.to_csv(directory / "enhanced_effective_breadth.csv")
     output.factorial.to_csv(directory / "enhanced_factorial.csv")
@@ -1266,7 +1506,9 @@ def _save_enhanced_plot(
     axes[0].set_yscale("log")
     axes[0].set_ylabel("Growth of $1, net of costs (log)")
     axes[0].legend(frameon=False, loc="upper left")
-    axes[0].set_title("Breadth TSMOM vs walk-forward training and the 22-market baseline")
+    axes[0].set_title(
+        "Breadth TSMOM vs walk-forward training and the 22-market baseline"
+    )
     axes[1].set_ylabel("Drawdown")
     axes[2].set_ylabel("Rolling 3y Sharpe")
     axes[2].axhline(0, color="#333333", linewidth=0.8)
