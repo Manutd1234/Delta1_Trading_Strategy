@@ -13,8 +13,6 @@ dependencies = [
   "numpy>=2.0",
   "pandas>=2.2",
   "matplotlib>=3.9",
-  "requests>=2.31",
-  "scikit-learn>=1.5",
 ]
 
 [project.optional-dependencies]
@@ -23,7 +21,7 @@ notebook = ["jupyter>=1.1", "nbconvert>=7.16"]
 [project.scripts]
 delta1-cta = "delta1_cta:main"
 delta1-institutional = "institutional_strategy:main"
-delta1-ml = "ml_strategy:main"
+delta1-enhanced = "enhanced_strategy:main"
 
 [tool.setuptools]
-py-modules = ["delta1_cta", "institutional_strategy", "ml_strategy", "download_external_data"]
+py-modules = ["delta1_cta", "institutional_strategy", "enhanced_strategy"]

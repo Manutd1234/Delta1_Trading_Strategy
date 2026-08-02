@@ -89,7 +89,11 @@ def load_metadata(data_dir: Path, symbols: Iterable[str] | None = None) -> pd.Da
     return catalogue.sort_index()
 
 
-def load_prices(data_dir: Path, symbols: Iterable[str] | None = None) -> pd.DataFrame:
+def load_prices(
+    data_dir: Path,
+    symbols: Iterable[str] | None = None,
+    ffill_limit: int = 5,
+) -> pd.DataFrame:
     """Load close prices and align them to a common business-day calendar."""
     series = []
     for symbol in symbols or _symbols():
@@ -100,7 +104,7 @@ def load_prices(data_dir: Path, symbols: Iterable[str] | None = None) -> pd.Data
     prices = pd.concat(series, axis=1, sort=False).sort_index()
     calendar = pd.bdate_range(prices.index.min(), prices.index.max())
     # Short exchange holidays are zero-P&L days; do not bridge long data outages.
-    prices = prices.reindex(calendar).ffill(limit=5)
+    prices = prices.reindex(calendar).ffill(limit=ffill_limit)
     return prices
 
 
@@ -125,7 +129,10 @@ def _base_target_positions(
     signals: pd.DataFrame,
     metadata: pd.DataFrame,
     config: BacktestConfig,
+    asset_classes: dict[str, tuple[str, ...]] | None = None,
+    class_weights: dict[str, float] | None = None,
 ) -> pd.DataFrame:
+    asset_classes = asset_classes or ASSET_CLASSES
     price_change = prices.diff()
     daily_price_vol = price_change.ewm(
         span=config.vol_span,
@@ -137,11 +144,13 @@ def _base_target_positions(
     ) * math.sqrt(config.annualization)
 
     positions = pd.DataFrame(index=prices.index, columns=prices.columns, dtype=float)
-    class_count = len(ASSET_CLASSES)
-    for asset_class, symbols in ASSET_CLASSES.items():
+    for asset_class, symbols in asset_classes.items():
+        weight = (
+            class_weights[asset_class] if class_weights else 1.0 / len(asset_classes)
+        )
         available = signals.loc[:, symbols].notna() & annual_dollar_vol.loc[:, symbols].gt(0)
         n_available = available.sum(axis=1).replace(0, np.nan)
-        risk_budget = config.target_vol / np.sqrt(class_count * n_available)
+        risk_budget = config.target_vol * np.sqrt(weight / n_available)
         positions.loc[:, symbols] = (
             signals.loc[:, symbols]
             .mul(risk_budget, axis=0)
@@ -175,10 +184,11 @@ def _portfolio_leverage(
         ).std()
         * math.sqrt(config.annualization)
     )
-    leverage = (config.target_vol / realized_vol).clip(
-        config.min_leverage, config.max_leverage
-    )
-    return leverage.replace([np.inf, -np.inf], np.nan).fillna(1.0)
+    # Zero volatility means a structurally flat book, not infinite conviction:
+    # replace it before clipping so it falls back to neutral leverage instead
+    # of being pinned at the cap.
+    ratio = config.target_vol / realized_vol.replace(0.0, np.nan)
+    return ratio.clip(config.min_leverage, config.max_leverage).fillna(1.0)
 
 
 def run_backtest(
@@ -271,12 +281,17 @@ def performance_metrics(
     )
 
 
-def contribution_by_class(result: BacktestResult, config: BacktestConfig) -> pd.DataFrame:
+def contribution_by_class(
+    result: BacktestResult,
+    config: BacktestConfig,
+    asset_classes: dict[str, tuple[str, ...]] | None = None,
+) -> pd.DataFrame:
+    asset_classes = asset_classes or ASSET_CLASSES
     contract_pnl = result.prices.diff().mul(result.metadata["point_value"], axis=1)
     contribution = result.positions * contract_pnl
     contribution = contribution.loc[config.oos_start : config.oos_end]
     out = {}
-    for asset_class, symbols in ASSET_CLASSES.items():
+    for asset_class, symbols in asset_classes.items():
         class_return = contribution.loc[:, symbols].sum(axis=1)
         out[asset_class] = {
             "Annualized mean contribution": class_return.mean() * config.annualization,
