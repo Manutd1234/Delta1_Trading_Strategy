@@ -1,0 +1,10 @@
+parameter,value,category,unit,description
+half_spread_ticks,0.5,fixed,ticks per contract per side,Half of the quoted bid/ask spread charged on each execution.
+slippage_ticks,0.25,fixed,ticks per contract per side,Additional adverse movement charged on each execution.
+commission_per_contract,2.5,fixed,USD per contract per side,Broker commission charged on each execution.
+exchange_and_regulatory_fees_per_contract,1.5,fixed,USD per contract per side,Exchange and regulatory fees charged on each execution.
+impact_bps_at_full_participation,10.0,impact,bps of traded notional,Square-root market-impact coefficient at 100% realised participation.
+charge_roll_costs,True,rolls,boolean,Whether approximate two-leg continuous-contract roll costs are charged.
+execution_timing,next_close,scheduling,execution convention,Observed price field used for delayed execution.
+execution_delay_sessions,0,scheduling,sessions,Additional executable sessions waited after the normal next-session fill.
+max_rebalance_participation,0.02,capacity,fraction of session volume,Maximum fraction of observed session volume available to an order.

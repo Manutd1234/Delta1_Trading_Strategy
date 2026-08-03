@@ -1,0 +1,22 @@
+gate,category,critical,status,observed,limit,reason
+backtest_daily_available,backtest,True,PASS,9683,> 0 rows,gate passed
+required_daily_columns,backtest,True,PASS,all present,all required columns,gate passed
+finite_positive_nav,ledger,True,PASS,953968.9637259142,> 0,gate passed
+finite_net_returns,ledger,True,PASS,finite,all finite,gate passed
+nonnegative_costs,ledger,True,PASS,0.0,>= 0,gate passed
+historical_gross_notional,risk,True,PASS,5.50473087404842,6.0,gate passed
+historical_margin,risk,True,PASS,0.3223175695631066,0.35,gate passed
+historical_order_participation,risk,True,BLOCKED,1.0,0.02,historical order participation exceeds the production limit
+historical_drawdown,risk,True,BLOCKED,0.19155198294365539,0.15,historical drawdown exceeds the production limit or cannot be computed
+terminal_pending_orders,execution,True,PASS,0.0,0,gate passed
+serial_contracts,external evidence,True,BLOCKED,False,True,Tradeable serial-contract history has not been evidenced
+timestamped_live_data,external evidence,True,BLOCKED,False,True,Timestamped live market data has not been evidenced
+dated_contract_specs,external evidence,True,BLOCKED,False,True,Dated contract specifications has not been evidenced
+dated_margin_and_fees,external evidence,True,BLOCKED,False,True,Dated margin and fee schedule has not been evidenced
+calibrated_cost_model,external evidence,True,BLOCKED,False,True,Calibrated execution-cost model has not been evidenced
+independent_holdout,external evidence,True,BLOCKED,False,True,Independent holdout evaluation has not been evidenced
+paper_trading,external evidence,True,BLOCKED,False,True,Paper-trading evidence has not been evidenced
+broker_adapter,external evidence,True,BLOCKED,False,True,Broker adapter has not been evidenced
+broker_reconciliation,external evidence,True,BLOCKED,False,True,Broker reconciliation has not been evidenced
+monitoring_and_alerts,external evidence,True,BLOCKED,False,True,Monitoring and alerting has not been evidenced
+tested_kill_switch,external evidence,True,BLOCKED,False,True,Tested kill switch has not been evidenced

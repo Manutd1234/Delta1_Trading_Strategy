@@ -1,0 +1,22 @@
+{
+  "bootstrap_samples": 2000,
+  "config_sha256": "8e907236b48fe028140390237efa7bcfc52cc1a045bc8e117b2e3219390a017b",
+  "data_end": "2014-12-31",
+  "data_start": "1977-11-21",
+  "engine_version": "2.8.0",
+  "externally_validated": false,
+  "friction_stress_included": true,
+  "implementation_files": {
+    "diagnostics.py": "13e77ca7de3df6e6478dfc532a8f8405f5db8f43e9cd729f191b115ac75c1ba8",
+    "production.py": "b396912fa2560b9bb92d7bb78aac88148d38585f7267bc5d761298a21c4005d2",
+    "strategy.py": "009016010f81f498e71960c3d08886c89481eb1a4602071dbedd7c612ee8ec17",
+    "stress.py": "e4cd4ec17a334d48684a8743708e19da49cef629a42252174474d29ce228e490"
+  },
+  "implementation_fingerprint_sha256": "d934a3451e2c48ff403cc5af0b8c6430db7b8c0438acd7e30eed6430c9108f86",
+  "launch_date": "1990-01-01",
+  "production_readiness": "BLOCKED",
+  "reporting_status": "retrospective_reused_history",
+  "selection_adjusted": false,
+  "source_fingerprint_sha256": "2488f4191e550123f7c287cccdb1a5e2bea1b8f79e5cd66e1d54284b1f84e543",
+  "strategy": "Production-Candidate Global TSMOM + Basis Momentum"
+}

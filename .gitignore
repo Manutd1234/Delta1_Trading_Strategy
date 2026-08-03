@@ -216,6 +216,7 @@ data/*
 data/external/*
 !data/external/source_manifest.json
 Round1AllData/
+doc_*.xlsx
 .DS_Store
 
 # Marimo

@@ -1,0 +1,769 @@
+Window,Source start,Source end,Source months,Method,Expected block months,Horizon months,Samples,Seed,Metric,Statistic,Value,Selection adjusted
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,CAGR,P01,-0.10233506529850137,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,CAGR,P05,-0.06194818378554759,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,CAGR,P25,0.03715755861544292,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,CAGR,Median,0.12370781473034634,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,CAGR,P75,0.20385594372834046,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,CAGR,P95,0.3212937537824049,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,CAGR,P99,0.4119331563741163,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Monthly Sharpe,P01,-1.2104320186967998,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Monthly Sharpe,P05,-0.6073213678033695,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Monthly Sharpe,P25,0.4256233964209401,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Monthly Sharpe,Median,1.151934421091914,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Monthly Sharpe,P75,2.0598697764777736,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Monthly Sharpe,P95,3.2694068880503573,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Monthly Sharpe,P99,3.9805634448222778,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Maximum drawdown,P01,-0.1487975788834479,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Maximum drawdown,P05,-0.11569964110856634,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Maximum drawdown,P25,-0.07456414971499567,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Maximum drawdown,Median,-0.05698843148599775,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Maximum drawdown,P75,-0.026649247654349034,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Maximum drawdown,P95,-0.004477254576241263,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Maximum drawdown,P99,-0.0013990022239773854,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Worst 12-month return,P01,-0.10233506529850137,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Worst 12-month return,P05,-0.06194818378554759,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Worst 12-month return,P25,0.03715755861544293,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Worst 12-month return,Median,0.12370781473034634,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Worst 12-month return,P75,0.20385594372834043,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Worst 12-month return,P95,0.3212937537824049,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Worst 12-month return,P99,0.4119331563741163,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Probability of terminal loss,Probability,0.1575,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.001,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.0,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,12,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,CAGR,P01,-0.02659063908652986,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,CAGR,P05,0.014257229887519837,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,CAGR,P25,0.07215541451183766,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,CAGR,Median,0.11578507255138967,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,CAGR,P75,0.16003342405730062,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,CAGR,P95,0.23688002750045792,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,CAGR,P99,0.27589184742344863,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Monthly Sharpe,P01,-0.2652721293875493,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Monthly Sharpe,P05,0.19777603687704776,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Monthly Sharpe,P25,0.7058712892756374,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Monthly Sharpe,Median,1.0667458434850214,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Monthly Sharpe,P75,1.4819737097771526,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Monthly Sharpe,P95,2.167258622851156,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Monthly Sharpe,P99,2.7256662878192603,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Maximum drawdown,P01,-0.2014080452416111,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Maximum drawdown,P05,-0.16260327123082838,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Maximum drawdown,P25,-0.11569964110856634,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Maximum drawdown,Median,-0.08950815074921853,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Maximum drawdown,P75,-0.06739368395225626,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Maximum drawdown,P95,-0.039002158239725526,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Maximum drawdown,P99,-0.022621965311402814,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Worst 12-month return,P01,-0.17319210909996985,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Worst 12-month return,P05,-0.1331886949777927,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Worst 12-month return,P25,-0.07560344537438984,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Worst 12-month return,Median,-0.02927296466108631,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Worst 12-month return,P75,0.019780741767968985,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Worst 12-month return,P95,0.10841747496639462,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Worst 12-month return,P99,0.14711864234996883,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Probability of terminal loss,Probability,0.0315,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.011,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.0,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,36,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,CAGR,P01,0.007408815033222677,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,CAGR,P05,0.03785843095557232,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,CAGR,P25,0.08447229523719729,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,CAGR,Median,0.11907459213251365,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,CAGR,P75,0.1548228393522092,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,CAGR,P95,0.20268890448940002,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,CAGR,P99,0.23617179883347464,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Monthly Sharpe,P01,0.12078916266304637,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Monthly Sharpe,P05,0.39033553078671784,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Monthly Sharpe,P25,0.7892757295179458,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Monthly Sharpe,Median,1.0945744773856978,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Monthly Sharpe,P75,1.3754003255479705,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Monthly Sharpe,P95,1.8343507435561484,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Monthly Sharpe,P99,2.246951419069687,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Maximum drawdown,P01,-0.22869909969615318,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Maximum drawdown,P05,-0.18361459924139314,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Maximum drawdown,P25,-0.1335131448286938,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Maximum drawdown,Median,-0.11452195653636399,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Maximum drawdown,P75,-0.08488725677757225,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Maximum drawdown,P95,-0.0633413015872552,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Maximum drawdown,P99,-0.03986595298366481,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Worst 12-month return,P01,-0.18478994039672297,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Worst 12-month return,P05,-0.14800686011156555,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Worst 12-month return,P25,-0.09975704662398345,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Worst 12-month return,Median,-0.06491589217675284,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Worst 12-month return,P75,-0.024481969901633274,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Worst 12-month return,P95,0.039626258000173824,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Worst 12-month return,P99,0.09800185629023629,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Probability of terminal loss,Probability,0.0065,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.0325,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.0005,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,60,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,CAGR,P01,0.03572573921222298,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,CAGR,P05,0.05926570103654216,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,CAGR,P25,0.09363100048437514,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,CAGR,Median,0.11574441334393418,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,CAGR,P75,0.1416247529668295,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,CAGR,P95,0.1792220491901179,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,CAGR,P99,0.2004110252536246,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Monthly Sharpe,P01,0.39215308495144924,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Monthly Sharpe,P05,0.579813056051909,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Monthly Sharpe,P25,0.8613923630429912,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Monthly Sharpe,Median,1.0605273383515215,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Monthly Sharpe,P75,1.2761917096849211,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Monthly Sharpe,P95,1.5872277122973635,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Monthly Sharpe,P99,1.829925973120934,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Maximum drawdown,P01,-0.25043486135499127,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Maximum drawdown,P05,-0.209858974826994,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Maximum drawdown,P25,-0.15850722530397274,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Maximum drawdown,Median,-0.1308151611103207,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Maximum drawdown,P75,-0.11569964110856623,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Maximum drawdown,P95,-0.08723022283466526,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Maximum drawdown,P99,-0.07066441961539527,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Worst 12-month return,P01,-0.19744009837329793,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Worst 12-month return,P05,-0.16923511524429985,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Worst 12-month return,P25,-0.128617796420891,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Worst 12-month return,Median,-0.09810579170302583,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Worst 12-month return,P75,-0.07174378159040884,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Worst 12-month return,P95,-0.02691506848997736,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Worst 12-month return,P99,0.004568430590357455,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Probability of terminal loss,Probability,0.0,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.07,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.001,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,6,120,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,CAGR,P01,-0.11524594938787776,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,CAGR,P05,-0.05974049610676464,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,CAGR,P25,0.03136030144344386,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,CAGR,Median,0.12264635917576583,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,CAGR,P75,0.2013446152012407,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,CAGR,P95,0.3190879068912616,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,CAGR,P99,0.38882084809235345,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Monthly Sharpe,P01,-1.1328114172942423,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Monthly Sharpe,P05,-0.5938998801051102,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Monthly Sharpe,P25,0.338122112114604,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Monthly Sharpe,Median,1.1005097894230822,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Monthly Sharpe,P75,2.111429518317347,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Monthly Sharpe,P95,3.35029506817213,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Monthly Sharpe,P99,4.045877761775967,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Maximum drawdown,P01,-0.14820945138749853,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Maximum drawdown,P05,-0.11569964110856623,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Maximum drawdown,P25,-0.08085429540124356,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Maximum drawdown,Median,-0.0570849347479625,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Maximum drawdown,P75,-0.026608916862613546,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Maximum drawdown,P95,-0.004477254576241152,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Maximum drawdown,P99,-0.0004733325503948338,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Worst 12-month return,P01,-0.11524594938787773,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Worst 12-month return,P05,-0.05974049610676465,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Worst 12-month return,P25,0.03136030144344386,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Worst 12-month return,Median,0.12264635917576583,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Worst 12-month return,P75,0.20134461520124067,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Worst 12-month return,P95,0.3190879068912616,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Worst 12-month return,P99,0.38882084809235345,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Probability of terminal loss,Probability,0.1655,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.0005,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.0,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,12,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,CAGR,P01,-0.020492316587742643,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,CAGR,P05,0.019286805922617445,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,CAGR,P25,0.07794878925920745,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,CAGR,Median,0.1162023485968581,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,CAGR,P75,0.15496090088627779,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,CAGR,P95,0.21666995645694795,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,CAGR,P99,0.2566842943852257,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Monthly Sharpe,P01,-0.15126588545468234,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Monthly Sharpe,P05,0.22943022226604737,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Monthly Sharpe,P25,0.7112610215009325,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Monthly Sharpe,Median,1.0648171252184717,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Monthly Sharpe,P75,1.4781768823505148,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Monthly Sharpe,P95,2.277216525766212,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Monthly Sharpe,P99,2.779986664800392,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Maximum drawdown,P01,-0.20551549110033088,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Maximum drawdown,P05,-0.1586829280155254,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Maximum drawdown,P25,-0.12074545826046956,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Maximum drawdown,Median,-0.09383324579541003,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Maximum drawdown,P75,-0.06472830329168144,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Maximum drawdown,P95,-0.03660682143109028,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Maximum drawdown,P99,-0.022621965311402814,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Worst 12-month return,P01,-0.16721170066208424,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Worst 12-month return,P05,-0.12861779642089102,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Worst 12-month return,P25,-0.08013813790491406,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Worst 12-month return,Median,-0.02969391967946208,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Worst 12-month return,P75,0.008063996960793402,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Worst 12-month return,P95,0.12231296527961254,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Worst 12-month return,P99,0.13806893622122413,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Probability of terminal loss,Probability,0.025,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.0115,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.0,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,36,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,CAGR,P01,0.01985977779622207,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,CAGR,P05,0.04546359064699837,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,CAGR,P25,0.08868064395186098,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,CAGR,Median,0.11766777070829697,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,CAGR,P75,0.1469896889722075,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,CAGR,P95,0.19079505591456167,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,CAGR,P99,0.22046292629057454,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Monthly Sharpe,P01,0.245847002927399,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Monthly Sharpe,P05,0.4694197344760483,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Monthly Sharpe,P25,0.8018708193381603,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Monthly Sharpe,Median,1.0550058817876,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Monthly Sharpe,P75,1.3868889930590464,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Monthly Sharpe,P95,1.9488597575436175,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Monthly Sharpe,P99,2.478613491641587,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Maximum drawdown,P01,-0.21809318106828207,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Maximum drawdown,P05,-0.17629846888204176,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Maximum drawdown,P25,-0.14776045155434767,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Maximum drawdown,Median,-0.11569964110856623,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Maximum drawdown,P75,-0.08943125960786058,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Maximum drawdown,P95,-0.05731997490327456,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Maximum drawdown,P99,-0.0366068214310904,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Worst 12-month return,P01,-0.18320151745432006,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Worst 12-month return,P05,-0.13936444005157528,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Worst 12-month return,P25,-0.11321615573087693,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Worst 12-month return,Median,-0.07897685734034085,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Worst 12-month return,P75,-0.026915068489977576,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Worst 12-month return,P95,0.04237715523112659,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Worst 12-month return,P99,0.11011379016082909,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Probability of terminal loss,Probability,0.0035,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.0235,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.0005,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,60,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,CAGR,P01,0.04295324202253832,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,CAGR,P05,0.06709468006046183,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,CAGR,P25,0.09808707424666371,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,CAGR,Median,0.11832945845054225,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,CAGR,P75,0.1396954897808917,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,CAGR,P95,0.16979853087664185,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,CAGR,P99,0.1911849480577213,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Monthly Sharpe,P01,0.43342782996123197,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Monthly Sharpe,P05,0.6321614885873177,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Monthly Sharpe,P25,0.8826359038747238,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Monthly Sharpe,Median,1.070025832477845,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Monthly Sharpe,P75,1.269132608069968,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Monthly Sharpe,P95,1.6029615289515198,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Monthly Sharpe,P99,1.9262267065991834,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Maximum drawdown,P01,-0.24727389381069503,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Maximum drawdown,P05,-0.20041648932003645,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Maximum drawdown,P25,-0.1485520202590486,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Maximum drawdown,Median,-0.13945325240992146,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Maximum drawdown,P75,-0.11569964110856634,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Maximum drawdown,P95,-0.08488725677757236,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Maximum drawdown,P99,-0.06543936040415552,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Worst 12-month return,P01,-0.18696736797068705,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Worst 12-month return,P05,-0.15434567263173832,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Worst 12-month return,P25,-0.128617796420891,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Worst 12-month return,Median,-0.10409849074448713,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Worst 12-month return,P75,-0.08013813790491403,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Worst 12-month return,P95,-0.026915068489977545,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Worst 12-month return,P99,-0.0060232867530319685,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Probability of terminal loss,Probability,0.0,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.0525,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.001,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,12,120,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,CAGR,P01,-0.09223530133782123,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,CAGR,P05,-0.06370448854814238,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,CAGR,P25,0.02572874191195381,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,CAGR,Median,0.13491853236669737,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,CAGR,P75,0.21511546301401233,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,CAGR,P95,0.3157136278353675,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,CAGR,P99,0.3693739064640982,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Monthly Sharpe,P01,-1.0492787464883362,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Monthly Sharpe,P05,-0.6310548526137315,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Monthly Sharpe,P25,0.32780567311064507,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Monthly Sharpe,Median,1.1356566739248692,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Monthly Sharpe,P75,2.3450312923142125,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Monthly Sharpe,P95,3.376332009686534,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Monthly Sharpe,P99,3.920499437763386,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Maximum drawdown,P01,-0.14820945138749853,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Maximum drawdown,P05,-0.11569964110856623,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Maximum drawdown,P25,-0.07066441961539527,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Maximum drawdown,Median,-0.05386907286948428,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Maximum drawdown,P75,-0.022621965311402925,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Maximum drawdown,P95,-0.004120701296078222,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Maximum drawdown,P99,-0.0004733325503948338,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Worst 12-month return,P01,-0.09223530133782128,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Worst 12-month return,P05,-0.06370448854814238,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Worst 12-month return,P25,0.025728741911953807,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Worst 12-month return,Median,0.13491853236669737,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Worst 12-month return,P75,0.2151154630140123,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Worst 12-month return,P95,0.3157136278353676,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Worst 12-month return,P99,0.36937390646409823,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Probability of terminal loss,Probability,0.1715,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.0,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.0,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,12,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,CAGR,P01,0.0002906438729761637,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,CAGR,P05,0.035700871256742164,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,CAGR,P25,0.08387376996090934,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,CAGR,Median,0.11554517008681506,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,CAGR,P75,0.15059561157010648,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,CAGR,P95,0.21042352154193322,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,CAGR,P99,0.24336411064642882,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Monthly Sharpe,P01,0.05403823547138997,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Monthly Sharpe,P05,0.35641892937173614,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Monthly Sharpe,P25,0.741802682179701,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Monthly Sharpe,Median,1.0672070205288762,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Monthly Sharpe,P75,1.5476067362767585,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Monthly Sharpe,P95,2.5412782410131647,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Monthly Sharpe,P99,2.856494400758269,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Maximum drawdown,P01,-0.19317519861642826,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Maximum drawdown,P05,-0.14820945138749875,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Maximum drawdown,P25,-0.12074545826046978,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Maximum drawdown,Median,-0.10135121553108017,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Maximum drawdown,P75,-0.06472830329168133,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Maximum drawdown,P95,-0.022621965311402925,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Maximum drawdown,P99,-0.022621965311402703,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Worst 12-month return,P01,-0.1559971843860094,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Worst 12-month return,P05,-0.128617796420891,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Worst 12-month return,P25,-0.08013813790491406,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Worst 12-month return,Median,-0.032471888605086645,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Worst 12-month return,P75,0.008708499116894272,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Worst 12-month return,P95,0.12264635917576584,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Worst 12-month return,P99,0.13247815652770506,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Probability of terminal loss,Probability,0.01,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.0055,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.0,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,36,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,CAGR,P01,0.03141701540768099,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,CAGR,P05,0.05889308533467321,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,CAGR,P25,0.09192336868087204,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,CAGR,Median,0.11756172501220921,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,CAGR,P75,0.1431302688836563,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,CAGR,P95,0.18049221934026932,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,CAGR,P99,0.20399178815152263,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Monthly Sharpe,P01,0.31016146951454504,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Monthly Sharpe,P05,0.5421256530172885,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Monthly Sharpe,P25,0.798080964903181,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Monthly Sharpe,Median,1.0541804169097302,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Monthly Sharpe,P75,1.4027417263194482,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Monthly Sharpe,P95,1.952193748772183,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Monthly Sharpe,P99,2.334594258659899,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Maximum drawdown,P01,-0.20320770842487174,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Maximum drawdown,P05,-0.16433060005187347,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Maximum drawdown,P25,-0.14820945138749841,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Maximum drawdown,Median,-0.12074545826046956,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Maximum drawdown,P75,-0.08943125960786069,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Maximum drawdown,P95,-0.05731997490327445,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Maximum drawdown,P99,-0.0389883765573482,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Worst 12-month return,P01,-0.16308717694402305,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Worst 12-month return,P05,-0.13088627935452188,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Worst 12-month return,P25,-0.12861779642089097,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Worst 12-month return,Median,-0.08013813790491406,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Worst 12-month return,P75,-0.026915068489977576,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Worst 12-month return,P95,0.02398591358372947,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Worst 12-month return,P99,0.11481528839767453,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Probability of terminal loss,Probability,0.0005,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.011,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.0,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,60,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,CAGR,P01,0.05488089350433557,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,CAGR,P05,0.07402574715169441,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,CAGR,P25,0.09809453515130934,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,CAGR,Median,0.11655403834438074,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,CAGR,P75,0.13337956266351864,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,CAGR,P95,0.1596070139411907,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,CAGR,P99,0.17715670757026225,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Monthly Sharpe,P01,0.5287754829467104,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Monthly Sharpe,P05,0.6649859375890319,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Monthly Sharpe,P25,0.8661254900384622,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Monthly Sharpe,Median,1.0460697869718607,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Monthly Sharpe,P75,1.2382669091808316,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Monthly Sharpe,P95,1.6142221137009354,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Monthly Sharpe,P99,1.9005294567332638,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Maximum drawdown,P01,-0.23456344897536147,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Maximum drawdown,P05,-0.18894035620289273,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Maximum drawdown,P25,-0.14820945138749875,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Maximum drawdown,Median,-0.14820945138749841,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Maximum drawdown,P75,-0.12074545826046967,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Maximum drawdown,P95,-0.09064878733911141,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Maximum drawdown,P99,-0.06472830329168133,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Worst 12-month return,P01,-0.17336001254133773,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Worst 12-month return,P05,-0.1481310059617985,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Worst 12-month return,P25,-0.128617796420891,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Worst 12-month return,Median,-0.12861779642089097,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Worst 12-month return,P75,-0.08013813790491406,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Worst 12-month return,P95,-0.031528337299147044,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Worst 12-month return,P99,-0.02691506848997747,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Probability of terminal loss,Probability,0.0,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.0315,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.0,False
+2005-2014 reused later diagnostic,2005-01-31,2014-12-31,120,stationary monthly bootstrap,24,120,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,CAGR,P01,-0.07534287307654874,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,CAGR,P05,-0.01866376654416273,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,CAGR,P25,0.08043214855641723,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,CAGR,Median,0.1495786451325533,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,CAGR,P75,0.2227892043438959,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,CAGR,P95,0.32321505819333113,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,CAGR,P99,0.4279962023526025,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Monthly Sharpe,P01,-0.7669440245318191,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Monthly Sharpe,P05,-0.14398128947051433,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Monthly Sharpe,P25,0.8335068920666306,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Monthly Sharpe,Median,1.4813141285671847,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Monthly Sharpe,P75,2.331365293292627,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Monthly Sharpe,P95,3.609283475319807,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Monthly Sharpe,P99,4.758363962972741,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Maximum drawdown,P01,-0.12498222546900506,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Maximum drawdown,P05,-0.10358624148734064,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Maximum drawdown,P25,-0.06441530250358729,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Maximum drawdown,Median,-0.046020079775302425,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Maximum drawdown,P75,-0.027521532850631858,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Maximum drawdown,P95,-0.005969188575283052,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Maximum drawdown,P99,-0.0004733325503948338,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Worst 12-month return,P01,-0.07534287307654874,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Worst 12-month return,P05,-0.01866376654416272,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Worst 12-month return,P25,0.08043214855641723,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Worst 12-month return,Median,0.14957864513255334,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Worst 12-month return,P75,0.2227892043438959,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Worst 12-month return,P95,0.3232150581933311,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Worst 12-month return,P99,0.4279962023526025,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Probability of terminal loss,Probability,0.0705,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,12,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,CAGR,P01,0.008278791416455576,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,CAGR,P05,0.044457283049940385,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,CAGR,P25,0.10462442228336083,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,CAGR,Median,0.14276227715367523,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,CAGR,P75,0.18393468724333212,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,CAGR,P95,0.24234523346339112,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,CAGR,P99,0.2895162301623438,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Monthly Sharpe,P01,0.12912341910611796,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Monthly Sharpe,P05,0.48898858729823164,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Monthly Sharpe,P25,1.0349725689968232,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Monthly Sharpe,Median,1.4179533209438806,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Monthly Sharpe,P75,1.8151375879882106,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Monthly Sharpe,P95,2.5143478984467884,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Monthly Sharpe,P99,3.082282293232404,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Maximum drawdown,P01,-0.17127399987911893,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Maximum drawdown,P05,-0.13444336763519477,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Maximum drawdown,P25,-0.09864324571430422,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Maximum drawdown,Median,-0.07090608895750572,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Maximum drawdown,P75,-0.05839080571774463,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Maximum drawdown,P95,-0.04046053684055006,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Maximum drawdown,P99,-0.025228903011833875,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Worst 12-month return,P01,-0.13902074662837005,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Worst 12-month return,P05,-0.10414835020971638,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Worst 12-month return,P25,-0.04129913998159256,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Worst 12-month return,Median,0.01071308797739511,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Worst 12-month return,P75,0.06447747820648017,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Worst 12-month return,P95,0.13247815652770512,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Worst 12-month return,P99,0.1856146382859979,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Probability of terminal loss,Probability,0.0055,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.0015,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,36,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,CAGR,P01,0.043048159799740394,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,CAGR,P05,0.07076056061840146,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,CAGR,P25,0.11439742399409236,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,CAGR,Median,0.14688105429978568,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,CAGR,P75,0.17869509041118498,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,CAGR,P95,0.22182136199348557,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,CAGR,P99,0.25445973844279973,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Monthly Sharpe,P01,0.44285290357013457,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Monthly Sharpe,P05,0.735058122666752,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Monthly Sharpe,P25,1.1214314949880848,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Monthly Sharpe,Median,1.432073926929419,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Monthly Sharpe,P75,1.7449206514137332,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Monthly Sharpe,P95,2.2249930260104196,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Monthly Sharpe,P99,2.5703403711213952,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Maximum drawdown,P01,-0.18480982396886733,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Maximum drawdown,P05,-0.14820945138749875,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Maximum drawdown,P25,-0.11268916774605278,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Maximum drawdown,Median,-0.08436462250650528,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Maximum drawdown,P75,-0.06837142999342605,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Maximum drawdown,P95,-0.052356663533539516,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Maximum drawdown,P99,-0.041567291020984325,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Worst 12-month return,P01,-0.15660368882377435,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Worst 12-month return,P05,-0.12744173035403647,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Worst 12-month return,P25,-0.06821731918856103,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Worst 12-month return,Median,-0.022935953538809097,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Worst 12-month return,P75,0.022763708575253817,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Worst 12-month return,P95,0.08341120453989707,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Worst 12-month return,P99,0.11760359022157471,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Probability of terminal loss,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.007,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,60,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,CAGR,P01,0.06865963328305173,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,CAGR,P05,0.09272606447459013,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,CAGR,P25,0.12389579735686215,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,CAGR,Median,0.14492056343704968,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,CAGR,P75,0.16580761957681645,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,CAGR,P95,0.19732588153955882,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,CAGR,P99,0.21856625935555177,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Monthly Sharpe,P01,0.7115746052397595,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Monthly Sharpe,P05,0.9061633785158673,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Monthly Sharpe,P25,1.2039764951184015,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Monthly Sharpe,Median,1.4046855872628474,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Monthly Sharpe,P75,1.6126021240056345,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Monthly Sharpe,P95,1.9285777321642503,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Monthly Sharpe,P99,2.1519624515210625,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Maximum drawdown,P01,-0.20940029789833559,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Maximum drawdown,P05,-0.16935061624821682,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Maximum drawdown,P25,-0.12688272726235292,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Maximum drawdown,Median,-0.10984100610443703,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Maximum drawdown,P75,-0.0866022075917757,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Maximum drawdown,P95,-0.06760140095246124,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Maximum drawdown,P99,-0.06279683717597366,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Worst 12-month return,P01,-0.17499945747836873,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Worst 12-month return,P05,-0.13914394605649827,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Worst 12-month return,P25,-0.09516559570046002,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Worst 12-month return,Median,-0.06415455339016084,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Worst 12-month return,P75,-0.02720488213391706,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Worst 12-month return,P95,0.01602742443019432,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Worst 12-month return,P99,0.05274575136260514,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Probability of terminal loss,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.0155,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,6,120,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,CAGR,P01,-0.09031876325698841,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,CAGR,P05,-0.021212987267227534,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,CAGR,P25,0.07338253641401703,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,CAGR,Median,0.1483925652183364,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,CAGR,P75,0.21785295646450195,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,CAGR,P95,0.31578888569398356,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,CAGR,P99,0.3999404010065954,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Monthly Sharpe,P01,-0.9687631226106681,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Monthly Sharpe,P05,-0.2307406596546894,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Monthly Sharpe,P25,0.7762161789002398,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Monthly Sharpe,Median,1.4344900355087056,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Monthly Sharpe,P75,2.2723264912141707,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Monthly Sharpe,P95,3.5264735721182894,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Monthly Sharpe,P99,4.614145155006075,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Maximum drawdown,P01,-0.13122134361021917,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Maximum drawdown,P05,-0.10384319130940851,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Maximum drawdown,P25,-0.06472830329168133,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Maximum drawdown,Median,-0.049463081825119604,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Maximum drawdown,P75,-0.02894706688092885,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Maximum drawdown,P95,-0.00983902392190461,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Maximum drawdown,P99,-0.0018083174006792136,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Worst 12-month return,P01,-0.09031876325698841,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Worst 12-month return,P05,-0.021212987267227534,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Worst 12-month return,P25,0.07338253641401703,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Worst 12-month return,Median,0.1483925652183364,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Worst 12-month return,P75,0.21785295646450192,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Worst 12-month return,P95,0.31578888569398356,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Worst 12-month return,P99,0.3999404010065954,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Probability of terminal loss,Probability,0.0805,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,12,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,CAGR,P01,0.014118715657934022,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,CAGR,P05,0.05267793316903407,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,CAGR,P25,0.1084718563980245,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,CAGR,Median,0.14569867654780944,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,CAGR,P75,0.18336539297435117,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,CAGR,P95,0.23944828358667591,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,CAGR,P99,0.2699409312762401,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Monthly Sharpe,P01,0.17955851646760784,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Monthly Sharpe,P05,0.5395390073883041,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Monthly Sharpe,P25,1.073499750178126,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Monthly Sharpe,Median,1.4667889533601484,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Monthly Sharpe,P75,1.8754192806228316,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Monthly Sharpe,P95,2.467376821403456,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Monthly Sharpe,P99,2.8672237373242253,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Maximum drawdown,P01,-0.15767383550070668,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Maximum drawdown,P05,-0.1475219831751067,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Maximum drawdown,P25,-0.09187569767170703,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Maximum drawdown,Median,-0.07066441961539527,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Maximum drawdown,P75,-0.05731997490327467,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Maximum drawdown,P95,-0.04359101169683834,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Maximum drawdown,P99,-0.02834646874240148,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Worst 12-month return,P01,-0.1378738390212728,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Worst 12-month return,P05,-0.1273482122667782,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Worst 12-month return,P25,-0.030588441525210598,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Worst 12-month return,Median,0.01637874147423108,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Worst 12-month return,P75,0.0667951011597439,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Worst 12-month return,P95,0.12853462899301676,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Worst 12-month return,P99,0.18097864903363495,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Probability of terminal loss,Probability,0.006,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.0015,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,36,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,CAGR,P01,0.04565461873044225,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,CAGR,P05,0.07417633861960231,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,CAGR,P25,0.11467132487607382,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,CAGR,Median,0.1441707391562672,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,CAGR,P75,0.17295408903711706,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,CAGR,P95,0.21322731834526668,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,CAGR,P99,0.2420138272036584,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Monthly Sharpe,P01,0.4419682827837586,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Monthly Sharpe,P05,0.746551278567136,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Monthly Sharpe,P25,1.1334857288240272,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Monthly Sharpe,Median,1.438876524966263,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Monthly Sharpe,P75,1.7290436760912589,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Monthly Sharpe,P95,2.1460633686078174,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Monthly Sharpe,P99,2.4589414342781732,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Maximum drawdown,P01,-0.17863857832688618,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Maximum drawdown,P05,-0.14820945138749864,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Maximum drawdown,P25,-0.11569964110856612,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Maximum drawdown,Median,-0.08080746214267864,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Maximum drawdown,P75,-0.06837142999342605,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Maximum drawdown,P95,-0.05230733395170485,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Maximum drawdown,P99,-0.04359520616473622,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Worst 12-month return,P01,-0.14830130487544313,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Worst 12-month return,P05,-0.128617796420891,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Worst 12-month return,P25,-0.06972522405796619,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Worst 12-month return,Median,-0.020733879644600675,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Worst 12-month return,P75,0.021094278621279418,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Worst 12-month return,P95,0.07473800740764726,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Worst 12-month return,P99,0.10151007860075097,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Probability of terminal loss,Probability,0.001,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.005,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,60,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,CAGR,P01,0.07506445772928169,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,CAGR,P05,0.09540993250090055,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,CAGR,P25,0.12399247558071566,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,CAGR,Median,0.14390100250271515,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,CAGR,P75,0.16415259511951602,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,CAGR,P95,0.19180671321229192,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,CAGR,P99,0.21008103316260504,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Monthly Sharpe,P01,0.7379044533574226,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Monthly Sharpe,P05,0.9073246360095721,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Monthly Sharpe,P25,1.2008903494264649,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Monthly Sharpe,Median,1.415340007360257,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Monthly Sharpe,P75,1.6397719347618147,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Monthly Sharpe,P95,1.909644760555667,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Monthly Sharpe,P99,2.0937490021385354,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Maximum drawdown,P01,-0.2020959508518115,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Maximum drawdown,P05,-0.16381861604855522,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Maximum drawdown,P25,-0.13159026177961972,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Maximum drawdown,Median,-0.107583425123148,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Maximum drawdown,P75,-0.07887646733268794,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Maximum drawdown,P95,-0.06486917663159404,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Maximum drawdown,P99,-0.057966303760029605,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Worst 12-month return,P01,-0.16441944681981255,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Worst 12-month return,P05,-0.1337035275859158,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Worst 12-month return,P25,-0.09857646305551886,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Worst 12-month return,Median,-0.06545163671948459,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Worst 12-month return,P75,-0.023265319659454678,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Worst 12-month return,P95,0.022445682537882417,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Worst 12-month return,P99,0.046689032633637245,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Probability of terminal loss,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.0115,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,12,120,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,CAGR,P01,-0.07349381546631027,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,CAGR,P05,-0.01617209044171515,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,CAGR,P25,0.07877481485139705,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,CAGR,Median,0.15068085665945288,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,CAGR,P75,0.2250482754426164,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,CAGR,P95,0.313324893952123,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,CAGR,P99,0.3678098124145745,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Monthly Sharpe,P01,-0.8791425962969158,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Monthly Sharpe,P05,-0.14843328931944094,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Monthly Sharpe,P25,0.8146950811824268,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Monthly Sharpe,Median,1.4967800917524352,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Monthly Sharpe,P75,2.444740063836812,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Monthly Sharpe,P95,3.633373023442486,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Monthly Sharpe,P99,4.537350231548281,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Maximum drawdown,P01,-0.11569964110856645,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Maximum drawdown,P05,-0.10383889569000637,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Maximum drawdown,P25,-0.06472830329168122,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Maximum drawdown,Median,-0.04710371263355273,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Maximum drawdown,P75,-0.026608916862613574,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Maximum drawdown,P95,-0.004715971311856748,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Maximum drawdown,P99,-0.0008812850127397631,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Worst 12-month return,P01,-0.07349381546631027,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Worst 12-month return,P05,-0.016172090441715165,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Worst 12-month return,P25,0.07877481485139703,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Worst 12-month return,Median,0.15068085665945288,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Worst 12-month return,P75,0.22504827544261644,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Worst 12-month return,P95,0.3133248939521231,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Worst 12-month return,P99,0.3678098124145745,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Probability of terminal loss,Probability,0.075,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,12,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,CAGR,P01,0.02720808788146999,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,CAGR,P05,0.06401576424259851,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,CAGR,P25,0.10932416054694394,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,CAGR,Median,0.14482682288141674,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,CAGR,P75,0.18093579026510437,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,CAGR,P95,0.23151503436562043,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,CAGR,P99,0.2602823593698011,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Monthly Sharpe,P01,0.29532035277898294,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Monthly Sharpe,P05,0.5911182613088406,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Monthly Sharpe,P25,1.100396841659615,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Monthly Sharpe,Median,1.501316554430843,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Monthly Sharpe,P75,1.8684907956044485,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Monthly Sharpe,P95,2.3379752207171767,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Monthly Sharpe,P99,2.7925004661918216,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Maximum drawdown,P01,-0.15461643706044068,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Maximum drawdown,P05,-0.14820945138749841,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Maximum drawdown,P25,-0.08943125960786069,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Maximum drawdown,Median,-0.07066441961539527,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Maximum drawdown,P75,-0.057956996617249235,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Maximum drawdown,P95,-0.04359520616473622,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Maximum drawdown,P99,-0.02558230872354683,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Worst 12-month return,P01,-0.12907759847366404,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Worst 12-month return,P05,-0.12861779642089097,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Worst 12-month return,P25,-0.026915068489977576,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Worst 12-month return,Median,0.02110774866396729,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Worst 12-month return,P75,0.06610999135203816,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Worst 12-month return,P95,0.12156221087877243,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Worst 12-month return,P99,0.16353051671730548,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Probability of terminal loss,Probability,0.005,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.0015,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,36,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,CAGR,P01,0.05870741789280214,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,CAGR,P05,0.07877062200699386,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,CAGR,P25,0.116114191150511,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,CAGR,Median,0.141870163172294,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,CAGR,P75,0.17165707441706815,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,CAGR,P95,0.20976445069621985,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,CAGR,P99,0.23443804424369485,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Monthly Sharpe,P01,0.5656264434368802,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Monthly Sharpe,P05,0.7334309502791929,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Monthly Sharpe,P25,1.1196321213644431,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Monthly Sharpe,Median,1.4571172576068423,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Monthly Sharpe,P75,1.7460149143593575,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Monthly Sharpe,P95,2.1318867160835033,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Monthly Sharpe,P99,2.3830189888178035,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Maximum drawdown,P01,-0.16558067149616534,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Maximum drawdown,P05,-0.14820945138749864,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Maximum drawdown,P25,-0.11569964110856623,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Maximum drawdown,Median,-0.07188011404507788,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Maximum drawdown,P75,-0.06837142999342605,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Maximum drawdown,P95,-0.04946308182511994,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Maximum drawdown,P99,-0.046020079775302314,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Worst 12-month return,P01,-0.12861779642089102,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Worst 12-month return,P05,-0.128617796420891,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Worst 12-month return,P25,-0.08013813790491403,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Worst 12-month return,Median,-0.01582341183319163,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Worst 12-month return,P75,0.03901717694904615,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Worst 12-month return,P95,0.0851442741376185,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Worst 12-month return,P99,0.10082253921877696,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Probability of terminal loss,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.001,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,60,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,CAGR,P01,0.08234729147097607,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,CAGR,P05,0.1002839573682686,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,CAGR,P25,0.12551805728859058,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,CAGR,Median,0.14402431695010964,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,CAGR,P75,0.16387436619490628,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,CAGR,P95,0.19114542168346707,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,CAGR,P99,0.209342480881223,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Monthly Sharpe,P01,0.7453257918390762,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Monthly Sharpe,P05,0.9196840532521219,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Monthly Sharpe,P25,1.216621930493158,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Monthly Sharpe,Median,1.426764152897443,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Monthly Sharpe,P75,1.642987575361882,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Monthly Sharpe,P95,1.9213960579093976,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Monthly Sharpe,P99,2.10927944003488,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Maximum drawdown,P01,-0.18532356893619928,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Maximum drawdown,P05,-0.14901891736900014,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Maximum drawdown,P25,-0.1400167908262233,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Maximum drawdown,Median,-0.11071459983941379,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Maximum drawdown,P75,-0.07188011404507777,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Maximum drawdown,P95,-0.06472830329168133,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Maximum drawdown,P99,-0.059717932044889066,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Worst 12-month return,P01,-0.1526136365291021,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Worst 12-month return,P05,-0.1286177964208915,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Worst 12-month return,P25,-0.1091507013709479,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Worst 12-month return,Median,-0.06386532619888152,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Worst 12-month return,P75,-0.019646067628738002,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Worst 12-month return,P95,0.03901717694904615,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Worst 12-month return,P99,0.05470730111828738,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Probability of terminal loss,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Probability maximum drawdown exceeds 20%,Probability,0.0065,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Probability maximum drawdown exceeds 30%,Probability,0.0,False
+1990-2014 full post-launch history,1990-01-31,2014-12-31,300,stationary monthly bootstrap,24,120,2000,20260803,Probability maximum drawdown exceeds 40%,Probability,0.0,False

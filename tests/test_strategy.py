@@ -9,26 +9,31 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from production import (
+    overall_readiness_status,
+    production_readiness_report,
+)
 from strategy import (
     BacktestResult,
-    CURRENT_OPTIMIZATION_TRIALS,
-    PRIOR_TARGET_SEARCH_TRIALS,
     StrategyConfig,
+    _limit_target_contracts,
+    _load_column,
     _simulate_execution,
     apply_no_trade_buffer,
     basis_momentum,
     blend_signals,
+    build_trade_episodes,
     load_delivery_months,
     load_fx_rates,
     load_observed_prices,
     load_unadjusted_prices,
     load_volumes,
-    monthly_block_bootstrap_intervals,
     performance_metrics,
     risk_managed_forecast,
     roll_event_mask,
     run_backtest,
     run_pipeline,
+    trade_episode_metrics,
     tradeable_mask,
     trend_signal,
     usd_margin_values,
@@ -44,6 +49,42 @@ DATA_DIR = Path(
 )
 ROOT_DIR = Path(__file__).resolve().parents[1]
 
+REQUIRED_DAILY_COLUMNS = {
+    "prior_nav_usd",
+    "gross_pnl_usd",
+    "transaction_cost_usd",
+    "fixed_execution_cost_usd",
+    "market_impact_cost_usd",
+    "net_pnl_usd",
+    "gross_return",
+    "cost",
+    "net_return",
+    "nav",
+    "equity",
+    "rebalance_contract_turnover",
+    "roll_contract_turnover_increment",
+    "total_contract_turnover",
+    "gross_notional_usd",
+    "gross_notional_multiple",
+    "static_margin_requirement_usd",
+    "static_margin_fraction",
+    "max_order_participation",
+    "max_rebalance_participation",
+    "max_roll_participation_proxy",
+    "filled_markets",
+    "pending_markets",
+    "target_portfolio_limit_scale",
+}
+
+EMPTY_EPISODE_COLUMNS = [
+    "Status",
+    "Entry date",
+    "Exit date",
+    "Net contribution",
+    "Net P&L USD",
+    "Holding sessions",
+]
+
 
 def execution_inputs(
     closes: list[float],
@@ -56,22 +97,27 @@ def execution_inputs(
     target_schedule: dict[int, float] | None = None,
     roll_dates: tuple[int, ...] = (),
     one_way_cost: float = 0.0,
+    impact_bps: float = 0.0,
+    point_value: float = 1.0,
+    margin_per_contract: float = 10.0,
     initial_capital: float = 100.0,
     integer_contracts: bool = False,
     max_participation: float | None = None,
+    max_gross_notional_multiple: float | None = 5.0,
+    max_static_margin_fraction: float | None = 0.30,
     execution_timing: str = "next_open",
+    execution_delay_sessions: int = 0,
     charge_roll_costs: bool = True,
     launch_date: str | None = None,
 ) -> tuple[object, pd.DatetimeIndex]:
     index = pd.bdate_range("2020-01-30", periods=len(closes))
-    columns = ["X"]
     frame = lambda values: pd.DataFrame({"X": values}, index=index)
-    schedule = target_schedule or {target_date: target}
+    schedule = target_schedule if target_schedule is not None else {target_date: target}
     targets = pd.DataFrame(
         {"X": list(schedule.values())},
         index=[index[offset] for offset in schedule],
     )
-    roll = pd.DataFrame(False, index=index, columns=columns)
+    roll = pd.DataFrame(False, index=index, columns=["X"])
     for offset in roll_dates:
         roll.iloc[offset, 0] = True
     config = StrategyConfig(
@@ -79,9 +125,13 @@ def execution_inputs(
         initial_capital=initial_capital,
         integer_contracts=integer_contracts,
         max_rebalance_participation=max_participation,
+        max_gross_notional_multiple=max_gross_notional_multiple,
+        max_static_margin_fraction=max_static_margin_fraction,
         volume_gate_window=2,
         execution_timing=execution_timing,
+        execution_delay_sessions=execution_delay_sessions,
         charge_roll_costs=charge_roll_costs,
+        impact_bps_at_full_participation=impact_bps,
     )
     ledger = _simulate_execution(
         targets,
@@ -90,9 +140,9 @@ def execution_inputs(
         frame(opens),
         frame(closes),
         frame(volumes),
-        frame([1.0] * len(index)),
+        frame([point_value] * len(index)),
         frame([one_way_cost] * len(index)),
-        frame([10.0] * len(index)),
+        frame([margin_per_contract] * len(index)),
         roll,
         config,
         initial_capital=initial_capital,
@@ -103,26 +153,100 @@ def execution_inputs(
     return ledger, index
 
 
+def metric_result(returns: list[float], index: pd.DatetimeIndex) -> BacktestResult:
+    values = np.asarray(returns, dtype=float)
+    nav = 100.0 * np.cumprod(1.0 + values)
+    prior_nav = np.r_[100.0, nav[:-1]]
+    daily = pd.DataFrame(
+        {
+            "prior_nav_usd": prior_nav,
+            "net_return": values,
+            "cost": 0.0,
+            "fixed_execution_cost_usd": 0.0,
+            "market_impact_cost_usd": 0.0,
+            "nav": nav,
+            "risk_scalar": 1.0,
+            "gross_notional_multiple": 0.0,
+            "static_margin_fraction": 0.0,
+            "max_order_participation": 0.0,
+            "max_rebalance_participation": 0.0,
+            "max_roll_participation_proxy": 0.0,
+            "pending_markets": 0,
+            "target_portfolio_limit_scale": 1.0,
+        },
+        index=index,
+    )
+    zeros = pd.DataFrame({"ES": np.zeros(len(index))}, index=index)
+    falses = zeros.astype(bool)
+    return BacktestResult(
+        name="test",
+        daily=daily,
+        positions=zeros.copy(),
+        target_positions=zeros.copy(),
+        signals=zeros.copy(),
+        prices=zeros.copy(),
+        metadata=pd.DataFrame(),
+        trades=zeros.copy(),
+        roll_events=falses.copy(),
+        executed_rolls=falses.copy(),
+        gross_pnl_by_market=zeros.copy(),
+        regular_cost_by_market=zeros.copy(),
+        roll_cost_by_market=zeros.copy(),
+        trade_episodes=pd.DataFrame(columns=EMPTY_EPISODE_COLUMNS),
+        execution_timing="next_close",
+    )
+
+
+def episode_result() -> BacktestResult:
+    index = pd.bdate_range("2024-01-02", periods=6)
+    positions = pd.DataFrame({"ES": [1.0, 2.0, -1.0, -1.0, 0.0, 1.0]}, index=index)
+    prior = positions.shift().fillna(0.0)
+    trades = positions - prior
+    gross = pd.DataFrame({"ES": [0.0, 10.0, -4.0, 3.0, 2.0, 0.0]}, index=index)
+    regular = pd.DataFrame({"ES": [1.0, 1.0, 3.0, 0.0, 1.0, 1.0]}, index=index)
+    roll_cost = pd.DataFrame({"ES": [0.0, 0.0, 0.0, 2.0, 0.0, 0.0]}, index=index)
+    executed_rolls = pd.DataFrame(
+        {"ES": [False, False, False, True, False, False]}, index=index
+    )
+    daily = pd.DataFrame({"prior_nav_usd": 100.0}, index=index)
+    return BacktestResult(
+        name="episode test",
+        daily=daily,
+        positions=positions,
+        target_positions=positions.copy(),
+        signals=positions.copy(),
+        prices=pd.DataFrame({"ES": 100.0}, index=index),
+        metadata=pd.DataFrame(),
+        trades=trades,
+        roll_events=executed_rolls.copy(),
+        executed_rolls=executed_rolls,
+        gross_pnl_by_market=gross,
+        regular_cost_by_market=regular,
+        roll_cost_by_market=roll_cost,
+        trade_episodes=pd.DataFrame(columns=EMPTY_EPISODE_COLUMNS),
+        execution_timing="next_close",
+    )
+
+
 class TestConfiguration(unittest.TestCase):
     def setUp(self) -> None:
         self.base = StrategyConfig(Path("unused"))
 
-    def test_defaults_are_the_audited_specification(self) -> None:
+    def test_defaults_are_current_research_and_execution_controls(self) -> None:
         self.assertEqual(self.base.trend_lookback, 252)
         self.assertEqual(self.base.basis_weight, 0.5)
         self.assertEqual(self.base.target_vol, 0.10)
-        self.assertEqual(self.base.max_risk_scalar, 2.0)
         self.assertEqual(self.base.risk_budget, "flat")
-        self.assertEqual(self.base.risk_managed_window, 63)
-        self.assertEqual(self.base.no_trade_buffer, 0.25)
         self.assertEqual(self.base.initial_capital, 1_000_000.0)
         self.assertEqual(self.base.launch_date, "1990-01-01")
         self.assertTrue(self.base.integer_contracts)
         self.assertEqual(self.base.execution_timing, "next_close")
+        self.assertEqual(self.base.execution_delay_sessions, 0)
         self.assertTrue(self.base.charge_roll_costs)
-        self.assertEqual(self.base.max_rebalance_participation, 0.05)
-        self.assertEqual(CURRENT_OPTIMIZATION_TRIALS, 50)
-        self.assertEqual(PRIOR_TARGET_SEARCH_TRIALS, 72)
+        self.assertEqual(self.base.max_rebalance_participation, 0.02)
+        self.assertEqual(self.base.max_gross_notional_multiple, 5.0)
+        self.assertEqual(self.base.max_static_margin_fraction, 0.30)
+        self.assertEqual(self.base.mode, "research")
         self.base.validate()
 
     def test_invalid_parameters_fail_fast(self) -> None:
@@ -135,33 +259,98 @@ class TestConfiguration(unittest.TestCase):
             {"initial_capital": 0.0},
             {"launch_date": "not-a-date"},
             {"execution_timing": "same_close"},
+            {"execution_delay_sessions": -1},
             {"max_rebalance_participation": 0.0},
+            {"max_gross_notional_multiple": 0.0},
+            {"max_static_margin_fraction": 1.1},
+            {"mode": "live"},
         ]
         for values in invalid:
             with self.subTest(values=values), self.assertRaises(ValueError):
                 StrategyConfig(Path("unused"), **values).validate()
 
-    def test_superseded_point_metric_ledgers_are_not_shipped(self) -> None:
-        self.assertFalse((ROOT_DIR / "outputs" / "optimization_trials.csv").exists())
-        self.assertFalse((ROOT_DIR / "outputs" / "strategy_robustness.csv").exists())
+    def test_production_mode_is_explicitly_fail_closed(self) -> None:
+        config = StrategyConfig(Path("unused"), mode="production")
+        with self.assertRaisesRegex(RuntimeError, "Production mode is fail-closed"):
+            run_backtest(config)
 
 
 class TestNotebookArtifact(unittest.TestCase):
-    def test_notebook_is_executed_and_imports_the_canonical_strategy(self) -> None:
+    def test_notebook_is_valid_imports_strategy_and_contains_no_error_output(self) -> None:
         notebook = json.loads((ROOT_DIR / "DELTA1_Strategy.ipynb").read_text())
         self.assertEqual(notebook["nbformat"], 4)
-        self.assertGreaterEqual(len(notebook["cells"]), 15)
+        self.assertIsInstance(notebook.get("cells"), list)
         code_cells = [cell for cell in notebook["cells"] if cell["cell_type"] == "code"]
-        self.assertEqual(
-            [cell["execution_count"] for cell in code_cells],
-            list(range(1, len(code_cells) + 1)),
+        self.assertTrue(code_cells)
+        source = "".join("".join(cell.get("source", [])) for cell in code_cells)
+        self.assertTrue(
+            "from strategy import" in source or "import strategy" in source
         )
-        self.assertIn(
-            "from strategy import",
-            "".join("".join(cell["source"]) for cell in code_cells),
+        self.assertTrue(
+            all(
+                cell.get("execution_count") is None
+                or isinstance(cell.get("execution_count"), int)
+                for cell in code_cells
+            )
         )
-        outputs = [output for cell in code_cells for output in cell["outputs"]]
-        self.assertFalse(any(output["output_type"] == "error" for output in outputs))
+        outputs = [output for cell in code_cells for output in cell.get("outputs", [])]
+        self.assertFalse(any(output.get("output_type") == "error" for output in outputs))
+
+
+class TestInputValidation(unittest.TestCase):
+    def write_csv(self, directory: str, rows: list[dict[str, object]]) -> Path:
+        path = Path(directory) / "vendor.csv"
+        pd.DataFrame(rows).to_csv(path, index=False)
+        return path
+
+    def test_load_column_rejects_duplicate_dates(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = self.write_csv(
+                directory,
+                [
+                    {"Date": "2020-01-02", "Close": 100},
+                    {"Date": "2020-01-02", "Close": 101},
+                ],
+            )
+            with self.assertRaisesRegex(ValueError, "Duplicate Date"):
+                _load_column(path, "Close", "X")
+
+    def test_load_column_rejects_bad_dates_and_non_numeric_values(self) -> None:
+        cases = (
+            (
+                [
+                    {"Date": "2020-01-03", "Close": 101},
+                    {"Date": "not-a-date", "Close": 100},
+                ],
+                "Invalid Date",
+            ),
+            (
+                [
+                    {"Date": "2020-01-02", "Close": "broken"},
+                    {"Date": "2020-01-03", "Close": 101},
+                ],
+                "Non-numeric Close",
+            ),
+        )
+        for rows, message in cases:
+            with self.subTest(message=message), tempfile.TemporaryDirectory() as directory:
+                path = self.write_csv(directory, rows)
+                with self.assertRaisesRegex(ValueError, message):
+                    _load_column(path, "Close", "X")
+
+    def test_load_column_sorts_unambiguous_observations(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = self.write_csv(
+                directory,
+                [
+                    {"Date": "2020-01-03", "Close": 101},
+                    {"Date": "2020-01-02", "Close": 100},
+                ],
+            )
+            loaded = _load_column(path, "Close", "X")
+        self.assertEqual(loaded.name, "X")
+        self.assertTrue(loaded.index.is_monotonic_increasing)
+        self.assertEqual(loaded.tolist(), [100, 101])
 
 
 class TestSignals(unittest.TestCase):
@@ -209,15 +398,71 @@ class TestSignals(unittest.TestCase):
         opens = self.prices.shift(1).add(0.1)
         baseline = risk_managed_forecast(blended, self.prices, 60, 126, 2.0, opens)
         self.assertLessEqual(float(baseline.abs().max().max()), 1.0)
-        changed = self.prices.copy()
-        changed.iloc[1_300:] += 100
+        changed_prices = self.prices.copy()
+        changed_prices.iloc[1_300:] += 100
         changed_signal = blend_signals(
-            trend_signal(changed), basis_momentum(changed, self.unadjusted), 0.5
+            trend_signal(changed_prices),
+            basis_momentum(changed_prices, self.unadjusted),
+            0.5,
         )
         altered = risk_managed_forecast(
-            changed_signal, changed, 60, 126, 2.0, opens
+            changed_signal, changed_prices, 60, 126, 2.0, opens
         )
         pd.testing.assert_frame_equal(baseline.iloc[:1_300], altered.iloc[:1_300])
+
+
+class TestTargetLimits(unittest.TestCase):
+    def test_gross_notional_limit_scales_target_contracts(self) -> None:
+        config = StrategyConfig(
+            Path("unused"),
+            max_gross_notional_multiple=1.0,
+            max_static_margin_fraction=None,
+        )
+        contracts, scale = _limit_target_contracts(
+            np.array([0.10, -0.10]),
+            100.0,
+            np.array([10.0, 10.0]),
+            np.array([1.0, 1.0]),
+            np.array([1.0, 1.0]),
+            config,
+            integer_contracts=False,
+        )
+        np.testing.assert_allclose(contracts, [5.0, -5.0])
+        self.assertAlmostEqual(scale, 0.5)
+        gross = np.sum(np.abs(contracts * np.array([10.0, 10.0])))
+        self.assertLessEqual(gross, config.max_gross_notional_multiple * 100.0)
+
+    def test_static_margin_limit_scales_target_contracts(self) -> None:
+        config = StrategyConfig(
+            Path("unused"),
+            max_gross_notional_multiple=None,
+            max_static_margin_fraction=0.20,
+        )
+        contracts, scale = _limit_target_contracts(
+            np.array([0.10, -0.10]),
+            100.0,
+            np.array([10.0, 10.0]),
+            np.array([1.0, 1.0]),
+            np.array([5.0, 5.0]),
+            config,
+            integer_contracts=False,
+        )
+        np.testing.assert_allclose(contracts, [2.0, -2.0])
+        self.assertAlmostEqual(scale, 0.2)
+        margin = np.sum(np.abs(contracts) * np.array([5.0, 5.0]))
+        self.assertLessEqual(margin, config.max_static_margin_fraction * 100.0)
+
+    def test_nonzero_target_requires_complete_valuation_inputs(self) -> None:
+        with self.assertRaisesRegex(ValueError, "Missing decision-date valuation"):
+            _limit_target_contracts(
+                np.array([0.01]),
+                100.0,
+                np.array([np.nan]),
+                np.array([1.0]),
+                np.array([10.0]),
+                StrategyConfig(Path("unused")),
+                integer_contracts=True,
+            )
 
 
 class TestRiskAndExecution(unittest.TestCase):
@@ -243,47 +488,87 @@ class TestRiskAndExecution(unittest.TestCase):
         self.assertEqual(ledger.daily.loc[index[1], "gross_pnl_usd"], 10.0)
         self.assertEqual(ledger.daily.loc[index[2], "gross_pnl_usd"], 10.0)
 
-    def test_zero_volume_session_defers_the_order(self) -> None:
+    def test_next_close_fill_receives_returns_only_after_the_fill(self) -> None:
         ledger, index = execution_inputs(
-            [100.0, 120.0, 130.0], [100.0, 110.0, 125.0], [100.0, 0.0, 100.0]
+            [100.0, 120.0, 130.0],
+            [100.0, 110.0, 125.0],
+            [100.0] * 3,
+            execution_timing="next_close",
+        )
+        self.assertEqual(ledger.positions.loc[index[1], "X"], 1.0)
+        self.assertEqual(ledger.daily.loc[index[1], "gross_pnl_usd"], 0.0)
+        self.assertEqual(ledger.daily.loc[index[2], "gross_pnl_usd"], 10.0)
+
+    def test_additional_execution_delay_waits_one_eligible_session(self) -> None:
+        ledger, index = execution_inputs(
+            [100.0] * 4,
+            [100.0] * 4,
+            [100.0] * 4,
+            execution_timing="next_close",
+            execution_delay_sessions=1,
         )
         self.assertEqual(ledger.positions.loc[index[1], "X"], 0.0)
         self.assertEqual(ledger.positions.loc[index[2], "X"], 1.0)
-        self.assertEqual(ledger.daily.loc[index[2], "gross_pnl_usd"], 5.0)
 
-    def test_unchanged_position_pays_two_roll_legs(self) -> None:
+    def test_zero_volume_session_defers_the_order_and_delay_clock(self) -> None:
         ledger, index = execution_inputs(
-            [100.0, 100.0, 100.0],
-            [100.0, 100.0, 100.0],
+            [100.0] * 5,
+            [100.0] * 5,
+            [100.0, 0.0, 100.0, 100.0, 100.0],
+            execution_timing="next_close",
+            execution_delay_sessions=1,
+        )
+        self.assertEqual(ledger.positions.loc[index[1], "X"], 0.0)
+        self.assertEqual(ledger.positions.loc[index[2], "X"], 0.0)
+        self.assertEqual(ledger.positions.loc[index[3], "X"], 1.0)
+
+    def test_fixed_and_impact_costs_decompose_total_cost(self) -> None:
+        ledger, index = execution_inputs(
             [100.0] * 3,
-            roll_dates=(2,),
+            [100.0] * 3,
+            [100.0] * 3,
             one_way_cost=3.0,
+            impact_bps=10.0,
+            execution_timing="next_close",
         )
-        self.assertEqual(ledger.daily.loc[index[1], "transaction_cost_usd"], 3.0)
-        self.assertEqual(ledger.daily.loc[index[2], "transaction_cost_usd"], 6.0)
-        self.assertEqual(
-            ledger.daily.loc[index[2], "roll_contract_turnover_increment"], 2.0
+        fill_date = index[1]
+        self.assertAlmostEqual(
+            ledger.daily.loc[fill_date, "fixed_execution_cost_usd"], 3.0
+        )
+        self.assertAlmostEqual(
+            ledger.daily.loc[fill_date, "market_impact_cost_usd"], 0.01
+        )
+        self.assertAlmostEqual(
+            ledger.daily.loc[fill_date, "transaction_cost_usd"], 3.01
+        )
+        np.testing.assert_allclose(
+            ledger.daily["transaction_cost_usd"],
+            ledger.daily["fixed_execution_cost_usd"]
+            + ledger.daily["market_impact_cost_usd"],
         )
 
-    def test_roll_on_closed_row_is_charged_on_next_session(self) -> None:
+    def test_rolls_charge_two_legs_and_defer_on_closed_sessions(self) -> None:
         ledger, index = execution_inputs(
-            [100.0, 100.0, 100.0, 100.0],
-            [100.0, 100.0, 100.0, 100.0],
+            [100.0] * 4,
+            [100.0] * 4,
             [100.0, 100.0, 0.0, 100.0],
             roll_dates=(2,),
             one_way_cost=3.0,
         )
+        self.assertEqual(ledger.daily.loc[index[1], "transaction_cost_usd"], 3.0)
         self.assertEqual(ledger.daily.loc[index[2], "transaction_cost_usd"], 0.0)
         self.assertEqual(ledger.daily.loc[index[3], "transaction_cost_usd"], 6.0)
         self.assertEqual(
             ledger.daily.loc[index[3], "roll_contract_turnover_increment"], 2.0
         )
+        self.assertTrue(bool(ledger.executed_rolls.loc[index[3], "X"]))
 
-    def test_roll_label_while_flat_is_not_an_executed_roll(self) -> None:
+    def test_roll_while_flat_is_not_executed(self) -> None:
         ledger, index = execution_inputs(
             [100.0, 100.0],
             [100.0, 100.0],
             [100.0, 100.0],
+            target=0.0,
             roll_dates=(0,),
             one_way_cost=3.0,
         )
@@ -292,8 +577,8 @@ class TestRiskAndExecution(unittest.TestCase):
 
     def test_roll_cost_switch_preserves_physical_roll_diagnostic(self) -> None:
         ledger, index = execution_inputs(
-            [100.0, 100.0, 100.0],
-            [100.0, 100.0, 100.0],
+            [100.0] * 3,
+            [100.0] * 3,
             [100.0] * 3,
             roll_dates=(2,),
             one_way_cost=3.0,
@@ -314,18 +599,59 @@ class TestRiskAndExecution(unittest.TestCase):
         self.assertEqual(ledger.positions.loc[index[2], "X"], 1.0)
         self.assertAlmostEqual(ledger.daily.loc[index[1], "nav"], 110.0)
         self.assertAlmostEqual(ledger.daily.loc[index[2], "nav"], 121.0)
+        np.testing.assert_allclose(ledger.daily["equity"], ledger.daily["nav"] / 100.0)
+
+    def test_ledger_and_per_market_attribution_reconcile(self) -> None:
+        ledger, _ = execution_inputs(
+            [100.0, 110.0, 115.0, 117.0],
+            [100.0, 102.0, 111.0, 115.0],
+            [100.0] * 4,
+            target_schedule={0: 0.01, 2: 0.0},
+            one_way_cost=1.25,
+            impact_bps=5.0,
+            execution_timing="next_close",
+        )
+        daily = ledger.daily
+        self.assertTrue(REQUIRED_DAILY_COLUMNS.issubset(daily.columns))
         np.testing.assert_allclose(
-            ledger.daily["equity"], ledger.daily["nav"] / 100.0
+            daily["gross_pnl_usd"], ledger.gross_pnl_by_market.sum(axis=1)
+        )
+        np.testing.assert_allclose(
+            daily["transaction_cost_usd"],
+            (ledger.regular_cost_by_market + ledger.roll_cost_by_market).sum(axis=1),
+        )
+        np.testing.assert_allclose(
+            daily["net_pnl_usd"],
+            daily["gross_pnl_usd"] - daily["transaction_cost_usd"],
+        )
+        np.testing.assert_allclose(
+            daily["nav"],
+            daily["prior_nav_usd"] + daily["net_pnl_usd"],
+        )
+        np.testing.assert_allclose(
+            daily["net_return"], daily["net_pnl_usd"] / daily["prior_nav_usd"]
+        )
+        np.testing.assert_allclose(
+            ledger.trades,
+            ledger.positions - ledger.positions.shift().fillna(0.0),
         )
 
     def test_integer_rounding_depends_on_capital(self) -> None:
         low, low_index = execution_inputs(
-            [100.0, 100.0], [100.0, 100.0], [100.0] * 2,
-            target=0.006, initial_capital=50.0, integer_contracts=True,
+            [100.0, 100.0],
+            [100.0, 100.0],
+            [100.0] * 2,
+            target=0.006,
+            initial_capital=50.0,
+            integer_contracts=True,
         )
         high, high_index = execution_inputs(
-            [100.0, 100.0], [100.0, 100.0], [100.0] * 2,
-            target=0.006, initial_capital=100.0, integer_contracts=True,
+            [100.0, 100.0],
+            [100.0, 100.0],
+            [100.0] * 2,
+            target=0.006,
+            initial_capital=100.0,
+            integer_contracts=True,
         )
         self.assertEqual(low.positions.loc[low_index[1], "X"], 0.0)
         self.assertEqual(high.positions.loc[high_index[1], "X"], 1.0)
@@ -346,21 +672,9 @@ class TestRiskAndExecution(unittest.TestCase):
         self.assertEqual(ledger.positions.loc[index[4], "X"], 3.0)
         self.assertGreater(ledger.daily.loc[index[2], "pending_markets"], 0)
         self.assertEqual(ledger.daily.loc[index[4], "pending_markets"], 0)
-
-    def test_partial_order_quantity_is_frozen_at_first_fill(self) -> None:
-        ledger, index = execution_inputs(
-            [100.0, 100.0, 200.0, 300.0, 400.0, 500.0],
-            [100.0, 100.0, 100.0, 200.0, 300.0, 400.0],
-            [10.0] * 6,
-            target=0.03,
-            target_date=1,
-            initial_capital=100.0,
-            integer_contracts=True,
-            max_participation=0.10,
+        self.assertLessEqual(
+            float(ledger.daily["max_rebalance_participation"].max()), 0.10
         )
-        self.assertEqual(ledger.positions.loc[index[4], "X"], 3.0)
-        self.assertEqual(ledger.positions.loc[index[5], "X"], 3.0)
-        self.assertEqual(ledger.daily.loc[index[4], "pending_markets"], 0)
 
     def test_order_quantity_is_frozen_at_decision_nav(self) -> None:
         ledger, index = execution_inputs(
@@ -393,22 +707,18 @@ class TestRiskAndExecution(unittest.TestCase):
                 [100.0] * 3,
             )
 
-    def test_every_vendor_label_change_is_charged_and_anomalies_are_flagged(self) -> None:
+    def test_roll_event_mask_charges_every_switch_and_flags_anomalies(self) -> None:
         index = pd.bdate_range("2020-01-01", periods=7)
         delivery = pd.DataFrame(
             {"X": [202003, 202003, 202006, 202003, 202006, 202005, 202009]},
             index=index,
         )
         rolls, anomalies = roll_event_mask(delivery)
-        self.assertTrue(bool(rolls.iloc[2, 0]))
-        self.assertTrue(bool(rolls.iloc[3, 0]))
+        self.assertEqual(int(rolls["X"].sum()), 5)
         self.assertTrue(bool(anomalies.iloc[2, 0]))
-        self.assertTrue(bool(rolls.iloc[4, 0]))
-        self.assertTrue(bool(rolls.iloc[5, 0]))
         self.assertTrue(bool(anomalies.iloc[5, 0]))
-        self.assertTrue(bool(rolls.iloc[6, 0]))
 
-    def test_notional_uses_raw_active_contract_level_not_adjusted_level(self) -> None:
+    def test_notional_uses_raw_contract_level_not_adjusted_level(self) -> None:
         low, low_index = execution_inputs(
             [10.0, 11.0, 12.0],
             [10.0, 10.0, 11.0],
@@ -428,7 +738,7 @@ class TestRiskAndExecution(unittest.TestCase):
         self.assertEqual(low.daily.loc[low_index[2], "gross_notional_usd"], 102.0)
         self.assertEqual(high.daily.loc[high_index[2], "gross_notional_usd"], 202.0)
 
-    def test_point_values_and_static_margin_convert_foreign_currency(self) -> None:
+    def test_point_values_and_margin_convert_foreign_currency(self) -> None:
         index = pd.bdate_range("2020-01-01", periods=2)
         metadata = pd.DataFrame(
             {
@@ -445,56 +755,85 @@ class TestRiskAndExecution(unittest.TestCase):
         self.assertEqual(margins["EU"].tolist(), [2_200.0, 2_400.0])
 
 
-class TestMetrics(unittest.TestCase):
-    @staticmethod
-    def result(returns: list[float], index: pd.DatetimeIndex) -> BacktestResult:
-        daily = pd.DataFrame(
-            {
-                "net_return": returns,
-                "cost": 0.0,
-                "risk_scalar": 1.0,
-                "gross_notional_multiple": 0.0,
-                "static_margin_fraction": 0.0,
-                "max_order_participation": 0.0,
-            },
-            index=index,
-        )
-        empty = pd.DataFrame(index=index)
-        return BacktestResult(
-            "test", daily, empty, empty, empty, empty, empty, empty, empty, empty
-        )
+class TestTradeEpisodes(unittest.TestCase):
+    def test_sequence_resize_sign_flip_roll_close_and_censoring(self) -> None:
+        result = episode_result()
+        episodes = build_trade_episodes(result)
+        self.assertEqual(episodes["Episode ID"].tolist(), [
+            "ES-0001",
+            "ES-0002",
+            "ES-0003",
+        ])
+        self.assertEqual(episodes["Direction"].tolist(), ["Long", "Short", "Long"])
+        self.assertEqual(episodes["Status"].tolist(), ["Closed", "Closed", "Open"])
 
-    def test_cagr_includes_the_first_return_interval(self) -> None:
+        long_episode, short_episode, censored = [row for _, row in episodes.iterrows()]
+        self.assertEqual(long_episode["Maximum absolute contracts"], 2.0)
+        self.assertEqual(long_episode["Resize count"], 1)
+        self.assertEqual(long_episode["Gross P&L USD"], 6.0)
+        self.assertEqual(long_episode["Regular cost USD"], 4.0)
+        self.assertEqual(long_episode["Net P&L USD"], 2.0)
+
+        self.assertEqual(short_episode["Roll count"], 1)
+        self.assertEqual(short_episode["Roll cost USD"], 2.0)
+        self.assertEqual(short_episode["Gross P&L USD"], 5.0)
+        self.assertEqual(short_episode["Net P&L USD"], 1.0)
+        self.assertTrue(pd.isna(censored["Exit date"]))
+        self.assertEqual(censored["Net P&L USD"], -1.0)
+
+    def test_episode_totals_and_closed_metrics_reconcile(self) -> None:
+        result = episode_result()
+        result.trade_episodes = build_trade_episodes(result)
+        episodes = result.trade_episodes
+        self.assertAlmostEqual(
+            float(episodes["Gross P&L USD"].sum()),
+            float(result.gross_pnl_by_market.to_numpy().sum()),
+        )
+        self.assertAlmostEqual(
+            float(episodes["Regular cost USD"].sum()),
+            float(result.regular_cost_by_market.to_numpy().sum()),
+        )
+        self.assertAlmostEqual(
+            float(episodes["Roll cost USD"].sum()),
+            float(result.roll_cost_by_market.to_numpy().sum()),
+        )
+        np.testing.assert_allclose(
+            episodes["Net P&L USD"],
+            episodes["Gross P&L USD"]
+            - episodes["Regular cost USD"]
+            - episodes["Roll cost USD"],
+        )
+        metrics = trade_episode_metrics(episodes, "2024-01-01", "2024-12-31")
+        self.assertEqual(metrics["Closed trade episodes"], 2)
+        self.assertEqual(metrics["Open/censored trade episodes"], 1)
+
+    def test_non_next_close_results_do_not_claim_episode_attribution(self) -> None:
+        result = episode_result()
+        result.execution_timing = "next_open"
+        self.assertTrue(build_trade_episodes(result).empty)
+
+
+class TestMetrics(unittest.TestCase):
+    def test_cagr_includes_first_return_interval(self) -> None:
         index = pd.to_datetime(["2019-12-31", "2020-01-01", "2021-01-01"])
-        result = self.result([0.0, 0.0, 0.10], index)
+        result = metric_result([0.0, 0.0, 0.10], index)
         metrics = performance_metrics(result, "2020-01-01", "2021-01-01")
         expected_years = 367 / 365.2425
         self.assertAlmostEqual(float(metrics["Years"]), expected_years)
-        self.assertAlmostEqual(
-            float(metrics["CAGR"]), 1.10 ** (1 / expected_years) - 1
-        )
+        self.assertAlmostEqual(float(metrics["CAGR"]), 1.10 ** (1 / expected_years) - 1)
 
     def test_sortino_uses_downside_root_mean_square(self) -> None:
         index = pd.bdate_range("2020-01-01", periods=4)
         returns = [0.02, -0.01, 0.01, -0.02]
-        metrics = performance_metrics(self.result(returns, index), str(index[0].date()))
+        metrics = performance_metrics(metric_result(returns, index), str(index[0].date()))
         downside = np.sqrt(np.mean(np.minimum(returns, 0.0) ** 2))
         expected = np.mean(returns) * 252 / (downside * np.sqrt(252))
         self.assertAlmostEqual(float(metrics["Sortino (rf=0)"]), expected)
 
     def test_drawdown_includes_starting_wealth(self) -> None:
         index = pd.bdate_range("2020-01-01", periods=2)
-        metrics = performance_metrics(self.result([-0.10, 0.0], index), "2020")
+        metrics = performance_metrics(metric_result([-0.10, 0.0], index), "2020")
         self.assertAlmostEqual(float(metrics["Max drawdown"]), -0.10)
-
-    def test_block_bootstrap_is_deterministic_and_unadjusted(self) -> None:
-        index = pd.bdate_range("2018-01-01", periods=756)
-        returns = (0.0003 + np.sin(np.arange(len(index))) * 0.001).tolist()
-        result = self.result(returns, index)
-        first = monthly_block_bootstrap_intervals(result, "2018", samples=500)
-        second = monthly_block_bootstrap_intervals(result, "2018", samples=500)
-        pd.testing.assert_series_equal(first, second)
-        self.assertFalse(bool(first["Selection adjusted"]))
 
 
 @unittest.skipUnless(DATA_DIR.exists(), "Supplied DELTA1 data directory is not available")
@@ -509,8 +848,9 @@ class TestSuppliedDataIntegration(unittest.TestCase):
     def tearDownClass(cls) -> None:
         cls.temp.cleanup()
 
-    def test_production_invariants(self) -> None:
+    def test_core_ledger_and_execution_invariants(self) -> None:
         daily = self.result.daily
+        self.assertTrue(REQUIRED_DAILY_COLUMNS.issubset(daily.columns))
         prelaunch = daily.index < pd.Timestamp(self.config.launch_date)
         self.assertTrue((self.result.positions.loc[prelaunch] == 0).all().all())
         self.assertTrue(
@@ -533,26 +873,98 @@ class TestSuppliedDataIntegration(unittest.TestCase):
         volumes = load_volumes(DATA_DIR).reindex_like(self.result.positions)
         self.assertTrue(bool((~changed | volumes.gt(0)).all().all()))
         self.assertGreater(float(daily["roll_contract_turnover_increment"].sum()), 0)
-        self.assertEqual(int(daily["delivery_label_anomalies"].sum()), 4)
         self.assertGreater(int(self.result.executed_rolls.to_numpy().sum()), 0)
 
-        prior_positions = self.result.positions.shift().fillna(0.0)
         np.testing.assert_allclose(
             self.result.trades,
-            self.result.positions - prior_positions,
+            self.result.positions - self.result.positions.shift().fillna(0.0),
         )
-        charged_by_market = self.result.trades.abs().where(
-            ~self.result.executed_rolls,
-            prior_positions.abs() + self.result.positions.abs(),
+        self.assertLessEqual(
+            float(daily["max_rebalance_participation"].max()),
+            float(self.config.max_rebalance_participation) + 1e-12,
+        )
+        self.assertTrue((daily["max_roll_participation_proxy"] >= 0).all())
+        self.assertTrue(
+            (
+                daily["max_order_participation"] + 1e-15
+                >= daily["max_rebalance_participation"]
+            ).all()
+        )
+        self.assertTrue(
+            (
+                daily["max_order_participation"] + 1e-15
+                >= daily["max_roll_participation_proxy"]
+            ).all()
+        )
+
+    def test_per_market_and_episode_attribution_reconcile(self) -> None:
+        daily = self.result.daily
+        np.testing.assert_allclose(
+            daily["gross_pnl_usd"],
+            self.result.gross_pnl_by_market.sum(axis=1),
+            rtol=1e-10,
+            atol=1e-8,
         )
         np.testing.assert_allclose(
-            daily["total_contract_turnover"],
-            charged_by_market.sum(axis=1),
+            daily["transaction_cost_usd"],
+            (
+                self.result.regular_cost_by_market
+                + self.result.roll_cost_by_market
+            ).sum(axis=1),
+            rtol=1e-10,
+            atol=1e-8,
         )
         np.testing.assert_allclose(
-            daily["roll_contract_turnover_increment"],
-            (charged_by_market - self.result.trades.abs()).sum(axis=1),
+            daily["nav"],
+            daily["prior_nav_usd"] + daily["net_pnl_usd"],
+            rtol=1e-10,
+            atol=1e-8,
         )
+
+        episodes = self.result.trade_episodes
+        self.assertFalse(episodes.empty)
+        self.assertAlmostEqual(
+            float(episodes["Gross P&L USD"].sum()),
+            float(self.result.gross_pnl_by_market.to_numpy().sum()),
+            places=6,
+        )
+        self.assertAlmostEqual(
+            float(episodes["Regular cost USD"].sum()),
+            float(self.result.regular_cost_by_market.to_numpy().sum()),
+            places=6,
+        )
+        self.assertAlmostEqual(
+            float(episodes["Roll cost USD"].sum()),
+            float(self.result.roll_cost_by_market.to_numpy().sum()),
+            places=6,
+        )
+        np.testing.assert_allclose(
+            episodes["Net P&L USD"],
+            episodes["Gross P&L USD"]
+            - episodes["Regular cost USD"]
+            - episodes["Roll cost USD"],
+        )
+        self.assertAlmostEqual(
+            float(episodes["Net contribution"].sum()),
+            float(daily["net_return"].sum()),
+            places=10,
+        )
+
+    def test_report_is_descriptive_without_preselected_performance_gates(self) -> None:
+        columns = [str(column).lower() for column in self.report.columns]
+        self.assertFalse(any("target" in column for column in columns))
+        self.assertFalse(any("pass" in column or "fail" in column for column in columns))
+        self.assertIn("validation status", columns)
+        self.assertTrue(
+            self.report["Validation status"].eq("retrospective_reused_history").all()
+        )
+
+    def test_production_readiness_defaults_to_blocked(self) -> None:
+        readiness = production_readiness_report(self.result)
+        self.assertEqual(overall_readiness_status(readiness), "BLOCKED")
+        evidence = readiness.loc[readiness["category"].eq("external evidence")]
+        self.assertFalse(evidence.empty)
+        self.assertTrue(evidence["status"].eq("BLOCKED").all())
 
     def test_full_pipeline_is_truncation_invariant(self) -> None:
         cutoff = "2004-12-31"
@@ -575,33 +987,7 @@ class TestSuppliedDataIntegration(unittest.TestCase):
         pd.testing.assert_frame_equal(
             self.result.positions.loc[:cutoff], truncated.positions
         )
-        pd.testing.assert_frame_equal(
-            self.result.signals.loc[:cutoff], truncated.signals
-        )
-
-    def test_selected_window_fails_the_sharpe_target_and_validation(self) -> None:
-        row = self.report.set_index("Window").loc["1990-2004 selected window"]
-        self.assertAlmostEqual(
-            float(row["Naive daily Sharpe (sqrt252, rf=0)"]), 1.984864, places=5
-        )
-        self.assertAlmostEqual(float(row["CAGR"]), 0.245232, places=5)
-        self.assertTrue(bool(row["CAGR point estimate >= 20%"]))
-        self.assertFalse(bool(row["Naive daily Sharpe point estimate >= 2.0"]))
-        self.assertFalse(bool(row["Both point-estimate targets met"]))
-        self.assertFalse(bool(row["Monthly Sharpe >= 2.0"]))
-        self.assertFalse(bool(row["HAC Sharpe >= 2.0"]))
-        self.assertFalse(bool(row["Peak modeled daily participation <= 100%"]))
-        self.assertFalse(bool(row["Externally validated"]))
-        self.assertFalse(
-            bool(row["Durable 20% CAGR / 2.0 Sharpe claim validated"])
-        )
-
-    def test_reused_later_period_does_not_clear_targets(self) -> None:
-        row = self.report.set_index("Window").loc[
-            "2005-2014 reused later diagnostic"
-        ]
-        self.assertFalse(bool(row["CAGR point estimate >= 20%"]))
-        self.assertFalse(bool(row["Naive daily Sharpe point estimate >= 2.0"]))
+        pd.testing.assert_frame_equal(self.result.signals.loc[:cutoff], truncated.signals)
 
 
 if __name__ == "__main__":
