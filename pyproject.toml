@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "delta1-trading-strategy"
-version = "2.6.0"
-description = "Optimized global trend and basis-momentum futures strategy"
+version = "2.7.0"
+description = "Audited global trend and basis-momentum futures strategy"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
