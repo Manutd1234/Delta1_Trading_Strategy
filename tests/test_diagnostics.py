@@ -6,8 +6,12 @@ from types import SimpleNamespace
 import numpy as np
 import pandas as pd
 
-from diagnostics import (
+from delta1_strategy.research.diagnostics import (
+    DEFAULT_DAILY_BLOCK_LENGTHS,
+    DEFAULT_DAILY_HORIZONS_SESSIONS,
+    _path_drawdown_statistics,
     causal_regime_report,
+    daily_stationary_bootstrap_drawdown_summary,
     monthly_stationary_bootstrap_summary,
     trade_metrics_report,
 )
@@ -53,6 +57,15 @@ def synthetic_result(months: int = 144) -> SimpleNamespace:
     return SimpleNamespace(daily=daily, signals=signals, trade_episodes=episodes)
 
 
+def synthetic_daily_result(sessions: int = 756) -> SimpleNamespace:
+    index = pd.bdate_range("2000-01-03", periods=sessions)
+    phase = np.arange(sessions, dtype=float)
+    returns = 0.0003 + 0.004 * np.sin(phase / 17.0) + 0.002 * np.cos(phase / 41.0)
+    return SimpleNamespace(
+        daily=pd.DataFrame({"net_return": returns}, index=index)
+    )
+
+
 class TestMonthlyStationaryBootstrap(unittest.TestCase):
     def test_is_deterministic_and_constrains_horizons_to_source_history(self) -> None:
         result = synthetic_result(72)
@@ -77,6 +90,88 @@ class TestMonthlyStationaryBootstrap(unittest.TestCase):
         self.assertEqual(set(first["Horizon months"]), {12, 36, 60})
         self.assertFalse(bool(first["Selection adjusted"].any()))
         self.assertTrue(first["Value"].notna().all())
+        self.assertEqual(
+            set(first["Drawdown resolution"]),
+            {
+                "month-end only; informational; may understate intramonth "
+                "drawdown"
+            },
+        )
+        self.assertIn(
+            "Probability maximum drawdown exceeds 15%",
+            set(first["Metric"]),
+        )
+        self.assertIn(
+            "Probability capital falls below 50% of initial (diagnostic)",
+            set(first["Metric"]),
+        )
+
+
+class TestDailyStationaryBootstrapDrawdown(unittest.TestCase):
+    def test_predeclared_grid_is_one_three_six_months_and_ten_twenty_five_years(
+        self,
+    ) -> None:
+        self.assertEqual(DEFAULT_DAILY_BLOCK_LENGTHS, (21, 63, 126))
+        self.assertEqual(DEFAULT_DAILY_HORIZONS_SESSIONS, (2_520, 6_300))
+
+    def test_is_deterministic_and_has_daily_resolution_schema(self) -> None:
+        result = synthetic_daily_result(756)
+        windows = {"history": ("2000-01-01", None)}
+        arguments = {
+            "samples": 80,
+            "block_lengths_sessions": (21, 63),
+            "horizons_sessions": (252, 504),
+            "seed": 29,
+        }
+        first = daily_stationary_bootstrap_drawdown_summary(
+            result,
+            windows,
+            **arguments,
+        )
+        second = daily_stationary_bootstrap_drawdown_summary(
+            result,
+            windows,
+            **arguments,
+        )
+        pd.testing.assert_frame_equal(first, second)
+        self.assertEqual(set(first["Method"]), {"stationary daily bootstrap"})
+        self.assertEqual(
+            set(first["Drawdown resolution"]),
+            {"daily close; includes initial capital"},
+        )
+        self.assertEqual(set(first["Expected block sessions"]), {21, 63})
+        self.assertEqual(set(first["Horizon sessions"]), {252, 504})
+        self.assertEqual(
+            set(first["Metric"]),
+            {
+                "Maximum drawdown",
+                "Probability capital falls below 50% of initial (diagnostic)",
+                "Probability maximum drawdown exceeds 15%",
+                "Probability maximum drawdown exceeds 20%",
+                "Probability maximum drawdown exceeds 30%",
+                "Probability maximum drawdown exceeds 40%",
+            },
+        )
+        self.assertNotIn("CAGR", set(first["Metric"]))
+        self.assertNotIn("Monthly Sharpe", set(first["Metric"]))
+        self.assertFalse(bool(first["Selection adjusted"].any()))
+
+    def test_drawdown_includes_initial_capital(self) -> None:
+        statistics = _path_drawdown_statistics(np.array([[-0.10]]))
+        self.assertAlmostEqual(float(statistics["Maximum drawdown"][0]), -0.10)
+        self.assertAlmostEqual(
+            float(statistics["Minimum capital fraction"][0]),
+            0.90,
+        )
+
+    def test_daily_path_catches_loss_recovered_before_month_end(self) -> None:
+        daily_path = np.array([[-0.20, 0.25]])
+        monthly_path = np.prod(1.0 + daily_path, axis=1, keepdims=True) - 1.0
+        daily = _path_drawdown_statistics(daily_path)["Maximum drawdown"][0]
+        month_end = _path_drawdown_statistics(monthly_path)["Maximum drawdown"][0]
+        self.assertAlmostEqual(float(monthly_path[0, 0]), 0.0)
+        self.assertAlmostEqual(float(month_end), 0.0)
+        self.assertAlmostEqual(float(daily), -0.20)
 
 
 class TestCausalRegimes(unittest.TestCase):
@@ -144,6 +239,29 @@ class TestTradeMetricsAndSchemas(unittest.TestCase):
         self.assertAlmostEqual(float(overall["Profit factor contribution"]), 3.0)
         self.assertAlmostEqual(float(overall["Expectancy bps"]), 20 / 3)
 
+    def test_profit_factor_uses_each_numeraire_sign(self) -> None:
+        episodes = pd.DataFrame(
+            {
+                "symbol": ["ES", "ES"],
+                "asset_class": ["Equity", "Equity"],
+                "entry_date": pd.to_datetime(["2001-01-01", "2001-02-01"]),
+                "exit_date": pd.to_datetime(["2001-01-10", "2001-02-10"]),
+                "status": ["Closed", "Closed"],
+                "net_pnl_usd": [10.0, -5.0],
+                "net_return_contribution": [-0.02, 0.01],
+                "holding_sessions": [7, 7],
+            }
+        )
+        result = SimpleNamespace(trade_episodes=episodes)
+        report = trade_metrics_report(
+            result,
+            {"history": ("2000-01-01", "2002-12-31")},
+        )
+        overall = report.loc[report["Scope"].eq("Overall")].iloc[0]
+        self.assertAlmostEqual(float(overall["Profit factor contribution"]), 0.5)
+        self.assertAlmostEqual(float(overall["Profit factor USD"]), 2.0)
+        self.assertAlmostEqual(float(overall["Win rate"]), 0.5)
+
     def test_diagnostics_never_emit_target_or_verdict_columns(self) -> None:
         result = synthetic_result(72)
         windows = {"history": ("2000-01-01", "2005-12-31")}
@@ -154,6 +272,13 @@ class TestTradeMetricsAndSchemas(unittest.TestCase):
                 samples=50,
                 block_lengths=(6,),
                 horizons_months=(12,),
+            ),
+            daily_stationary_bootstrap_drawdown_summary(
+                synthetic_daily_result(300),
+                {"history": ("2000-01-01", None)},
+                samples=25,
+                block_lengths_sessions=(21,),
+                horizons_sessions=(252,),
             ),
             causal_regime_report(
                 result,

@@ -1,11 +1,11 @@
 check,status,maximum_absolute_error,tolerance,detail
-market_gross_pnl_to_portfolio,PASS,2.3283064365386963e-10,1e-06,Sum of market gross P&L equals the portfolio gross P&L.
-market_costs_to_portfolio,PASS,5.4569682106375694e-12,1e-06,Regular plus roll costs reconcile to the portfolio cost ledger.
+market_gross_pnl_to_portfolio,PASS,1.1641532182693481e-10,1e-06,Sum of market gross P&L equals the portfolio gross P&L.
+market_costs_to_portfolio,PASS,2.7284841053187847e-12,1e-06,Regular plus roll costs reconcile to the portfolio cost ledger.
 fixed_plus_impact_costs,PASS,1.8189894035458565e-12,1e-06,Parameterized fixed and impact costs reconcile to total costs.
 position_change_to_trades,PASS,0.0,1e-06,Recorded trades equal the change in contract positions.
 net_pnl_identity,PASS,0.0,1e-06,Net P&L equals gross P&L less all modeled costs.
 nav_recursion,PASS,3.725290298461914e-09,1e-06,Closing NAV equals prior NAV plus net P&L.
 net_return_identity,PASS,0.0,1e-06,Net return is calculated on prior closing NAV.
 episode_gross_pnl_to_market_ledger,PASS,3.725290298461914e-09,1e-06,Closed and censored directional episodes include all gross market P&L.
-episode_costs_to_market_ledger,PASS,0.0,1e-06,Closed and censored directional episodes include all modeled costs.
-episode_contribution_to_daily_return,PASS,1.3322676295501878e-15,1e-06,Episode net contributions reconcile to additive daily net returns.
+episode_costs_to_market_ledger,PASS,2.3283064365386963e-10,1e-06,Closed and censored directional episodes include all modeled costs.
+episode_contribution_to_daily_return,PASS,0.0,1e-06,Episode net contributions reconcile to additive daily net returns.

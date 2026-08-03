@@ -13,7 +13,7 @@ from typing import Any
 
 import pandas as pd
 
-from strategy import performance_metrics, run_backtest
+from .strategy import performance_metrics, run_backtest
 
 
 RETROSPECTIVE_START = "1990-01-01"

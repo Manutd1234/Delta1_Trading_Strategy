@@ -9,15 +9,21 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from production import (
+from delta1_strategy.controls.production import (
     overall_readiness_status,
     production_readiness_report,
 )
-from strategy import (
+from delta1_strategy.research.strategy import (
     BacktestResult,
+    ENGINE_VERSION,
+    STRATEGY_NAME,
+    STRATEGY_DESIGNATION,
+    STRATEGY_TECHNICAL_NAME,
     StrategyConfig,
+    _base_target_positions,
     _limit_target_contracts,
     _load_column,
+    _month_end_rows,
     _simulate_execution,
     apply_no_trade_buffer,
     basis_momentum,
@@ -26,6 +32,7 @@ from strategy import (
     load_delivery_months,
     load_fx_rates,
     load_observed_prices,
+    load_prices,
     load_unadjusted_prices,
     load_volumes,
     performance_metrics,
@@ -33,6 +40,8 @@ from strategy import (
     roll_event_mask,
     run_backtest,
     run_pipeline,
+    save_outputs,
+    strategy_symbols,
     trade_episode_metrics,
     tradeable_mask,
     trend_signal,
@@ -104,7 +113,7 @@ def execution_inputs(
     integer_contracts: bool = False,
     max_participation: float | None = None,
     max_gross_notional_multiple: float | None = 5.0,
-    max_static_margin_fraction: float | None = 0.30,
+    max_static_margin_fraction: float | None = None,
     execution_timing: str = "next_open",
     execution_delay_sessions: int = 0,
     charge_roll_costs: bool = True,
@@ -235,7 +244,7 @@ class TestConfiguration(unittest.TestCase):
     def test_defaults_are_current_research_and_execution_controls(self) -> None:
         self.assertEqual(self.base.trend_lookback, 252)
         self.assertEqual(self.base.basis_weight, 0.5)
-        self.assertEqual(self.base.target_vol, 0.10)
+        self.assertEqual(self.base.target_vol, 0.07)
         self.assertEqual(self.base.risk_budget, "flat")
         self.assertEqual(self.base.initial_capital, 1_000_000.0)
         self.assertEqual(self.base.launch_date, "1990-01-01")
@@ -245,9 +254,22 @@ class TestConfiguration(unittest.TestCase):
         self.assertTrue(self.base.charge_roll_costs)
         self.assertEqual(self.base.max_rebalance_participation, 0.02)
         self.assertEqual(self.base.max_gross_notional_multiple, 5.0)
-        self.assertEqual(self.base.max_static_margin_fraction, 0.30)
-        self.assertEqual(self.base.mode, "research")
+        self.assertIsNone(self.base.max_static_margin_fraction)
+        self.assertFalse(hasattr(self.base, "mode"))
         self.base.validate()
+
+    def test_strategy_identity_separates_methodology_and_best_available_label(
+        self,
+    ) -> None:
+        self.assertEqual(ENGINE_VERSION, "3.2.1")
+        self.assertEqual(STRATEGY_DESIGNATION, "Best Available Hardened Strategy")
+        self.assertEqual(
+            STRATEGY_TECHNICAL_NAME,
+            "Diversified Global-Futures Time-Series Momentum Plus "
+            "Basis-Momentum Portfolio",
+        )
+        self.assertEqual(STRATEGY_NAME, STRATEGY_TECHNICAL_NAME)
+        self.assertNotEqual(STRATEGY_DESIGNATION, STRATEGY_NAME)
 
     def test_invalid_parameters_fail_fast(self) -> None:
         invalid = [
@@ -263,38 +285,88 @@ class TestConfiguration(unittest.TestCase):
             {"max_rebalance_participation": 0.0},
             {"max_gross_notional_multiple": 0.0},
             {"max_static_margin_fraction": 1.1},
-            {"mode": "live"},
         ]
         for values in invalid:
             with self.subTest(values=values), self.assertRaises(ValueError):
                 StrategyConfig(Path("unused"), **values).validate()
 
-    def test_production_mode_is_explicitly_fail_closed(self) -> None:
-        config = StrategyConfig(Path("unused"), mode="production")
-        with self.assertRaisesRegex(RuntimeError, "Production mode is fail-closed"):
-            run_backtest(config)
+    def test_research_config_has_no_live_mode_switch(self) -> None:
+        with self.assertRaises(TypeError):
+            StrategyConfig(Path("unused"), mode="production")
+
+    def test_research_universe_excludes_unsupported_yield_quoted_contracts(self) -> None:
+        symbols = strategy_symbols()
+        self.assertEqual(len(symbols), 59)
+        self.assertTrue({"YXT", "YYT"}.isdisjoint(symbols))
+
+    def test_asset_class_budget_uses_only_supported_frame_columns(self) -> None:
+        index = pd.bdate_range("2020-01-01", periods=120)
+        rng = np.random.default_rng(7)
+        prices = pd.DataFrame(
+            {
+                "ES": 100.0 + np.cumsum(rng.normal(0.0, 1.0, len(index))),
+                "ZN": 120.0 + np.cumsum(rng.normal(0.0, 0.5, len(index))),
+            },
+            index=index,
+        )
+        forecast = pd.DataFrame(1.0, index=index, columns=prices.columns)
+        point_values = pd.DataFrame(1.0, index=index, columns=prices.columns)
+        positions = _base_target_positions(
+            prices,
+            forecast,
+            point_values,
+            StrategyConfig(Path("unused"), risk_budget="asset_classes", vol_span=20),
+        )
+        self.assertEqual(positions.columns.tolist(), ["ES", "ZN"])
+        self.assertTrue(np.isfinite(positions.iloc[-1]).all())
 
 
 class TestNotebookArtifact(unittest.TestCase):
-    def test_notebook_is_valid_imports_strategy_and_contains_no_error_output(self) -> None:
-        notebook = json.loads((ROOT_DIR / "DELTA1_Strategy.ipynb").read_text())
+    def test_notebook_is_executed_uses_canonical_artifacts_and_embeds_charts(self) -> None:
+        notebook = json.loads(
+            (
+                ROOT_DIR
+                / "notebooks"
+                / "global_futures_trend_basis_committee_review.ipynb"
+            ).read_text()
+        )
         self.assertEqual(notebook["nbformat"], 4)
         self.assertIsInstance(notebook.get("cells"), list)
         code_cells = [cell for cell in notebook["cells"] if cell["cell_type"] == "code"]
         self.assertTrue(code_cells)
         source = "".join("".join(cell.get("source", [])) for cell in code_cells)
-        self.assertTrue(
-            "from strategy import" in source or "import strategy" in source
+        all_source = "".join(
+            "".join(cell.get("source", [])) for cell in notebook["cells"]
         )
+        self.assertIn("run_manifest.json", source)
+        self.assertIn("production_readiness.csv", source)
+        self.assertIn("strategy_trade_sequence_monte_carlo.csv", source)
+        self.assertIn("strategy_daily_drawdown_monte_carlo.csv", source)
+        self.assertIn('manifest["output_files"]', source)
+        self.assertIn("sha256", source.lower())
+        self.assertIn("STRATEGY_DESIGNATION", source)
+        self.assertIn("Best Available Hardened Strategy", all_source)
+        self.assertIn("BLOCKED — NO LIVE CAPITAL AUTHORIZATION", all_source)
         self.assertTrue(
             all(
-                cell.get("execution_count") is None
-                or isinstance(cell.get("execution_count"), int)
+                isinstance(cell.get("execution_count"), int)
                 for cell in code_cells
             )
         )
         outputs = [output for cell in code_cells for output in cell.get("outputs", [])]
         self.assertFalse(any(output.get("output_type") == "error" for output in outputs))
+        embedded_images = [
+            output
+            for output in outputs
+            if "image/png" in output.get("data", {})
+        ]
+        self.assertGreaterEqual(len(embedded_images), 10)
+        stream_text = "".join(
+            "".join(output.get("text", []))
+            for output in outputs
+            if output.get("output_type") == "stream"
+        ).lower()
+        self.assertNotIn("warning", stream_text)
 
 
 class TestInputValidation(unittest.TestCase):
@@ -351,6 +423,65 @@ class TestInputValidation(unittest.TestCase):
         self.assertEqual(loaded.name, "X")
         self.assertTrue(loaded.index.is_monotonic_increasing)
         self.assertEqual(loaded.tolist(), [100, 101])
+
+    def test_canonical_price_loader_rejects_positive_and_negative_infinity(
+        self,
+    ) -> None:
+        for value in ("inf", "-inf"):
+            with self.subTest(value=value), tempfile.TemporaryDirectory() as directory:
+                futures = Path(directory) / "Futures Data"
+                futures.mkdir()
+                pd.DataFrame(
+                    [
+                        {"Date": "2020-01-02", "Close": 100.0},
+                        {"Date": "2020-01-03", "Close": value},
+                    ]
+                ).to_csv(futures / "&X_CCB.csv", index=False)
+                with self.assertRaisesRegex(ValueError, "Non-finite Close"):
+                    load_prices(Path(directory), symbols=["X"])
+
+    def test_canonical_volume_loader_rejects_non_finite_and_negative_values(
+        self,
+    ) -> None:
+        for value, message in (
+            ("inf", "Non-finite Volume"),
+            ("-inf", "Non-finite Volume"),
+            (-1, "Negative Volume"),
+        ):
+            with self.subTest(value=value), tempfile.TemporaryDirectory() as directory:
+                futures = Path(directory) / "Futures Data"
+                futures.mkdir()
+                pd.DataFrame(
+                    [
+                        {"Date": "2020-01-02", "Volume": 1_000},
+                        {"Date": "2020-01-03", "Volume": value},
+                    ]
+                ).to_csv(futures / "&X_CCB.csv", index=False)
+                with self.assertRaisesRegex(ValueError, message):
+                    load_volumes(Path(directory), symbols=["X"])
+
+
+class TestMonthlyScheduling(unittest.TestCase):
+    def test_terminal_mid_month_row_is_not_a_completed_month(self) -> None:
+        index = pd.to_datetime(
+            ["2024-01-29", "2024-02-29", "2024-03-01", "2024-03-15"]
+        )
+        frame = pd.DataFrame({"X": range(len(index))}, index=index)
+        selected = _month_end_rows(frame)
+        self.assertEqual(
+            selected.index.tolist(),
+            [pd.Timestamp("2024-01-29"), pd.Timestamp("2024-02-29")],
+        )
+
+    def test_terminal_standard_business_month_end_is_retained(self) -> None:
+        index = pd.to_datetime(["2024-01-29", "2024-02-01", "2024-02-29"])
+        series = pd.Series([1.0, 2.0, 3.0], index=index, name="X")
+        selected = _month_end_rows(series)
+        self.assertEqual(
+            selected.index.tolist(),
+            [pd.Timestamp("2024-01-29"), pd.Timestamp("2024-02-29")],
+        )
+        self.assertEqual(selected.name, "X")
 
 
 class TestSignals(unittest.TestCase):
@@ -676,6 +807,28 @@ class TestRiskAndExecution(unittest.TestCase):
             float(ledger.daily["max_rebalance_participation"].max()), 0.10
         )
 
+    def test_execution_day_volume_cannot_resize_a_precomputed_order(self) -> None:
+        common = dict(
+            closes=[100.0] * 4,
+            opens=[100.0] * 4,
+            target=0.05,
+            target_date=1,
+            initial_capital=100.0,
+            integer_contracts=True,
+            max_participation=0.10,
+            execution_timing="next_close",
+        )
+        liquid, index = execution_inputs(
+            volumes=[100.0, 100.0, 100.0, 100.0], **common
+        )
+        thin, _ = execution_inputs(volumes=[100.0, 100.0, 1.0, 100.0], **common)
+        self.assertEqual(liquid.positions.loc[index[2], "X"], 5.0)
+        self.assertEqual(thin.positions.loc[index[2], "X"], 5.0)
+        self.assertGreater(
+            thin.daily.loc[index[2], "max_rebalance_participation"],
+            0.10,
+        )
+
     def test_order_quantity_is_frozen_at_decision_nav(self) -> None:
         ledger, index = execution_inputs(
             [100.0, 100.0, 200.0, 200.0],
@@ -812,6 +965,22 @@ class TestTradeEpisodes(unittest.TestCase):
         result.execution_timing = "next_open"
         self.assertTrue(build_trade_episodes(result).empty)
 
+    def test_trade_profit_factors_classify_each_numeraire_by_its_own_sign(self) -> None:
+        episodes = pd.DataFrame(
+            {
+                "Status": ["Closed", "Closed"],
+                "Entry date": pd.to_datetime(["2024-01-01", "2024-02-01"]),
+                "Exit date": pd.to_datetime(["2024-01-10", "2024-02-10"]),
+                "Net contribution": [-0.02, 0.01],
+                "Net P&L USD": [10.0, -5.0],
+                "Holding sessions": [7, 7],
+            }
+        )
+        metrics = trade_episode_metrics(episodes, "2024-01-01", "2024-12-31")
+        self.assertAlmostEqual(metrics["Trade profit factor (contribution)"], 0.5)
+        self.assertAlmostEqual(metrics["Trade profit factor (USD)"], 2.0)
+        self.assertAlmostEqual(metrics["Trade win rate"], 0.5)
+
 
 class TestMetrics(unittest.TestCase):
     def test_cagr_includes_first_return_interval(self) -> None:
@@ -879,10 +1048,18 @@ class TestSuppliedDataIntegration(unittest.TestCase):
             self.result.trades,
             self.result.positions - self.result.positions.shift().fillna(0.0),
         )
-        self.assertLessEqual(
-            float(daily["max_rebalance_participation"].max()),
-            float(self.config.max_rebalance_participation) + 1e-12,
+        lagged_capacity = np.floor(
+            volumes.fillna(0.0)
+            .rolling(
+                self.config.volume_gate_window,
+                min_periods=self.config.volume_gate_window,
+            )
+            .median()
+            .shift(1)
+            * float(self.config.max_rebalance_participation)
         )
+        capacity_breach = self.result.trades.abs().gt(lagged_capacity + 1e-12)
+        self.assertFalse(bool(capacity_breach.fillna(False).any().any()))
         self.assertTrue((daily["max_roll_participation_proxy"] >= 0).all())
         self.assertTrue(
             (
@@ -958,6 +1135,10 @@ class TestSuppliedDataIntegration(unittest.TestCase):
         self.assertTrue(
             self.report["Validation status"].eq("retrospective_reused_history").all()
         )
+        self.assertTrue(self.report["Strategy"].eq(STRATEGY_TECHNICAL_NAME).all())
+        self.assertTrue(
+            self.report["Strategy designation"].eq(STRATEGY_DESIGNATION).all()
+        )
 
     def test_production_readiness_defaults_to_blocked(self) -> None:
         readiness = production_readiness_report(self.result)
@@ -965,6 +1146,67 @@ class TestSuppliedDataIntegration(unittest.TestCase):
         evidence = readiness.loc[readiness["category"].eq("external evidence")]
         self.assertFalse(evidence.empty)
         self.assertTrue(evidence["status"].eq("BLOCKED").all())
+
+    def test_canonical_outputs_include_daily_drawdown_bootstrap(self) -> None:
+        artifacts = save_outputs(
+            self.result,
+            self.report,
+            self.config,
+            bootstrap_samples=4,
+            trade_sequence_samples=4,
+            include_stress=False,
+        )
+        output_path = (
+            Path(self.config.output_dir)
+            / "strategy_daily_drawdown_monte_carlo.csv"
+        )
+        self.assertTrue(output_path.is_file())
+        persisted = pd.read_csv(output_path)
+        pd.testing.assert_frame_equal(
+            persisted,
+            artifacts["daily_drawdown_bootstrap"],
+            check_dtype=False,
+        )
+        self.assertFalse(persisted.empty)
+        self.assertTrue(
+            persisted["Drawdown resolution"].eq(
+                "daily close; includes initial capital"
+            ).all()
+        )
+
+        manifest = json.loads(
+            (Path(self.config.output_dir) / "run_manifest.json").read_text()
+        )
+        configuration = json.loads(
+            (Path(self.config.output_dir) / "strategy_config.json").read_text()
+        )
+        self.assertEqual(manifest["strategy"], STRATEGY_TECHNICAL_NAME)
+        self.assertEqual(
+            manifest["strategy_designation"], STRATEGY_DESIGNATION
+        )
+        self.assertEqual(
+            manifest["strategy_technical_name"], STRATEGY_TECHNICAL_NAME
+        )
+        self.assertEqual(
+            configuration["strategy_designation"], STRATEGY_DESIGNATION
+        )
+        self.assertEqual(
+            configuration["research_status"]["designation"],
+            STRATEGY_DESIGNATION,
+        )
+        self.assertEqual(manifest["production_readiness"], "BLOCKED")
+        self.assertFalse(manifest["externally_validated"])
+        filename = "strategy_daily_drawdown_monte_carlo.csv"
+        self.assertIn(filename, manifest["output_files"])
+        self.assertEqual(
+            manifest["daily_drawdown_bootstrap"],
+            {
+                "block_lengths_sessions": [21, 63, 126],
+                "horizons_sessions": [2520, 6300],
+                "samples": 4,
+                "seed": 20_260_803,
+            },
+        )
 
     def test_full_pipeline_is_truncation_invariant(self) -> None:
         cutoff = "2004-12-31"

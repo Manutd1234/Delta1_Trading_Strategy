@@ -1,256 +1,229 @@
-# DELTA1 Production Candidate
+# Best Available Hardened Strategy
 
-This repository contains one research implementation of a 61-market global
-futures strategy combining 12-month time-series momentum with basis momentum.
-The v2.8 engine adds realistic, parameterized trading frictions, integer
-contracts, trade-episode attribution, portfolio exposure limits, and
-fail-closed operational controls.
+**Technical strategy:** Diversified Global-Futures Time-Series Momentum Plus
+Basis-Momentum Portfolio.
 
-> **Status: NOT PRODUCTION READY.** The historical simulation is a
-> production-candidate research package, not an executable trading system.
-> `StrategyConfig(mode="production")` deliberately refuses to run. Capital
-> deployment remains blocked until every external-evidence and operational
-> gate described below is independently satisfied.
+One selected research specification, one reconciled research ledger, and a
+separate fail-closed paper/live execution boundary.
 
-## Research status
+“Best Available Hardened Strategy” is the repository designation for the
+latest adopted specification after the correctness and controls audit. It is
+not a claim of universal optimality, independent validation, or live approval.
 
-The investable ledger launches on 1990-01-01 with $1 million and zero
-positions. Earlier data warm causal signals and risk estimates only. The
-strategy was selected retrospectively, every reported period has been reused,
-and the supplied futures history ends in 2014. Consequently:
+> **Launch decision: BLOCKED — no live-capital authorization.**
+>
+> The repository now fails closed on missing or stale operational evidence,
+> but the supplied history is continuous futures ending on 2014-12-31. Current
+> serial contracts, representative quotes/fills, a prospective paper record, a
+> certified broker deployment, and independent approvals are not present.
 
-- 1990-2004 is development history;
-- 2005-2014 is a reused later diagnostic, not an independent holdout;
-- 1990-2014 is the complete post-launch historical simulation;
-- no reported metric is evidence of forward performance; and
-- block-bootstrap intervals describe sampling uncertainty but do not correct
-  for specification selection.
+See the [model card](docs/model-card.md) for intended use and limitations and
+the [deployment runbook](docs/runbooks/deployment.md) for the operating sequence.
+The [research methodology](docs/research-methodology.md) defines future alpha
+promotion and multiple-testing rules; [architecture](docs/architecture.md)
+documents the consolidated package layout.
 
-The current intended use, evidence status, limitations, and launch blockers
-are summarized in [MODEL_CARD.md](MODEL_CARD.md).
+## Canonical result after the correctness audit
 
-## Strategy and ledger
+The v3.2.1 strategy combines a 252-session time-series trend forecast with
+basis momentum across 59 supported futures. It targets 7% annualized portfolio
+volatility, trades integer contracts monthly, and deducts modeled spread,
+slippage, fees, impact, and continuous-roll costs.
 
-- 61 futures across equity indices, government bonds, FX, energy, metals, and
-  agriculture/livestock.
-- Equal blend of a 12-month sign-trend forecast and the year-on-year change in
-  realized roll yield.
-- Causal market-level risk scaling, equal pre-forecast volatility budgets,
-  trailing-volume eligibility, a volatility-shock taper, and a 10% annualized
-  portfolio risk objective.
-- Monthly decisions with a 25% no-trade region.
-- A decision made after a month-end close becomes a pending order. Contract
-  quantity is fixed using decision-date NAV and can fill only on a later valid,
-  positive-volume session.
-- Canonical fills occur at the next eligible close. New contracts earn no P&L
-  before that close; `execution_delay_sessions` can add further eligible-session
-  delay.
-- Positions are actual integer contracts in a self-financing USD NAV ledger.
-  P&L uses back-adjusted differences, while economic notional uses unadjusted
-  active-contract prices.
-- Every observed vendor delivery-month change is charged as a two-leg roll
-  when the book has exposure. Suspicious labels are flagged for review but do
-  not suppress costs.
-- Missing held settlement, FX, cost, notional, or margin inputs fail the run
-  instead of silently creating zero P&L.
+Point estimates are deliberately not copied into this README because they
+become stale whenever the engine, data, costs, or execution controls change.
+The authoritative values are generated in
+[`outputs/strategy_metrics.csv`](outputs/strategy_metrics.csv), with the exact
+configuration and package version in
+[`outputs/strategy_config.json`](outputs/strategy_config.json). The committee
+notebook verifies both files against
+[`outputs/run_manifest.json`](outputs/run_manifest.json) before displaying
+CAGR, daily/monthly/HAC Sharpe, Sortino, drawdown, profit factors, expectancy,
+cost drag, gross exposure, and participation.
 
-Continuous contracts still cannot identify the exact expiring and deferred
-instruments needed for real orders. The roll model is therefore an accounting
-approximation, not proof of executable roll capacity. CME describes the
-underlying mechanics in its official guidance on
-[daily mark-to-market](https://www.cmegroup.com/education/courses/introduction-to-futures/mark-to-market)
-and [contract expiration and rolls](https://www.cmegroup.com/education/courses/introduction-to-futures/understanding-futures-expiration-contract-roll).
+Research rebalance size is capped from lagged median volume so it does not use
+the completed execution session to decide order size. Realized participation
+is then reported against that session's actual volume and can breach the
+independent live gate when volume falls. Continuous-roll participation and the
+current-catalogue static-margin series remain informational proxies: they are
+not expiry-specific capacity or point-in-time historical margin evidence. Live
+orders require current serial liquidity, a route-time participation check and
+effective-dated USD margin.
 
-## Parameterized frictions and capacity
+Reported CAGR is a futures **excess-return CAGR**: cash collateral earns zero
+and the research ledger omits collateral yield, variation-margin funding, and
+forced liquidation. It is not a deployable funded-account CAGR.
 
-The canonical research configuration charges each one-way contract leg for:
+## Return aspiration—not an optimization constraint
 
-- 0.50 tick of half-spread;
-- 0.25 tick of additional slippage;
-- $2.50 commission;
-- $1.50 exchange and regulatory fees; and
-- a square-root market-impact estimate parameterized at 10 basis points at full
-  reported-volume participation.
+Twenty percent CAGR and approximately 2.0 Sharpe are aspirations, not search,
+promotion, or launch constraints. Every supplied return period has already
+been inspected, so tuning parameters against either number would create a
+target-fitted result rather than independent evidence.
 
-For a traded contract quantity `q`, the engine calculates fixed cost from the
-configured tick value and per-contract fees. Its impact estimate scales with
-absolute unadjusted notional and `sqrt(q / reported_volume)`. These parameters
-are transparent and stressable, but they have not been calibrated to
-timestamped quotes, order size, venue, contract expiry, or broker fills. CME's
-[liquidity guidance](https://www.cmegroup.com/education/articles-and-reports/how-traders-measure-liquidity)
-explains why volume alone is not a complete execution-quality measure.
+A bounded reused-history audit tested simple trend ensembles and portfolio
+risk allocations at the same risk budget; none improved both durable return
+and Sharpe. A separate 9.3% volatility-target sensitivity was also rejected.
+It increased exposure rather than alpha, did not establish the joint
+aspiration across the full and later reused windows, left insufficient
+headroom beneath the drawdown policy, and produced materially higher simulated
+15% drawdown-breach frequencies. It is not the adopted configuration and is
+not promoted as a canonical result.
 
-Normal rebalance orders are limited to 2% of the smaller of lagged median
-volume and current reported volume. Unfinished orders remain pending. Contract
-rolls are costed but cannot be capacity-capped honestly without serial-expiry
-liquidity, so roll participation remains a critical readiness blocker.
+The committee notebook calculates, from the generated full-history volatility,
+the Sharpe required for a 20% geometric return and the CAGR implied by a 2.0
+Sharpe under a clearly labeled lognormal approximation. Leverage cannot create
+the missing risk-adjusted edge.
 
-The engine also applies portfolio-level limits before rounding contract
-targets and checks them again after rounding:
+The defensible conclusion is **institutional historical risk-adjusted
+characteristics with conservative CAGR**, not “high alpha.” New alpha must be
+frozen before evaluation on new serial-contract data and prospective paper
+trading. Useful methodological references include
+[Basis-Momentum](https://doi.org/10.1111/jofi.12738),
+[White’s Reality Check](https://doi.org/10.1111/1468-0262.00152), and
+[the Stationary Bootstrap](https://doi.org/10.1080/01621459.1994.10476870).
 
-| Control | Research intent constraint | Behavior |
-|---|---:|---|
-| Rebalance participation | 2% of eligible reported volume | Partial fill; remainder stays pending |
-| Gross notional | 5.0x decision NAV | Scale target portfolio down |
-| Static margin diagnostic | 30% of decision NAV | Scale target portfolio down |
-| Additional execution delay | 0 eligible sessions | Configurable friction stress |
+## What the hardened v3.2.1 strategy corrected
 
-The margin input is a static catalogue snapshot rather than a historical or
-live portfolio-margin calculation. Passing the research limit does not prove
-that a clearing broker would finance the portfolio. CME notes that margin
-requirements can change as market conditions change in its official
-[margin guidance](https://www.cmegroup.com/education/articles-and-reports/understanding-margin-changes).
+- Removed the current static-margin snapshot from 1990–2014 position sizing.
+- Excluded YXT and YYT because a constant point value and `price × multiplier`
+  cannot exactly value their yield-quoted P&L and notional. This is a
+  correctness exclusion, not return-ranked universe selection.
+- Kept the 5x research gross-intent buffer and independent 6x live ceiling.
+- Corrected contribution profit factor/payoff classification when USD P&L and
+  NAV-normalized contribution have different signs.
+- Rejected infinite prices/volumes, negative volume, and premature terminal
+  mid-month decisions.
+- Added daily-close stationary-bootstrap drawdown paths that include initial
+  capital. Month-end bootstrap drawdown is now explicitly informational.
+- Required explicit USD notional and margin per serial contract; a roll
+  destination must be compatible, later and outside the delivery buffer.
+- Made production readiness require the complete unique gate schema; a
+  fabricated subset cannot return `READY`.
+- Bound runtime health to ordered fresh data/reconciliation/monitoring/kill
+  timestamps and an exact broker-position SHA-256.
+- Bound live alpha orders to authenticated exact intents and rechecked fresh
+  serial data, participation, aggregate gross, margin, delivery safety and
+  broker positions immediately before routing.
+- Verified broker ACK type, order ID, timestamp and broker-order-ID binding;
+  mismatches latch the kill switch.
+- Added an inter-process journal lock and rejected events after terminal OMS
+  states.
+- Made execution-cost calibration order-weighted and raw-fill-hash-bound, with
+  unique-order, session, recency, side, style, regime and delivery-cycle gates.
+- Removed execution-session completed-volume look-ahead from close-order
+  sizing; order capacity now uses lagged volume only and realized participation
+  remains visible against actual volume.
+- Corrected the optional equal-asset-class allocator so excluded or subset
+  contracts cannot be reintroduced through catalogue indexing.
+- Required fill-time USD point values in cost calibration and aligned the
+  drawdown-overlay CAGR/MDD convention with the canonical ledger.
+- Consolidated the implementation into the installable `delta1_strategy`
+  package, with separate research, market-data, controls and execution layers.
 
-## Extended performance and trade episodes
+These changes make the code safer and the research more correct. They do not
+create the external facts required for deployment.
 
-`performance_metrics` reports return and operational diagnostics descriptively.
-The report includes:
+## Strategy specification
 
-- CAGR, annualized volatility, daily/monthly/autocorrelation-robust Sharpe,
-  Sortino, downside deviation, Calmar, daily profit factor, win rates, skew,
-  excess kurtosis, historical VaR and CVaR;
-- maximum drawdown and duration, best/worst day and month, worst rolling
-  5- and 21-session returns;
-- fixed, impact, and total annualized cost drag;
-- risk scalar, rolling realized volatility, gross notional, static margin,
-  participation, pending markets, limit-binding days, and markets held; and
-- closed/open episode counts, win rate, contribution- and USD-based profit
-  factor, expectancy, win/loss ratios, and holding periods.
+- 59 supported futures across equity indices, government bonds, FX, energy,
+  metals, and agriculture/livestock.
+- Equal blend of a 252-session sign-trend forecast and year-on-year change in
+  trailing realized roll yield.
+- Causal per-market volatility sizing, volatility-shock taper, flat
+  pre-forecast market risk budgets, and a causal portfolio risk scalar.
+- 7% portfolio risk budget, 25% no-trade region, monthly decisions, 5x research
+  gross-intent buffer, and a 2% lagged-volume sizing fraction. The independent
+  2% live gate is applied to current serial-contract liquidity at route time.
+- Month-end signals queue for a later positive-volume session. The daily
+  research approximation fills at that session’s close; completed same-session
+  volume and exact close execution are not a live execution proof.
+- Integer contracts and a self-financing USD NAV ledger. Back-adjusted series
+  drive research P&L; unadjusted active prices approximate economic exposure.
+- No optimized stop-loss/take-profit. Diversification, volatility sizing,
+  exposure limits, and the separate latched runtime halt manage risk.
 
-A trade episode is a contiguous same-direction position in one market.
-Same-sign resizes remain inside the episode; a sign flip closes one episode
-and opens another; contract rolls contribute cost but do not create a new
-alpha trade. Open episodes are retained as censored observations. Each episode
-records entry/exit, direction, contract scale, holding time, gross P&L,
-regular and roll costs, net P&L, contribution, MFE/MAE contribution, resize
-count, and roll count.
+The supplied continuous data cannot reconcile old/new serial roll prices,
+volumes, FND/LTD, contract vintages, or auction/VWAP fills. The generated roll
+proxy keeps that limitation visible rather than declaring the roll executable.
 
-The executed notebook displays episode summaries, asset-class attribution,
-outcome concentration, duration, and best/worst closed episodes. Episode
-statistics remain accounting diagnostics: overlapping markets, correlated
-risk, and censored open episodes prevent interpreting episode counts as
-independent observations.
+## Monte Carlo scope
 
-`diagnostics.py` adds three deterministic report surfaces without importing or
-reimplementing the strategy:
+`delta1_strategy.research.diagnostics` generates the primary stationary
+bootstrap from daily net returns using fixed 21/63/126-session blocks and
+fixed 10/25-year horizons.
+Drawdown is measured at daily close and includes the initial capital high-water
+mark. The monthly bootstrap remains the CAGR/Sharpe uncertainty view.
 
-- `trade_metrics_report` summarizes closed-by-exit-date episodes overall and
-  by asset class and symbol, with low-sample flags;
-- `causal_regime_report` labels volatility, forecast-magnitude, cross-market
-  correlation, and liquidity regimes using expanding terciles based only on
-  preceding months; and
-- `monthly_stationary_bootstrap_summary` simulates monthly paths across
-  multiple block lengths and horizons, reporting quantiles for CAGR, monthly
-  Sharpe, maximum drawdown, worst 12-month return, terminal-loss probability,
-  and drawdown-exceedance probabilities.
+`delta1_strategy.research.trade_sequence` also provides permutation and
+with-replacement episode-order diagnostics. Episodes overlap and share
+portfolio NAV, so their capital-floor statistic is a sensitivity proxy—not a
+live probability of ruin. None of the simulations recreates serial contracts,
+margin calls, rejected orders, gaps, funding, market impact, or unseen regimes.
+Monte Carlo cannot manufacture a higher expected return or Sharpe.
 
-Regime and bootstrap reports are descriptive and selection-unadjusted.
-Discontiguous regime observations do not receive synthetic CAGR or drawdown
-statistics.
+## Production boundary
 
-`stress.py` exposes the canonical cost assumptions and a seven-scenario
-friction suite: baseline, doubled fixed costs, doubled impact, all execution
-costs doubled, one additional executable-session delay, a tighter 1%
-participation cap, and a combined adverse case. Every scenario reruns the same
-reused history and is labeled as retrospective sensitivity, not validation.
+| Module | Responsibility | Remaining external dependency |
+|---|---|---|
+| `delta1_strategy.research` | Causal signals, integer research ledger, metrics and robustness diagnostics | Serial execution and post-2014 data |
+| `delta1_strategy.marketdata` | Fresh serial schema, USD risk values, expiry and roll controls | Licensed point-in-time feed/specifications |
+| `delta1_strategy.execution` | Fill calibration, authenticated intents, route-time risk and broker operations | Representative fills and certified broker services |
+| `delta1_strategy.controls` | Runtime health, evidence, treasury validation and conjunctive readiness | Broker/clearing records, authenticated approvals and deployed control owners |
 
-## Fail-closed production controls
+Live risk-increasing orders require all of the following at route time:
 
-[production.py](production.py) is deliberately independent of the research
-module. It accepts plain pandas objects and exposes four control surfaces:
+1. the complete artifact-backed readiness report is `READY`;
+2. the runtime production broker identity matches the certified adapter,
+   account and environment named by the evidence record;
+3. a fresh external portfolio/compliance decision approves the exact order
+   batch, positions, serial snapshot, NAV, broker identity and signed policy;
+4. the exact intent certificate matches the frozen model/config/source,
+   current serial/position snapshots, broker identity and compliance-policy
+   digests;
+5. data, reconciliation, monitoring and kill checks are ordered and fresh;
+6. current and projected positions reconcile under exact USD notional/margin;
+7. participation, gross, margin and delivery controls pass;
+8. the kill switch is active and the broker is connected; and
+9. the returned broker acknowledgement matches the persisted order.
 
-- `build_order_intents`: deterministic, idempotent order intents with integer
-  validation, participation caps, portfolio gross/margin gates, and
-  reduce-only behavior during a breach;
-- `evaluate_runtime_health`: live checks for data freshness, NAV, drawdown,
-  gross notional, margin, broker connection/reconciliation, monitoring, and a
-  tested kill switch;
-- `production_readiness_report`: historical integrity gates plus explicit
-  external-evidence gates; and
-- `overall_readiness_status`: returns `READY` only if every critical gate
-  explicitly passes, otherwise `BLOCKED`.
+Broker identity is checked at service initialization, again before the durable
+outbox write, and again immediately before submission. The repository defines
+these fail-closed interfaces, but it does not supply the independent intent
+signer, approved compliance-policy artifact/provider, certified production
+adapter or broker evidence.
 
-Independent production defaults are intentionally conservative:
+Verified emergency reductions may bypass alpha-readiness and normal health
+gates, but they still require fresh reconciled positions, valid serial data,
+no crossing through zero, no conflicting open order, and broker ACK integrity.
 
-| Live/order control | Default limit |
-|---|---:|
-| Order participation | 2% |
-| Gross notional | 6.0x NAV |
-| Margin requirement | 35% of NAV |
-| Drawdown | 15% from supplied peak NAV |
-| Market-data age | 300 seconds |
+The bundled `PaperBroker` is deterministic test plumbing. It has no price
+marks, variation margin, collateral/funding ledger, liquidation engine, or
+certified connection, so its activity is not a qualifying forward record.
 
-Missing, malformed, non-finite, stale, or unreconciled inputs never approve a
-risk-increasing order. A research backtest cannot set external evidence to
-true by itself.
+## What still blocks deployment
 
-## Readiness blockers
+Every critical gate is conjunctive. Required external evidence includes:
 
-Production remains blocked until all of the following exist and are tested:
+1. tradeable serial-contract data and roll liquidity;
+2. timestamped current market data and venue calendars;
+3. effective-dated contract valuation, specifications, margin and fees;
+4. representative quote/fill calibration;
+5. a point-in-time universe/security master;
+6. cash, variation margin, collateral, funding and forced-liquidation controls;
+7. a frozen model and authenticated change control;
+8. a genuinely post-freeze independent holdout;
+9. prospective paper/shadow acceptance;
+10. a certified selected-broker adapter, deployment-identity evidence,
+    separately controlled intent signer, approved compliance-policy provider
+    and atomic roll workflow;
+11. broker/clearing reconciliation, monitoring and incident response;
+12. disaster-recovery and kill-switch drill evidence; and
+13. compliance, market access, delivery, position-limit and independent model
+    approvals.
 
-1. Tradeable serial-contract history and an expiry-specific roll policy,
-   including first-notice and last-trade safeguards.
-2. Timestamped, time-zoned market data and session calendars for every venue.
-3. Point-in-time contract specifications, settlement FX, margin schedules,
-   commissions, exchange fees, and regulatory fees.
-4. A cost and market-impact model calibrated to executable quotes and intended
-   order sizes, including serial-expiry liquidity.
-5. A point-in-time universe and security master without survivorship or
-   present-day availability leakage.
-6. Portfolio margin, variation-margin cash, collateral yield, funding, and
-   liquidity controls under stressed conditions.
-7. Genuinely independent post-2014 evaluation and a documented model-change
-   protocol.
-8. Forward paper trading with order, fill, rejection, and reconciliation logs.
-9. A tested broker adapter and execution policy (for example, limit or
-   participation/TWAP/VWAP logic) with idempotency, retry, duplicate-order,
-   partial-fill, cancel/replace, and restart handling.
-10. Broker/clearing reconciliation, monitoring and alerting, incident response,
-    and a tested kill switch.
-11. Compliance, market-access, position-limit, delivery, model-risk, and
-    change-approval review appropriate to the trading entity and venues.
-
-The default `ReadinessEvidence()` sets every external item to false, so the
-repository's readiness result is `BLOCKED`. This is intentional. The CFTC's
-[hypothetical-results warning](https://www.cftc.gov/LearnAndProtect/AdvisoriesAndArticles/fraudadv_tradingsystem.html)
-applies directly to the remaining execution, margin, and selection gaps.
-
-## Operating and behavioral fit
-
-This is an end-of-day, monthly-decision process, not an intraday or low-latency
-strategy. An operator still needs coverage for the next eligible execution
-session, contract rolls, rejected or partial orders, daily reconciliation, and
-alerts. The historical episode win rate is near one half, and long drawdowns
-and losing sequences remain normal even when long-run expectancy is positive.
-
-Capital and governance therefore need to tolerate the documented drawdown and
-the possibility of worse unobserved outcomes. Operators must not override
-signals during stress: any discretionary intervention, parameter change, or
-drawdown restart requires an incident record, approval, a new configuration
-hash, and prospective evaluation. The independent 15% live drawdown gate is a
-safety stop, not evidence that losses cannot exceed 15% before positions can be
-reduced.
-
-## Notebook
-
-[DELTA1_Strategy.ipynb](DELTA1_Strategy.ipynb) is a thin client over
-`strategy.py` and `production.py`. It runs the canonical pipeline once and
-then presents:
-
-1. blocked production status and scope;
-2. reproducible configuration and launch checks;
-3. the canonical execution and friction contract;
-4. extended metrics, NAV, drawdown, and cost attribution;
-5. trade episodes and contribution concentration;
-6. the seven-scenario friction/capacity stress suite;
-7. causal lagged regime diagnostics;
-8. stationary block-bootstrap path uncertainty;
-9. historical hard-control usage and breaches;
-10. the fail-closed readiness checklist; and
-11. reproduction and artifact notes.
-
-The notebook imports `stress.py` and `diagnostics.py`; it does not duplicate
-signal, sizing, execution, cost, regime, or bootstrap logic.
+No backtest or local unit test can manufacture these records. Until they are
+provided and verified, the output remains `BLOCKED`.
 
 ## Reproduce
 
@@ -261,52 +234,31 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[notebook]"
 
-export DELTA1_DATA_DIR="/path/to/Round1AllData/Quant Researcher/Delta1"
+delta1-strategy \
+  --data-dir "Round1AllData/Quant Researcher/Delta1" \
+  --output-dir outputs
 
-# Canonical artifacts
-delta1-strategy --data-dir "$DELTA1_DATA_DIR" --output-dir outputs
-
-# Unit and supplied-data integration tests
 python -m unittest discover -s tests -v
 
-# Interactive review
-jupyter lab DELTA1_Strategy.ipynb
+python scripts/build_committee_notebook.py
 
-# Deterministic clean-kernel notebook execution
-jupyter nbconvert --to notebook --execute --inplace DELTA1_Strategy.ipynb \
-  --ExecutePreprocessor.timeout=600
+jupyter nbconvert --to notebook --execute --inplace \
+  notebooks/global_futures_trend_basis_committee_review.ipynb \
+  --ExecutePreprocessor.timeout=900
 ```
 
-If `DELTA1_DATA_DIR` is unset, the notebook falls back to the supplied
-repository-local `Round1AllData/Quant Researcher/Delta1` directory.
+The generated committee notebook refuses a stale bundle whose manifest engine
+version or implementation hashes do not match the installed v3.2.1 package. The
+[committee notebook](notebooks/global_futures_trend_basis_committee_review.ipynb)
+reads only hashed canonical outputs; its executed review copy must contain
+embedded committee charts. Important artifacts include
+`outputs/strategy_metrics.csv`, `outputs/strategy_daily.csv`,
+`outputs/strategy_market_daily.csv.gz`, `outputs/strategy_trade_metrics.csv`,
+`outputs/strategy_friction_stress.csv`,
+`outputs/strategy_daily_drawdown_monte_carlo.csv`,
+`outputs/strategy_monte_carlo_summary.csv`,
+`outputs/strategy_trade_sequence_monte_carlo.csv`,
+`outputs/production_readiness.csv`, `outputs/strategy_config.json`, and
+`outputs/run_manifest.json`.
 
-## Artifacts
-
-The canonical CLI writes a reproducible package:
-
-- `strategy_metrics.csv` and `strategy_daily.csv`: extended reused-history
-  metrics and the portfolio ledger;
-- `strategy_monthly_position_intents_per_dollar.csv`: buffered research
-  intents before NAV scaling, intent constraints, rounding, and fill capacity;
-- `strategy_market_daily.csv.gz` and `strategy_execution_events.csv`: the
-  reconciling market-level ledger and its trade/roll event subset;
-- `strategy_trade_episodes.csv` and `strategy_trade_metrics.csv`: detailed
-  directional episodes and grouped episode diagnostics;
-- `strategy_regime_metrics.csv` and `strategy_monte_carlo_summary.csv`: causal
-  regime and stationary-bootstrap reports;
-- `strategy_friction_stress.csv`: the seven-scenario retrospective stress
-  suite, unless `--skip-stress` is supplied;
-- `production_readiness.csv`, `strategy_ledger_checks.csv`, and
-  `strategy_data_quality.csv`: fail-closed readiness, reconciliation, and
-  market-level quality checks;
-- `cost_model_assumptions.csv` and `source_manifest.csv`: explicit friction
-  assumptions and SHA-256 hashes of every consumed source file; and
-- `strategy_config.json` and `run_manifest.json`: normalized configuration,
-  source/config fingerprints, engine version, and research/readiness status.
-
-None of these artifacts proves live tradability. The notebook does not
-overwrite `outputs/`.
-
-## License
-
-See [LICENSE](LICENSE).
+None of these artifacts alone authorizes trading. See [LICENSE](LICENSE).

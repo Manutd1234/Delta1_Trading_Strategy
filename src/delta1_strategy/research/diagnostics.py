@@ -25,7 +25,9 @@ import pandas as pd
 
 DEFAULT_BOOTSTRAP_SEED = 20_260_803
 DEFAULT_BLOCK_LENGTHS = (6, 12, 24)
-DEFAULT_HORIZONS_MONTHS = (12, 36, 60, 120)
+DEFAULT_HORIZONS_MONTHS = (12, 36, 60, 120, 300)
+DEFAULT_DAILY_BLOCK_LENGTHS = (21, 63, 126)
+DEFAULT_DAILY_HORIZONS_SESSIONS = (2_520, 6_300)
 BOOTSTRAP_QUANTILES: tuple[tuple[str, float], ...] = (
     ("P01", 0.01),
     ("P05", 0.05),
@@ -42,8 +44,28 @@ BOOTSTRAP_COLUMNS = [
     "Source end",
     "Source months",
     "Method",
+    "Drawdown resolution",
     "Expected block months",
     "Horizon months",
+    "Samples",
+    "Seed",
+    "Metric",
+    "Statistic",
+    "Value",
+    "Selection adjusted",
+]
+
+DAILY_DRAWDOWN_BOOTSTRAP_COLUMNS = [
+    "Window",
+    "Source start",
+    "Source end",
+    "Source sessions",
+    "Method",
+    "Drawdown resolution",
+    "Expected block sessions",
+    "Approximate block months",
+    "Horizon sessions",
+    "Approximate horizon years",
     "Samples",
     "Seed",
     "Metric",
@@ -151,6 +173,41 @@ def _stationary_indices(
     return indices
 
 
+def _path_drawdown_statistics(paths: np.ndarray) -> dict[str, np.ndarray]:
+    """Return close-to-close path risk statistics, including initial capital.
+
+    Treating the initial capital of 1.0 as the first high-water mark is
+    important: a loss in the first sampled return is a drawdown.  Without the
+    explicit initial point, that first loss would incorrectly establish its
+    own high-water mark and be reported as zero drawdown.
+    """
+    values = np.asarray(paths, dtype=float)
+    if values.ndim != 2 or values.shape[1] == 0:
+        raise ValueError("paths must be a non-empty two-dimensional array")
+
+    valid = np.all(np.isfinite(values) & (values > -1.0), axis=1)
+    maximum_drawdown = np.full(values.shape[0], np.nan)
+    minimum_capital_fraction = np.full(values.shape[0], np.nan)
+    terminal_return = np.full(values.shape[0], np.nan)
+    if np.any(valid):
+        wealth = np.cumprod(1.0 + values[valid], axis=1)
+        wealth_with_initial = np.concatenate(
+            [np.ones((wealth.shape[0], 1)), wealth],
+            axis=1,
+        )
+        peaks = np.maximum.accumulate(wealth_with_initial, axis=1)
+        drawdowns = wealth_with_initial / peaks - 1.0
+        maximum_drawdown[valid] = np.min(drawdowns, axis=1)
+        minimum_capital_fraction[valid] = np.min(wealth_with_initial, axis=1)
+        terminal_return[valid] = wealth[:, -1] - 1.0
+
+    return {
+        "Maximum drawdown": maximum_drawdown,
+        "Minimum capital fraction": minimum_capital_fraction,
+        "Terminal return": terminal_return,
+    }
+
+
 def _bootstrap_path_statistics(paths: np.ndarray) -> dict[str, np.ndarray]:
     horizon = paths.shape[1]
     valid = np.all(np.isfinite(paths) & (paths > -1.0), axis=1)
@@ -168,12 +225,7 @@ def _bootstrap_path_statistics(paths: np.ndarray) -> dict[str, np.ndarray]:
         where=standard_deviation > 0,
     )
 
-    wealth = np.cumprod(1.0 + paths, axis=1)
-    peaks = np.maximum.accumulate(
-        np.concatenate([np.ones((paths.shape[0], 1)), wealth], axis=1),
-        axis=1,
-    )[:, 1:]
-    max_drawdown = np.nanmin(wealth / peaks - 1.0, axis=1)
+    path_risk = _path_drawdown_statistics(paths)
 
     if horizon >= 12:
         cumulative_log = np.cumsum(log_returns, axis=1)
@@ -184,13 +236,13 @@ def _bootstrap_path_statistics(paths: np.ndarray) -> dict[str, np.ndarray]:
     else:
         worst_twelve_month = np.full(paths.shape[0], np.nan)
 
-    terminal_return = wealth[:, -1] - 1.0
     return {
         "CAGR": cagr,
         "Monthly Sharpe": monthly_sharpe,
-        "Maximum drawdown": max_drawdown,
+        "Maximum drawdown": path_risk["Maximum drawdown"],
+        "Minimum capital fraction": path_risk["Minimum capital fraction"],
         "Worst 12-month return": worst_twelve_month,
-        "Terminal return": terminal_return,
+        "Terminal return": path_risk["Terminal return"],
     }
 
 
@@ -206,8 +258,10 @@ def monthly_stationary_bootstrap_summary(
     """Return long-form stationary-bootstrap path diagnostics.
 
     Paths resample compounded monthly portfolio returns.  Only requested
-    horizons no longer than the source history are produced.  The reported
-    uncertainty is explicitly not adjusted for strategy selection.
+    horizons no longer than the source history are produced.  CAGR and Sharpe
+    are the primary outputs.  Drawdown statistics are observed at month ends
+    only, so they are informational and can understate intramonth losses.  The
+    reported uncertainty is explicitly not adjusted for strategy selection.
     """
     if samples <= 0:
         raise ValueError("samples must be positive")
@@ -257,6 +311,10 @@ def monthly_stationary_bootstrap_summary(
                     "Source end": monthly.index.max().date().isoformat(),
                     "Source months": source_length,
                     "Method": "stationary monthly bootstrap",
+                    "Drawdown resolution": (
+                        "month-end only; informational; may understate "
+                        "intramonth drawdown"
+                    ),
                     "Expected block months": block_length,
                     "Horizon months": horizon,
                     "Samples": samples,
@@ -284,6 +342,12 @@ def monthly_stationary_bootstrap_summary(
                     "Probability of terminal loss": np.mean(
                         statistics["Terminal return"] < 0
                     ),
+                    "Probability capital falls below 50% of initial (diagnostic)": np.mean(
+                        statistics["Minimum capital fraction"] <= 0.50
+                    ),
+                    "Probability maximum drawdown exceeds 15%": np.mean(
+                        statistics["Maximum drawdown"] <= -0.15
+                    ),
                     "Probability maximum drawdown exceeds 20%": np.mean(
                         statistics["Maximum drawdown"] <= -0.20
                     ),
@@ -304,6 +368,162 @@ def monthly_stationary_bootstrap_summary(
                         }
                     )
     return pd.DataFrame(rows, columns=BOOTSTRAP_COLUMNS)
+
+
+def _stationary_daily_path_risk_samples(
+    source: np.ndarray,
+    *,
+    samples: int,
+    horizon: int,
+    expected_block_length: int,
+    rng: np.random.Generator,
+    batch_size: int = 250,
+) -> dict[str, np.ndarray]:
+    """Generate daily path-risk samples without materializing every path."""
+    output = {
+        "Maximum drawdown": np.empty(samples, dtype=float),
+        "Minimum capital fraction": np.empty(samples, dtype=float),
+    }
+    for start in range(0, samples, batch_size):
+        stop = min(start + batch_size, samples)
+        indices = _stationary_indices(
+            rng,
+            len(source),
+            stop - start,
+            horizon,
+            expected_block_length,
+        )
+        path_risk = _path_drawdown_statistics(source[indices])
+        for metric in output:
+            output[metric][start:stop] = path_risk[metric]
+    return output
+
+
+def daily_stationary_bootstrap_drawdown_summary(
+    result: Any,
+    windows: Mapping[str, tuple[str, str | None]],
+    *,
+    samples: int = 2_000,
+    block_lengths_sessions: Sequence[int] = DEFAULT_DAILY_BLOCK_LENGTHS,
+    horizons_sessions: Sequence[int] = DEFAULT_DAILY_HORIZONS_SESSIONS,
+    seed: int = DEFAULT_BOOTSTRAP_SEED,
+) -> pd.DataFrame:
+    """Return daily-close stationary-bootstrap drawdown diagnostics.
+
+    The predeclared production diagnostic uses expected block lengths of
+    21/63/126 trading sessions (roughly 1/3/6 months) and horizons of
+    2,520/6,300 sessions (roughly 10/25 years).  Every requested combination
+    is reported; the grid is not searched to select a favorable result.
+
+    Returns are read directly from canonical ``result.daily["net_return"]``.
+    Drawdowns include initial capital as the first high-water mark and retain
+    daily-close resolution, so losses recovered before month end are visible.
+    Only horizons no longer than the source history are produced.
+    """
+    if samples <= 0:
+        raise ValueError("samples must be positive")
+    blocks = tuple(int(value) for value in block_lengths_sessions)
+    horizons = tuple(int(value) for value in horizons_sessions)
+    if not blocks or any(value <= 0 for value in blocks):
+        raise ValueError("block_lengths_sessions must contain positive integers")
+    if not horizons or any(value <= 0 for value in horizons):
+        raise ValueError("horizons_sessions must contain positive integers")
+    if not hasattr(result, "daily") or not isinstance(result.daily, pd.DataFrame):
+        return _empty_frame(DAILY_DRAWDOWN_BOOTSTRAP_COLUMNS)
+    if "net_return" not in result.daily:
+        return _empty_frame(DAILY_DRAWDOWN_BOOTSTRAP_COLUMNS)
+    _validate_datetime_index(result.daily, "result.daily")
+
+    rows: list[dict[str, object]] = []
+    method_seed = zlib.crc32(b"stationary daily drawdown bootstrap") & 0xFFFFFFFF
+    for label, (start, end) in _window_items(windows):
+        daily = result.daily.loc[start:end, "net_return"].dropna()
+        if daily.empty:
+            continue
+        source = daily.to_numpy(dtype=float)
+        if not np.all(np.isfinite(source) & (source > -1.0)):
+            raise ValueError("daily net returns must be finite and greater than -1")
+        source_length = len(source)
+        valid_horizons = sorted(
+            {value for value in horizons if value <= source_length}
+        )
+        valid_blocks = sorted({value for value in blocks if value <= source_length})
+        if not valid_horizons or not valid_blocks:
+            continue
+
+        label_seed = zlib.crc32(label.encode("utf-8")) & 0xFFFFFFFF
+        for block_length in valid_blocks:
+            for horizon in valid_horizons:
+                combination_seed = np.random.SeedSequence(
+                    [
+                        int(seed) & 0xFFFFFFFF,
+                        method_seed,
+                        label_seed,
+                        block_length,
+                        horizon,
+                    ]
+                )
+                rng = np.random.default_rng(combination_seed)
+                statistics = _stationary_daily_path_risk_samples(
+                    source,
+                    samples=samples,
+                    horizon=horizon,
+                    expected_block_length=block_length,
+                    rng=rng,
+                )
+                common = {
+                    "Window": label,
+                    "Source start": daily.index.min().date().isoformat(),
+                    "Source end": daily.index.max().date().isoformat(),
+                    "Source sessions": source_length,
+                    "Method": "stationary daily bootstrap",
+                    "Drawdown resolution": "daily close; includes initial capital",
+                    "Expected block sessions": block_length,
+                    "Approximate block months": block_length / 21.0,
+                    "Horizon sessions": horizon,
+                    "Approximate horizon years": horizon / 252.0,
+                    "Samples": samples,
+                    "Seed": seed,
+                    "Selection adjusted": False,
+                }
+                drawdowns = statistics["Maximum drawdown"]
+                for statistic, quantile in BOOTSTRAP_QUANTILES:
+                    rows.append(
+                        {
+                            **common,
+                            "Metric": "Maximum drawdown",
+                            "Statistic": statistic,
+                            "Value": float(np.quantile(drawdowns, quantile)),
+                        }
+                    )
+
+                probability_values = {
+                    "Probability capital falls below 50% of initial (diagnostic)": np.mean(
+                        statistics["Minimum capital fraction"] <= 0.50
+                    ),
+                    "Probability maximum drawdown exceeds 15%": np.mean(
+                        drawdowns <= -0.15
+                    ),
+                    "Probability maximum drawdown exceeds 20%": np.mean(
+                        drawdowns <= -0.20
+                    ),
+                    "Probability maximum drawdown exceeds 30%": np.mean(
+                        drawdowns <= -0.30
+                    ),
+                    "Probability maximum drawdown exceeds 40%": np.mean(
+                        drawdowns <= -0.40
+                    ),
+                }
+                for metric, value in probability_values.items():
+                    rows.append(
+                        {
+                            **common,
+                            "Metric": metric,
+                            "Statistic": "Probability",
+                            "Value": float(value),
+                        }
+                    )
+    return pd.DataFrame(rows, columns=DAILY_DRAWDOWN_BOOTSTRAP_COLUMNS)
 
 
 def _monthly_diagnostics(result: Any, start: str, end: str) -> pd.DataFrame:
@@ -549,22 +769,27 @@ def _trade_metric_row(
         selected["net_return_contribution"], errors="coerce"
     )
     classification = usd.where(usd.notna(), contribution)
-    wins = (usd.notna() & usd.gt(0.01)) | (
+    usd_wins = (usd.notna() & usd.gt(0.01)) | (
         usd.isna() & contribution.gt(1e-12)
     )
-    losses = (usd.notna() & usd.lt(-0.01)) | (
+    usd_losses = (usd.notna() & usd.lt(-0.01)) | (
         usd.isna() & contribution.lt(-1e-12)
     )
-    breakevens = classification.notna() & ~(wins | losses)
+    breakevens = classification.notna() & ~(usd_wins | usd_losses)
     closed_count = int(classification.notna().sum())
-    win_count = int(wins.sum())
-    loss_count = int(losses.sum())
+    win_count = int(usd_wins.sum())
+    loss_count = int(usd_losses.sum())
     breakeven_count = int(breakevens.sum())
 
-    winning_contribution = contribution[wins & contribution.notna()]
-    losing_contribution = contribution[losses & contribution.notna()]
-    winning_usd = usd[wins & usd.notna()]
-    losing_usd = usd[losses & usd.notna()]
+    # Keep each numeraire's economics internally coherent.  A contribution can
+    # have a different sign from aggregate USD P&L when NAV changes during a
+    # multi-day episode, so contribution PF/payoff must use contribution signs.
+    contribution_wins = contribution.gt(1e-12)
+    contribution_losses = contribution.lt(-1e-12)
+    winning_contribution = contribution[contribution_wins]
+    losing_contribution = contribution[contribution_losses]
+    winning_usd = usd[usd.gt(0.01)]
+    losing_usd = usd[usd.lt(-0.01)]
 
     contribution_gross_profit = float(winning_contribution.sum())
     contribution_gross_loss = float(-losing_contribution.sum())

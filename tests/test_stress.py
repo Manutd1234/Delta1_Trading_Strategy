@@ -6,8 +6,8 @@ from unittest.mock import patch
 
 import pandas as pd
 
-import stress
-from stress import cost_model_assumptions, run_friction_stress_suite
+import delta1_strategy.research.friction as stress
+from delta1_strategy.research.friction import cost_model_assumptions, run_friction_stress_suite
 
 
 @dataclass(frozen=True)

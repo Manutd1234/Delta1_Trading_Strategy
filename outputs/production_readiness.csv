@@ -1,22 +1,29 @@
 gate,category,critical,status,observed,limit,reason
 backtest_daily_available,backtest,True,PASS,9683,> 0 rows,gate passed
 required_daily_columns,backtest,True,PASS,all present,all required columns,gate passed
-finite_positive_nav,ledger,True,PASS,953968.9637259142,> 0,gate passed
+finite_positive_nav,ledger,True,PASS,961972.261249416,> 0,gate passed
 finite_net_returns,ledger,True,PASS,finite,all finite,gate passed
 nonnegative_costs,ledger,True,PASS,0.0,>= 0,gate passed
-historical_gross_notional,risk,True,PASS,5.50473087404842,6.0,gate passed
-historical_margin,risk,True,PASS,0.3223175695631066,0.35,gate passed
-historical_order_participation,risk,True,BLOCKED,1.0,0.02,historical order participation exceeds the production limit
-historical_drawdown,risk,True,BLOCKED,0.19155198294365539,0.15,historical drawdown exceeds the production limit or cannot be computed
+historical_gross_notional,risk,True,PASS,5.198410312544924,6.0,gate passed
+historical_rebalance_participation,risk,True,BLOCKED,0.06818181818181818,0.02,historical rebalance participation exceeds the production limit
+historical_static_margin_proxy,research limitation,False,INFORMATIONAL,0.5273192516158127,not a point-in-time historical gate,computed from a current static catalogue snapshot and must not resize historical positions; live margin is governed by effective_dated_margin_and_fees evidence and runtime controls
+historical_drawdown,risk,True,PASS,0.1183350530575159,0.15,gate passed
 terminal_pending_orders,execution,True,PASS,0.0,0,gate passed
-serial_contracts,external evidence,True,BLOCKED,False,True,Tradeable serial-contract history has not been evidenced
-timestamped_live_data,external evidence,True,BLOCKED,False,True,Timestamped live market data has not been evidenced
-dated_contract_specs,external evidence,True,BLOCKED,False,True,Dated contract specifications has not been evidenced
-dated_margin_and_fees,external evidence,True,BLOCKED,False,True,Dated margin and fee schedule has not been evidenced
-calibrated_cost_model,external evidence,True,BLOCKED,False,True,Calibrated execution-cost model has not been evidenced
-independent_holdout,external evidence,True,BLOCKED,False,True,Independent holdout evaluation has not been evidenced
-paper_trading,external evidence,True,BLOCKED,False,True,Paper-trading evidence has not been evidenced
-broker_adapter,external evidence,True,BLOCKED,False,True,Broker adapter has not been evidenced
-broker_reconciliation,external evidence,True,BLOCKED,False,True,Broker reconciliation has not been evidenced
-monitoring_and_alerts,external evidence,True,BLOCKED,False,True,Monitoring and alerting has not been evidenced
-tested_kill_switch,external evidence,True,BLOCKED,False,True,Tested kill switch has not been evidenced
+continuous_roll_participation_proxy,research limitation,False,INFORMATIONAL,1.5,not a live-capacity gate,continuous-contract roll turnover is only a diagnostic proxy; production roll capacity is governed by serial_contract_data evidence
+serial_contract_data,external evidence,True,BLOCKED,,valid artifact-backed approval,Tradeable serial-contract data and roll liquidity has no verified evidence record
+timestamped_live_market_data,external evidence,True,BLOCKED,,valid artifact-backed approval,Timestamped live market data and calendars has no verified evidence record
+effective_dated_contract_specs,external evidence,True,BLOCKED,,valid artifact-backed approval,Effective-dated contract specifications has no verified evidence record
+effective_dated_margin_and_fees,external evidence,True,BLOCKED,,valid artifact-backed approval,Effective-dated margin and fee schedules has no verified evidence record
+calibrated_execution_cost_model,external evidence,True,BLOCKED,,valid artifact-backed approval,Quote/fill-calibrated execution costs has no verified evidence record
+point_in_time_universe,external evidence,True,BLOCKED,,valid artifact-backed approval,Point-in-time universe and security master has no verified evidence record
+cash_margin_funding_controls,external evidence,True,BLOCKED,,valid artifact-backed approval,"Cash, variation margin, collateral, and funding controls has no verified evidence record"
+frozen_model_and_change_control,external evidence,True,BLOCKED,,valid artifact-backed approval,Frozen model and approved change-control record has no verified evidence record
+independent_holdout,external evidence,True,BLOCKED,,valid artifact-backed approval,Genuinely post-freeze independent holdout has no verified evidence record
+forward_paper_trading,external evidence,True,BLOCKED,,valid artifact-backed approval,Prospective paper/shadow-trading acceptance record has no verified evidence record
+certified_broker_adapter,external evidence,True,BLOCKED,,valid artifact-backed approval,Certified adapter for the selected broker has no verified evidence record
+broker_reconciliation,external evidence,True,BLOCKED,,valid artifact-backed approval,Broker and clearing reconciliation has no verified evidence record
+monitoring_and_alerting,external evidence,True,BLOCKED,,valid artifact-backed approval,"Monitoring, alerting, and incident response has no verified evidence record"
+disaster_recovery_drill,external evidence,True,BLOCKED,,valid artifact-backed approval,Successful disaster-recovery drill has no verified evidence record
+tested_kill_switch,external evidence,True,BLOCKED,,valid artifact-backed approval,"Tested, latched kill switch has no verified evidence record"
+compliance_approval,external evidence,True,BLOCKED,,valid artifact-backed approval,"Compliance, market-access, delivery, and position-limit approval has no verified evidence record"
+independent_model_validation,external evidence,True,BLOCKED,,valid artifact-backed approval,Independent model-risk validation and launch approval has no verified evidence record

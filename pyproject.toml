@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "delta1-trading-strategy"
-version = "2.8.0"
-description = "Production-candidate global futures momentum research package"
+version = "3.2.1"
+description = "Best available hardened global futures trend and basis strategy"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -25,7 +25,10 @@ notebook = [
 ]
 
 [project.scripts]
-delta1-strategy = "strategy:main"
+delta1-strategy = "delta1_strategy.cli:main"
 
 [tool.setuptools]
-py-modules = ["strategy", "diagnostics", "production", "stress"]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

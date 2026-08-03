@@ -1,13 +1,13 @@
-"""Production-candidate DELTA1 research strategy.
+"""Diversified global-futures trend and basis-momentum research engine.
 
-This module contains only the adopted v2.8 strategy.  It is intentionally
-self-contained: data loading, causal forecasts, risk sizing, execution,
-costs, reporting, and the command-line entrypoint live here without imports
-from any earlier research strategy.
+This module contains only the selected v3.2.1 research specification.  It is
+intentionally self-contained: data loading, causal forecasts, risk sizing,
+execution, costs, reporting, and the command-line entrypoint live here without
+imports from any earlier research strategy.
 
 The default book combines a 12-month sign trend with basis momentum at equal
 risk weight, applies causal per-market risk management, assigns equal nominal
-pre-forecast volatility budgets to available instruments, and targets 10%
+pre-forecast volatility budgets to available instruments, and targets 7%
 annualized portfolio volatility.
 The canonical ledger launches with $1 million and zero positions on
 1990-01-01, using earlier observations only to warm causal estimates.
@@ -35,8 +35,12 @@ import numpy as np
 import pandas as pd
 
 
-STRATEGY_NAME = "Production-Candidate Global TSMOM + Basis Momentum"
-ENGINE_VERSION = "2.8.0"
+STRATEGY_DESIGNATION = "Best Available Hardened Strategy"
+STRATEGY_TECHNICAL_NAME = (
+    "Diversified Global-Futures Time-Series Momentum Plus Basis-Momentum Portfolio"
+)
+STRATEGY_NAME = STRATEGY_TECHNICAL_NAME
+ENGINE_VERSION = "3.2.1"
 
 GLOBAL_ASSET_CLASSES: dict[str, tuple[str, ...]] = {
     "Equity indices": (
@@ -55,6 +59,13 @@ GLOBAL_ASSET_CLASSES: dict[str, tuple[str, ...]] = {
         "SB", "ZC", "ZL", "ZM", "ZS", "ZW",
     ),
 }
+
+# These yield-quoted ASX bond contracts require rate-dependent valuation and
+# explicit face/notional functions.  The supplied undated scalar point values
+# cannot represent their exact P&L or gross exposure, so they remain outside
+# the research book until effective-dated contract logic is available.  This
+# is a model-correctness exclusion, not a return-based universe selection.
+UNSUPPORTED_RESEARCH_CONTRACTS = frozenset({"YXT", "YYT"})
 
 # USD per unit of foreign currency.  The 6J file is USD per 100 yen.
 FX_SOURCE: dict[str, tuple[str, float]] = {
@@ -98,7 +109,10 @@ class StrategyConfig:
     shock_full: float = 2.00
     shock_floor: float = 0.75
 
-    target_vol: float = 0.10
+    # A 7% portfolio risk budget leaves operational headroom below the
+    # independent 15% drawdown halt.  It is a risk-policy choice, not a return
+    # target, and changing it invalidates any prior prospective evidence.
+    target_vol: float = 0.07
     vol_decay: float = 0.94
     vol_estimator_min_periods: int = 20
     portfolio_vol_window: int = 63
@@ -121,13 +135,15 @@ class StrategyConfig:
     execution_delay_sessions: int = 0
     charge_roll_costs: bool = True
     max_rebalance_participation: float | None = 0.02
-    # Position-intent buffers sit inside the independent 6x/35% live gates in
-    # production.py.  This leaves room for adverse price/NAV moves between
-    # monthly decisions; the readiness report still tests the harder ceilings.
+    # The 5x position-intent buffer sits inside the independent 6x live gate in
+    # the deployment-control layer.  A static margin snapshot must not resize
+    # 1990-2014
+    # history: doing so would inject today's margin schedule into past
+    # decisions.  Historical margin remains an informational proxy, while live
+    # sizing uses an effective-dated broker/clearing snapshot and the 35% gate.
     max_gross_notional_multiple: float | None = 5.0
-    max_static_margin_fraction: float | None = 0.30
+    max_static_margin_fraction: float | None = None
     annualization: int = 252
-    mode: str = "research"
 
     def validate(self) -> None:
         if self.trend_lookback <= 0 or self.vol_span <= 1:
@@ -192,8 +208,6 @@ class StrategyConfig:
             and not 0 < self.max_static_margin_fraction <= 1
         ):
             raise ValueError("max_static_margin_fraction must be in (0, 1]")
-        if self.mode not in {"research", "production"}:
-            raise ValueError("mode must be 'research' or 'production'")
 
 
 @dataclass
@@ -216,7 +230,12 @@ class BacktestResult:
 
 
 def strategy_symbols() -> list[str]:
-    return [symbol for members in GLOBAL_ASSET_CLASSES.values() for symbol in members]
+    return [
+        symbol
+        for members in GLOBAL_ASSET_CLASSES.values()
+        for symbol in members
+        if symbol not in UNSUPPORTED_RESEARCH_CONTRACTS
+    ]
 
 
 def _load_column(path: Path, column: str, name: str) -> pd.Series:
@@ -237,6 +256,15 @@ def _load_column(path: Path, column: str, name: str) -> pd.Series:
     if invalid.any():
         bad_rows = frame.index[invalid].tolist()[:5]
         raise ValueError(f"Non-numeric {column} values in {path} at rows {bad_rows}")
+    non_finite = values.notna() & ~np.isfinite(values.to_numpy(dtype=float))
+    if non_finite.any():
+        bad_rows = frame.index[non_finite].tolist()[:5]
+        raise ValueError(f"Non-finite {column} values in {path} at rows {bad_rows}")
+    if column == "Volume":
+        negative = values.notna() & values.lt(0)
+        if negative.any():
+            bad_rows = frame.index[negative].tolist()[:5]
+            raise ValueError(f"Negative Volume values in {path} at rows {bad_rows}")
     return pd.Series(
         values.to_numpy(),
         index=pd.DatetimeIndex(parsed_dates),
@@ -539,7 +567,27 @@ def risk_managed_forecast(
 
 
 def _month_end_rows(frame: pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
-    return frame.groupby(frame.index.to_period("M")).tail(1)
+    """Select completed monthly decision rows without using a partial month.
+
+    A later month proves that every preceding observed month has completed, so
+    its final available row is retained.  The terminal month is retained only
+    when the data end on a standard Monday-Friday business-month-end.  Venue
+    holiday calendars are intentionally external to this research scheduler;
+    production scheduling must supply an exchange-specific completed-session
+    calendar rather than infer it from a truncated data file.
+    """
+    if frame.empty:
+        return frame.copy()
+    if not isinstance(frame.index, pd.DatetimeIndex):
+        raise ValueError("monthly scheduling requires a DatetimeIndex")
+    if not frame.index.is_monotonic_increasing:
+        raise ValueError("monthly scheduling index must be sorted")
+
+    rows = frame.groupby(frame.index.to_period("M")).tail(1)
+    terminal = frame.index[-1].normalize()
+    if not pd.offsets.BMonthEnd().is_on_offset(terminal):
+        rows = rows.iloc[:-1]
+    return rows
 
 
 def _base_target_positions(
@@ -555,11 +603,23 @@ def _base_target_positions(
     ).std()
     annual_dollar_vol = daily_price_vol * point_values * math.sqrt(config.annualization)
     positions = pd.DataFrame(index=prices.index, columns=prices.columns, dtype=float)
-    risk_groups = (
-        {"All markets": tuple(prices.columns)}
-        if config.risk_budget == "flat"
-        else GLOBAL_ASSET_CLASSES
-    )
+    if config.risk_budget == "flat":
+        risk_groups = {"All markets": tuple(prices.columns)}
+    else:
+        # The configured catalogue contains contracts that may be deliberately
+        # excluded from the supported research universe.  Intersect every
+        # group with the actual frame before indexing; an optional allocator
+        # must not reintroduce unsupported contracts or fail on a subset book.
+        available_columns = set(prices.columns)
+        risk_groups = {
+            name: tuple(symbol for symbol in members if symbol in available_columns)
+            for name, members in GLOBAL_ASSET_CLASSES.items()
+        }
+        risk_groups = {
+            name: members for name, members in risk_groups.items() if members
+        }
+    if not risk_groups:
+        return positions
     class_weight = 1.0 / len(risk_groups)
     for members in risk_groups.values():
         symbols = list(members)
@@ -801,15 +861,17 @@ def _simulate_execution(
     if config.max_rebalance_participation is None:
         rebalance_capacity = np.full((n_dates, n_markets), np.inf)
     else:
+        # Capacity is fixed from information available before the execution
+        # session.  Using the completed session's volume to size an order that
+        # is then priced at that session's close is an ex-post liquidity
+        # look-ahead.  Realized participation is still reported against actual
+        # volume and can therefore exceed the intended ADV fraction.
         trailing_volume = volume.fillna(0.0).rolling(
             config.volume_gate_window,
             min_periods=config.volume_gate_window,
         ).median().shift(1)
-        capacity_volume = trailing_volume
-        if config.execution_timing == "next_close":
-            capacity_volume = trailing_volume.clip(upper=volume.fillna(0.0))
         rebalance_capacity = (
-            capacity_volume.to_numpy(dtype=float)
+            trailing_volume.to_numpy(dtype=float)
             * config.max_rebalance_participation
         )
         if integer_contracts:
@@ -1343,13 +1405,20 @@ def trade_episode_metrics(
     pnl_usd = closed["Net P&L USD"].astype(float)
     # Classify the economically realised episode after all costs.  A one-cent
     # tolerance prevents floating-point dust from manufacturing wins/losses.
-    wins = pnl_usd > 0.01
-    losses = pnl_usd < -0.01
-    breakevens = ~(wins | losses)
-    win_values = contribution[wins]
-    loss_values = -contribution[losses]
-    win_usd = pnl_usd[wins]
-    loss_usd = -pnl_usd[losses]
+    # USD and NAV-normalised contribution can occasionally have opposite signs
+    # because each day's contribution uses that day's prior NAV.  Classify each
+    # numeraire independently so its profit-factor and payoff identities remain
+    # internally coherent.  Trade counts retain the economically realised USD
+    # convention, including the one-cent dust tolerance.
+    usd_wins = pnl_usd > 0.01
+    usd_losses = pnl_usd < -0.01
+    breakevens = ~(usd_wins | usd_losses)
+    contribution_wins = contribution > 1e-12
+    contribution_losses = contribution < -1e-12
+    win_values = contribution[contribution_wins]
+    loss_values = -contribution[contribution_losses]
+    win_usd = pnl_usd[usd_wins]
+    loss_usd = -pnl_usd[usd_losses]
 
     def safe_ratio(numerator: float, denominator: float) -> float:
         return numerator / denominator if denominator > 0 else np.nan
@@ -1363,13 +1432,13 @@ def trade_episode_metrics(
             "Episodes entered before window": int(
                 (pd.to_datetime(closed["Entry date"]) < start_date).sum()
             ),
-            "Winning trade episodes": int(wins.sum()),
-            "Losing trade episodes": int(losses.sum()),
+            "Winning trade episodes": int(usd_wins.sum()),
+            "Losing trade episodes": int(usd_losses.sum()),
             "Breakeven trade episodes": int(breakevens.sum()),
-            "Trade win rate": wins.mean() if len(closed) else np.nan,
+            "Trade win rate": usd_wins.mean() if len(closed) else np.nan,
             "Non-breakeven trade win rate": safe_ratio(
-                float(wins.sum()),
-                float(wins.sum() + losses.sum()),
+                float(usd_wins.sum()),
+                float(usd_wins.sum() + usd_losses.sum()),
             ),
             "Trade profit factor (contribution)": safe_ratio(
                 float(win_values.sum()),
@@ -1387,8 +1456,8 @@ def trade_episode_metrics(
             "Average losing trade (bps NAV)": average_loss * 10_000,
             "Average win / average loss": safe_ratio(average_win, average_loss),
             "Win / loss count ratio": safe_ratio(
-                float(wins.sum()),
-                float(losses.sum()),
+                float(usd_wins.sum()),
+                float(usd_losses.sum()),
             ),
             "Median trade outcome (bps NAV)": (
                 float(contribution.median()) * 10_000 if len(closed) else np.nan
@@ -1446,12 +1515,6 @@ def run_backtest(
 ) -> BacktestResult:
     """Run the canonical strategy through forecast, risk, and audited execution."""
     config.validate()
-    if config.mode == "production":
-        raise RuntimeError(
-            "Production mode is fail-closed: serial contracts, timestamped live "
-            "quotes, dated specifications/margins/fees, calibrated execution, "
-            "and broker reconciliation are required"
-        )
     symbols = strategy_symbols()
     supplied_prices = prices is not None
     prices = prices if prices is not None else load_prices(
@@ -1981,6 +2044,7 @@ def run_pipeline(config: StrategyConfig) -> tuple[BacktestResult, pd.DataFrame]:
         rows.append(
             {
                 "Strategy": result.name,
+                "Strategy designation": STRATEGY_DESIGNATION,
                 "Window": label,
                 "Validation status": "retrospective_reused_history",
                 **metrics.to_dict(),
@@ -2033,24 +2097,40 @@ def save_outputs(
     config: StrategyConfig,
     *,
     bootstrap_samples: int = 2_000,
+    trade_sequence_samples: int = 5_000,
     include_stress: bool = True,
 ) -> dict[str, object]:
     """Save the reproducible research package and fail-closed readiness audit."""
-    from diagnostics import (
+    from .diagnostics import (
+        DEFAULT_BOOTSTRAP_SEED,
+        DEFAULT_DAILY_BLOCK_LENGTHS,
+        DEFAULT_DAILY_HORIZONS_SESSIONS,
         causal_regime_report,
+        daily_stationary_bootstrap_drawdown_summary,
         monthly_stationary_bootstrap_summary,
         trade_metrics_report,
     )
-    from production import (
+    from ..controls.production import (
         ProductionLimits,
-        ReadinessEvidence,
+        daily_frame_fingerprint,
         overall_readiness_status,
         production_readiness_report,
     )
-    from stress import cost_model_assumptions, run_friction_stress_suite
+    from .trade_sequence import (
+        TradeSequenceMonteCarloConfig,
+        trade_sequence_monte_carlo_summary,
+    )
+    from .friction import cost_model_assumptions, run_friction_stress_suite
+    from .drawdown import (
+        DrawdownOverlayConfig,
+        overlay_performance_report,
+        simulate_drawdown_overlay,
+    )
 
     if bootstrap_samples <= 0:
         raise ValueError("bootstrap_samples must be positive")
+    if trade_sequence_samples <= 0:
+        raise ValueError("trade_sequence_samples must be positive")
     output_dir = Path(config.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -2058,28 +2138,53 @@ def save_outputs(
     market_ledger = market_daily_ledger(result)
     trade_metrics = trade_metrics_report(result, REPORTING_WINDOWS)
     regime_metrics = causal_regime_report(result)
+    bootstrap_windows = {
+        "2005-2014 reused later diagnostic": REPORTING_WINDOWS[
+            "2005-2014 reused later diagnostic"
+        ],
+        "1990-2014 full post-launch history": REPORTING_WINDOWS[
+            "1990-2014 full post-launch history"
+        ],
+    }
     bootstrap = monthly_stationary_bootstrap_summary(
         result,
-        {
-            "2005-2014 reused later diagnostic": REPORTING_WINDOWS[
-                "2005-2014 reused later diagnostic"
-            ],
-            "1990-2014 full post-launch history": REPORTING_WINDOWS[
-                "1990-2014 full post-launch history"
-            ],
-        },
+        bootstrap_windows,
         samples=bootstrap_samples,
+    )
+    daily_drawdown_bootstrap = daily_stationary_bootstrap_drawdown_summary(
+        result,
+        bootstrap_windows,
+        samples=bootstrap_samples,
+    )
+    trade_sequence = trade_sequence_monte_carlo_summary(
+        result,
+        REPORTING_WINDOWS,
+        config=TradeSequenceMonteCarloConfig(samples=trade_sequence_samples),
     )
     limits = ProductionLimits()
     readiness = production_readiness_report(
         result,
         limits=limits,
-        evidence=ReadinessEvidence(),
     )
     readiness_status = overall_readiness_status(readiness)
     quality = data_quality_report(result)
     sources = source_manifest(config)
     cost_assumptions = cost_model_assumptions(config)
+    overlay_config = DrawdownOverlayConfig(annualization=config.annualization)
+    overlay_start = config.launch_date or result.daily.index.min()
+    overlay_source = result.daily.loc[str(overlay_start):]
+    first_overlay_location = result.daily.index.get_indexer([overlay_source.index[0]])[0]
+    overlay_period_start = (
+        result.daily.index[first_overlay_location - 1]
+        if first_overlay_location > 0
+        else overlay_source.index[0]
+    )
+    drawdown_overlay = simulate_drawdown_overlay(overlay_source, overlay_config)
+    drawdown_overlay_summary = overlay_performance_report(
+        drawdown_overlay,
+        overlay_config,
+        period_start=overlay_period_start,
+    )
 
     metrics.to_csv(output_dir / "strategy_metrics.csv", index=False)
     result.daily.to_csv(output_dir / "strategy_daily.csv", index_label="date")
@@ -2091,11 +2196,24 @@ def save_outputs(
     trade_metrics.to_csv(output_dir / "strategy_trade_metrics.csv", index=False)
     regime_metrics.to_csv(output_dir / "strategy_regime_metrics.csv", index=False)
     bootstrap.to_csv(output_dir / "strategy_monte_carlo_summary.csv", index=False)
+    daily_drawdown_bootstrap.to_csv(
+        output_dir / "strategy_daily_drawdown_monte_carlo.csv", index=False
+    )
+    trade_sequence.to_csv(
+        output_dir / "strategy_trade_sequence_monte_carlo.csv", index=False
+    )
     readiness.to_csv(output_dir / "production_readiness.csv", index=False)
     ledger_checks.to_csv(output_dir / "strategy_ledger_checks.csv", index=False)
     quality.to_csv(output_dir / "strategy_data_quality.csv", index=False)
     sources.to_csv(output_dir / "source_manifest.csv", index=False)
     cost_assumptions.to_csv(output_dir / "cost_model_assumptions.csv", index=False)
+    drawdown_overlay.to_csv(
+        output_dir / "strategy_drawdown_overlay_diagnostic.csv",
+        index_label="date",
+    )
+    drawdown_overlay_summary.to_csv(
+        output_dir / "strategy_drawdown_overlay_summary.csv", index=False
+    )
     active_market_rows = (
         market_ledger["start_contracts"].ne(0)
         | market_ledger["end_contracts"].ne(0)
@@ -2118,18 +2236,27 @@ def save_outputs(
     )
 
     stress = pd.DataFrame()
+    stress_path = output_dir / "strategy_friction_stress.csv"
     if include_stress:
         def stress_runner(scenario_config: StrategyConfig) -> BacktestResult:
             return result if scenario_config == config else run_backtest(scenario_config)
 
         stress = run_friction_stress_suite(config, run_fn=stress_runner)
-        stress.to_csv(output_dir / "strategy_friction_stress.csv", index=False)
+        stress.to_csv(stress_path, index=False)
+    else:
+        # A fast diagnostic run must not leave an older stress report looking
+        # as though it belongs to the new manifest.
+        stress_path.unlink(missing_ok=True)
 
     serializable = asdict(config)
     serializable["engine_version"] = ENGINE_VERSION
+    serializable["strategy_name"] = STRATEGY_NAME
+    serializable["strategy_designation"] = STRATEGY_DESIGNATION
+    serializable["strategy_technical_name"] = STRATEGY_TECHNICAL_NAME
     serializable["data_dir"] = "${DELTA1_DATA_DIR}"
     serializable["output_dir"] = str(config.output_dir)
     serializable["research_status"] = {
+        "designation": STRATEGY_DESIGNATION,
         "history": "retrospective_reused_history",
         "selection_history_complete": False,
         "selection_adjusted_statistics": False,
@@ -2145,10 +2272,12 @@ def save_outputs(
             sources["relative_path"].astype(str) + ":" + sources["sha256"].astype(str)
         ).encode("utf-8")
     ).hexdigest()
+    repository_root = Path(__file__).resolve().parents[3]
+    package_root = Path(__file__).resolve().parents[1]
     implementation_hashes = {}
-    for module_name in ("strategy.py", "diagnostics.py", "production.py", "stress.py"):
-        module_path = Path(__file__).resolve().with_name(module_name)
-        implementation_hashes[module_name] = hashlib.sha256(
+    for module_path in sorted(package_root.rglob("*.py")):
+        relative_name = module_path.relative_to(repository_root).as_posix()
+        implementation_hashes[relative_name] = hashlib.sha256(
             module_path.read_bytes()
         ).hexdigest()
     implementation_fingerprint = hashlib.sha256(
@@ -2157,13 +2286,46 @@ def save_outputs(
             for name, digest in sorted(implementation_hashes.items())
         ).encode("utf-8")
     ).hexdigest()
+    output_names = [
+        "cost_model_assumptions.csv",
+        "production_readiness.csv",
+        "source_manifest.csv",
+        "strategy_config.json",
+        "strategy_daily.csv",
+        "strategy_daily_drawdown_monte_carlo.csv",
+        "strategy_data_quality.csv",
+        "strategy_drawdown_overlay_diagnostic.csv",
+        "strategy_drawdown_overlay_summary.csv",
+        "strategy_execution_events.csv",
+        "strategy_ledger_checks.csv",
+        "strategy_market_daily.csv.gz",
+        "strategy_metrics.csv",
+        "strategy_monte_carlo_summary.csv",
+        "strategy_monthly_position_intents_per_dollar.csv",
+        "strategy_regime_metrics.csv",
+        "strategy_trade_episodes.csv",
+        "strategy_trade_metrics.csv",
+        "strategy_trade_sequence_monte_carlo.csv",
+    ]
+    if include_stress:
+        output_names.append("strategy_friction_stress.csv")
+    output_hashes: dict[str, str] = {}
+    for output_name in sorted(output_names):
+        output_path = output_dir / output_name
+        if not output_path.is_file():
+            raise RuntimeError(f"canonical output was not written: {output_name}")
+        output_hashes[output_name] = hashlib.sha256(output_path.read_bytes()).hexdigest()
     run_manifest = {
         "strategy": STRATEGY_NAME,
+        "strategy_designation": STRATEGY_DESIGNATION,
+        "strategy_technical_name": STRATEGY_TECHNICAL_NAME,
         "engine_version": ENGINE_VERSION,
         "config_sha256": hashlib.sha256(config_text.encode("utf-8")).hexdigest(),
         "source_fingerprint_sha256": source_fingerprint,
+        "daily_fingerprint_sha256": daily_frame_fingerprint(result.daily),
         "implementation_fingerprint_sha256": implementation_fingerprint,
         "implementation_files": implementation_hashes,
+        "output_files": output_hashes,
         "data_start": result.daily.index.min().date().isoformat(),
         "data_end": result.daily.index.max().date().isoformat(),
         "launch_date": config.launch_date,
@@ -2172,7 +2334,15 @@ def save_outputs(
         "externally_validated": False,
         "production_readiness": readiness_status,
         "bootstrap_samples": bootstrap_samples,
+        "daily_drawdown_bootstrap": {
+            "block_lengths_sessions": list(DEFAULT_DAILY_BLOCK_LENGTHS),
+            "horizons_sessions": list(DEFAULT_DAILY_HORIZONS_SESSIONS),
+            "samples": bootstrap_samples,
+            "seed": DEFAULT_BOOTSTRAP_SEED,
+        },
+        "trade_sequence_samples": trade_sequence_samples,
         "friction_stress_included": include_stress,
+        "drawdown_overlay_status": "diagnostic_not_execution_integrated",
     }
     (output_dir / "run_manifest.json").write_text(
         json.dumps(run_manifest, indent=2, sort_keys=True) + "\n",
@@ -2185,7 +2355,11 @@ def save_outputs(
         "trade_metrics": trade_metrics,
         "regime_metrics": regime_metrics,
         "bootstrap": bootstrap,
+        "daily_drawdown_bootstrap": daily_drawdown_bootstrap,
+        "trade_sequence": trade_sequence,
         "stress": stress,
+        "drawdown_overlay": drawdown_overlay,
+        "drawdown_overlay_summary": drawdown_overlay_summary,
     }
 
 
@@ -2198,6 +2372,12 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=2_000,
         help="stationary-bootstrap paths per block/horizon combination",
+    )
+    parser.add_argument(
+        "--trade-sequence-samples",
+        type=int,
+        default=5_000,
+        help="diagnostic episode-sequence paths per resampling method",
     )
     parser.add_argument(
         "--skip-stress",
@@ -2216,6 +2396,7 @@ def main() -> None:
         metrics,
         config,
         bootstrap_samples=args.bootstrap_samples,
+        trade_sequence_samples=args.trade_sequence_samples,
         include_stress=not args.skip_stress,
     )
     print(metrics.to_string(index=False))
