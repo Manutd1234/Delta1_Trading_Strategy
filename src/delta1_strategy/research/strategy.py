@@ -141,6 +141,20 @@ class StrategyConfig:
     execution_delay_sessions: int = 0
     charge_roll_costs: bool = True
     max_rebalance_participation: float | None = 0.02
+    # These two default ON, against this file's usual convention of defaulting a
+    # new option OFF to preserve the frozen run.  The convention is suspended
+    # deliberately: they are corrections to the execution model rather than
+    # return levers, and the daily fingerprint has been re-baselined for them.
+    # With max_rebalance_participation set to None both are inert.
+    cap_fills_at_realized_capacity: bool = True
+    spread_roll_turnover: bool = True
+    # One roll cycle.  The obligation is bounded by delivery, and the 1st
+    # percentile of observed gaps between roll flags is 28 calendar days, so a
+    # backlog older than about 21 sessions would still be open when the next
+    # roll fires — which is the real failure, not an arbitrary multiple of
+    # typical behaviour.
+    max_roll_backlog_sessions: int | None = 21
+    roll_slice_impact_reference: str = "parent"
     # The 5x position-intent buffer sits inside the independent 6x live gate in
     # the deployment-control layer.  A static margin snapshot must not resize
     # 1990-2014
@@ -213,6 +227,27 @@ class StrategyConfig:
             and not 0 < self.max_rebalance_participation <= 1
         ):
             raise ValueError("max_rebalance_participation must be in (0, 1]")
+        for switch in ("cap_fills_at_realized_capacity", "spread_roll_turnover"):
+            if not isinstance(getattr(self, switch), bool):
+                raise ValueError(f"{switch} must be a boolean")
+        if self.spread_roll_turnover and not self.cap_fills_at_realized_capacity:
+            raise ValueError(
+                "spread_roll_turnover requires cap_fills_at_realized_capacity: "
+                "spreading a roll into a session budget that an uncapped "
+                "rebalance may already have exhausted cannot bound participation"
+            )
+        if self.max_roll_backlog_sessions is not None and (
+            isinstance(self.max_roll_backlog_sessions, bool)
+            or not isinstance(self.max_roll_backlog_sessions, int)
+            or self.max_roll_backlog_sessions < 1
+        ):
+            raise ValueError(
+                "max_roll_backlog_sessions must be a positive number of sessions"
+            )
+        if self.roll_slice_impact_reference not in {"parent", "session"}:
+            raise ValueError(
+                "roll_slice_impact_reference must be 'parent' or 'session'"
+            )
         if (
             self.max_gross_notional_multiple is not None
             and self.max_gross_notional_multiple <= 0
@@ -860,27 +895,53 @@ def _simulate_execution(
     max_roll_participation = np.zeros(n_dates)
     filled_markets = np.zeros(n_dates, dtype=int)
     pending_markets = np.zeros(n_dates, dtype=int)
+    # Contracts a session's realized depth refused, and contracts still sitting
+    # in an expiring delivery.  Both are diagnostics: they make the size of the
+    # capacity intervention auditable session by session.
+    capacity_deferred = np.zeros(n_dates)
+    roll_backlog_daily = np.zeros(n_dates)
     target_limit_scale = np.ones(n_dates)
 
     quantity = np.zeros(n_markets, dtype=float)
     pending_target = np.full(n_markets, np.nan)
     pending_quantity = np.full(n_markets, np.nan)
     pending_delay = np.zeros(n_markets, dtype=int)
+    # `pending_roll` records that a delivery label changed and has not yet been
+    # processed in a tradeable session; `roll_backlog` records how many
+    # contracts still sit in the expiring leg.  They handle different failure
+    # modes — closed sessions and thin sessions — and both are needed.
     pending_roll = np.zeros(n_markets, dtype=bool)
+    roll_backlog = np.zeros(n_markets, dtype=float)
+    roll_backlog_age = np.zeros(n_markets, dtype=int)
+    roll_reference_participation = np.zeros(n_markets, dtype=float)
     nav = float(initial_capital)
     launch_timestamp = pd.Timestamp(launch_date) if launch_date is not None else None
     targets_by_date = {
         date: row.fillna(0.0).to_numpy(dtype=float)
         for date, row in target_rows.iterrows()
     }
+    # Two capacity bounds over different information sets.
+    #
+    # `rebalance_capacity` is the ex-ante sizing rule: the largest order the
+    # pre-session information set justifies, and the bound the live order gate
+    # applies at decision time.  Sizing an order from the completed execution
+    # session's volume would be an ex-post liquidity look-ahead, and would be
+    # optimistic — it would trade more precisely when liquidity turned out
+    # well.  That remains forbidden, and order size is still fixed from
+    # decision-date information alone.
+    #
+    # `session_capacity` is the ex-post market response: the executing session
+    # cannot absorb more than the participation limit of the volume it actually
+    # traded.  It never enlarges an order, only truncates a fill, and the
+    # residual is carried by the existing pending-order mechanism.  This is the
+    # same same-session conditioning the ledger already applies to the fill
+    # price, to the tradeability test below, and to the impact denominator —
+    # and it is the only one of those that is monotonically unfavourable.
     if config.max_rebalance_participation is None:
         rebalance_capacity = np.full((n_dates, n_markets), np.inf)
+        session_capacity = np.full((n_dates, n_markets), np.inf)
+        roll_session_capacity = np.full((n_dates, n_markets), np.inf)
     else:
-        # Capacity is fixed from information available before the execution
-        # session.  Using the completed session's volume to size an order that
-        # is then priced at that session's close is an ex-post liquidity
-        # look-ahead.  Realized participation is still reported against actual
-        # volume and can therefore exceed the intended ADV fraction.
         trailing_volume = volume.fillna(0.0).rolling(
             config.volume_gate_window,
             min_periods=config.volume_gate_window,
@@ -889,8 +950,19 @@ def _simulate_execution(
             trailing_volume.to_numpy(dtype=float)
             * config.max_rebalance_participation
         )
+        session_capacity = np.where(
+            np.isfinite(volume_values),
+            volume_values * config.max_rebalance_participation,
+            0.0,
+        )
         if integer_contracts:
             rebalance_capacity = np.floor(rebalance_capacity)
+            session_capacity = np.floor(session_capacity)
+        roll_session_capacity = session_capacity
+        if not config.cap_fills_at_realized_capacity:
+            session_capacity = np.full((n_dates, n_markets), np.inf)
+        if not config.spread_roll_turnover:
+            roll_session_capacity = np.full((n_dates, n_markets), np.inf)
 
     for i, date in enumerate(index):
         if launch_timestamp is not None and date < launch_timestamp:
@@ -982,12 +1054,17 @@ def _simulate_execution(
         eligible = actual_session & np.isfinite(pending_quantity)
         fill = eligible & (pending_delay == 0)
         pending_delay[eligible & (pending_delay > 0)] -= 1
-        desired = pending_quantity
+        # `pending_quantity` is mutated in place a few lines below, after the
+        # completion test reads `desired`.  A view would make that test correct
+        # only by statement ordering; copy so inserting code cannot silently
+        # corrupt it.
+        desired = pending_quantity.copy()
         desired_change = desired - old_quantity
+        fill_capacity = np.minimum(rebalance_capacity[i], session_capacity[i])
         executable_change = np.clip(
             desired_change,
-            -rebalance_capacity[i],
-            rebalance_capacity[i],
+            -fill_capacity,
+            fill_capacity,
         )
         executable_change = np.where(np.isfinite(executable_change), executable_change, 0.0)
         quantity[fill] = old_quantity[fill] + executable_change[fill]
@@ -999,6 +1076,9 @@ def _simulate_execution(
         trades[i] = trade
         filled_markets[i] = int(np.count_nonzero(trade))
         pending_markets[i] = int(np.isfinite(pending_target).sum())
+        capacity_deferred[i] = float(
+            np.sum(np.abs(desired_change[fill] - executable_change[fill]))
+        )
 
         if config.execution_timing == "next_open":
             intraday_change = np.zeros(n_markets)
@@ -1025,15 +1105,98 @@ def _simulate_execution(
 
         regular_turnover = np.abs(trade)
         processed_roll = pending_roll & actual_session
-        roll_today = processed_roll & ((old_quantity != 0) | (quantity != 0))
-        executed_rolls[i] = roll_today
-        roll_adjusted_turnover = np.where(
-            roll_today,
-            np.abs(old_quantity) + np.abs(quantity),
-            regular_turnover,
-        )
-        incremental_roll = roll_adjusted_turnover - regular_turnover
         pending_roll[processed_roll] = False
+
+        # A contract held through a delivery change sits in the expiring leg
+        # until it is physically transferred, and each transfer costs two
+        # contracts of turnover: sell the old leg, buy the new one.  Modelling
+        # the obligation as a quantity rather than a flag is what makes it
+        # safe to spread across sessions — the position itself never moves, so
+        # simply skipping the turnover would hand out an uncosted transfer.
+        #
+        # A reducing trade is filled out of the expiring leg first and so
+        # extinguishes the obligation at no incremental cost, because the new
+        # leg was never bought for those contracts.  An increasing trade is
+        # opened directly in the new leg and creates none.  A contract that
+        # slept through several roll events still needs exactly one transfer,
+        # so the backlog is an absolute count and not an accumulator.
+        reduction = np.where(
+            np.sign(old_quantity) * np.sign(quantity) < 0,
+            np.abs(old_quantity),
+            np.maximum(np.abs(old_quantity) - np.abs(quantity), 0.0),
+        )
+        stale_before_trade = np.where(
+            processed_roll, np.abs(old_quantity), roll_backlog
+        )
+        roll_backlog = np.minimum(
+            np.maximum(stale_before_trade - reduction, 0.0),
+            np.abs(quantity),
+        )
+
+        # Freeze the impact reference at the participation the unsliced roll
+        # would have had.  Impact is proportional to turnover times the square
+        # root of participation, which is superadditive, so pricing each slice
+        # on its own smaller participation would manufacture a 1/sqrt(n)
+        # discount for splitting an order.  Real desks pay for that split
+        # through permanent impact and delay cost; this model prices neither,
+        # so a per-slice discount would be a pure arbitrage against the cost
+        # model rather than a modelled saving.
+        roll_reference_participation = np.where(
+            processed_roll,
+            np.divide(
+                regular_turnover + 2.0 * roll_backlog,
+                volume_values[i],
+                out=np.zeros(n_markets),
+                where=actual_session & (volume_values[i] > 0),
+            ),
+            roll_reference_participation,
+        )
+
+        # The venue sees one aggregate order flow, so the roll competes for
+        # whatever the rebalance leaves of the session participation budget.
+        roll_headroom = np.maximum(
+            roll_session_capacity[i] - regular_turnover, 0.0
+        ) / 2.0
+        if integer_contracts:
+            roll_slice = np.where(
+                roll_headroom >= roll_backlog, roll_backlog, np.floor(roll_headroom)
+            )
+        else:
+            roll_slice = np.minimum(roll_backlog, roll_headroom)
+        roll_slice = np.where(actual_session, roll_slice, 0.0)
+        roll_backlog = roll_backlog - roll_slice
+
+        incremental_roll = 2.0 * roll_slice
+        roll_adjusted_turnover = regular_turnover + incremental_roll
+        cleared = roll_backlog <= 1e-12
+        # "A delivery transfer completed today", not "a slice happened": the
+        # per-episode roll count and the per-market roll totals both read this
+        # flag, and a physically single roll must not be counted twice.
+        executed_rolls[i] = (
+            (processed_roll | (roll_slice > 0))
+            & cleared
+            & ((old_quantity != 0) | (quantity != 0))
+        )
+        roll_impact_reference = np.where(
+            (roll_slice > 0) | ~cleared, roll_reference_participation, 0.0
+        )
+        roll_reference_participation = np.where(
+            cleared, 0.0, roll_reference_participation
+        )
+
+        roll_backlog_age = np.where(cleared, 0, roll_backlog_age + 1)
+        if config.max_roll_backlog_sessions is not None:
+            overdue = roll_backlog_age > config.max_roll_backlog_sessions
+            if np.any(overdue):
+                stuck = ", ".join(
+                    str(columns[k]) for k in np.flatnonzero(overdue)
+                )
+                raise ValueError(
+                    "Delivery roll cannot be completed within "
+                    f"{config.max_roll_backlog_sessions} sessions on "
+                    f"{date.date()} for {stuck}"
+                )
+
         charged_turnover = (
             roll_adjusted_turnover
             if config.charge_roll_costs
@@ -1056,6 +1219,20 @@ def _simulate_execution(
             out=np.zeros(n_markets),
             where=traded & (volume_values[i] > 0),
         )
+        # Price impact against the parent roll's participation wherever a roll
+        # is being worked off, so splitting it across sessions preserves the
+        # total charge instead of earning a square-root discount.  The floor is
+        # taken against the session's own participation, so a slice is never
+        # charged less than it would have been unsliced.
+        # Only meaningful when rolls are actually being spread; with spreading
+        # off there is no slice to discount, so the reference is skipped and
+        # the charge is bit-for-bit the session participation.
+        if config.spread_roll_turnover and config.roll_slice_impact_reference == "parent":
+            impact_participation = np.maximum(
+                cost_participation, roll_impact_reference
+            )
+        else:
+            impact_participation = cost_participation
         physical_order_turnover = roll_adjusted_turnover
         physical_order_participation = np.divide(
             physical_order_turnover,
@@ -1086,7 +1263,7 @@ def _simulate_execution(
             * np.abs(valuation_close_values[i])
             * point_value_values[i]
             * (config.impact_bps_at_full_participation / 10_000)
-            * np.sqrt(cost_participation),
+            * np.sqrt(impact_participation),
             0.0,
         )
         total_market_cost = (
@@ -1142,6 +1319,7 @@ def _simulate_execution(
         nav_path[i] = nav
         rebalance_turnover[i] = float(np.sum(regular_turnover))
         roll_turnover_increment[i] = float(np.sum(incremental_roll))
+        roll_backlog_daily[i] = float(np.sum(roll_backlog))
         total_turnover[i] = float(np.sum(charged_turnover))
         positions[i] = quantity
 
@@ -1171,6 +1349,8 @@ def _simulate_execution(
             "max_roll_participation_proxy": max_roll_participation,
             "filled_markets": filled_markets,
             "pending_markets": pending_markets,
+            "capacity_deferred_contracts": capacity_deferred,
+            "roll_backlog_contracts": roll_backlog_daily,
             "target_portfolio_limit_scale": target_limit_scale,
         },
         index=index,

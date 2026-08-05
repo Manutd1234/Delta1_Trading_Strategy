@@ -137,19 +137,46 @@ liquidation are absent, so it is systematically optimistic; the artifacts carry
   0.11 Sharpe end to end. Halving the participation limit moves Sharpe by
   −0.0003. It remains in scope as compliance work only.
 
-## Outstanding defects this work surfaced
+## Defects this work surfaced — since resolved
 
-1. **Roll turnover bypasses the capacity clip.** `rebalance_capacity` clips only
-   `desired_change`; `roll_adjusted_turnover` is never passed through it. This
-   is the actual source of the 1.500 peak order participation reading — a roll
-   into a thin holiday session on 1990-12-31, not a sizing failure.
-2. **The participation gate degrades under every return-improving lever**,
-   from 6.82% to 7.95% and beyond, against a 2% limit it already fails. Any
-   configuration recommended here inherits that breach.
-3. **The participation breach is a collapsed denominator, not a large order.**
-   Eight of 8,378 fills exceed 2%; maximum ex-ante participation is 1.97%, so
-   the causal sizing rule never breaches. The worst case is a 6-contract order
-   into a session that traded 88 contracts against a 3,918 trailing median.
+All three were fixed in the capacity work that followed; the diagnoses are kept
+because they are the interesting part.
+
+1. **Roll turnover bypassed the capacity clip.** `rebalance_capacity` clipped
+   only `desired_change`; `roll_adjusted_turnover` never passed through it. That
+   was the source of the 1.500 peak order participation reading — a roll into a
+   thin holiday session on 1990-12-31, not a sizing failure. Roll obligations
+   are now tracked as a quantity and worked off in capacity-sized slices.
+2. **The participation gate degraded under every return-improving lever**, from
+   6.82% toward 7.95% against a 2% limit it already failed. It is now bounded by
+   construction, so it can no longer degrade: peak rebalance participation is
+   0.0199 and peak order participation 0.0200.
+3. **The breach was a collapsed denominator, not a large order.** Eight of 8,378
+   fills exceeded 2%; maximum ex-ante participation was 1.97%, so the causal
+   sizing rule never breached. The worst case was a 6-contract order into a
+   session that traded 88 contracts against a 3,918 trailing median. The fix
+   caps the fill and defers the residual rather than redefining the metric.
+
+The correction cost essentially nothing: CAGR +0.46 bp, Sharpe −0.0005, and
+that is noise from eight order-days in 9,683 sessions, not a lever.
+
+## The first out-of-sample evidence
+
+`scripts/run_holdout_evaluation.py` scores the frozen specification once on the
+2015-2016 continuation series, which the canonical source manifest proves the
+pipeline has never read. Twelve of fifty-nine roots survive the data
+constraints — the eleven government bonds plus gold — and the basis sleeve
+cannot be reconstructed without unadjusted prices, so this is a **subset
+consistency diagnostic, not a holdout for the flagship**.
+
+Over 522 sessions: annualized return **+3.71%**, Sharpe **+0.56**, volatility
+6.72%, maximum drawdown −8.02%. All three pre-registered criteria were met.
+
+The Sharpe is well below the 1.59 reported in sample. On a twelve-root
+trend-only subset over two years that is neither surprising nor evidence of
+decay — the standard error at this sample size is far too wide to distinguish
+the two — but it is the number, and it is recorded where a second look at the
+same data will be refused.
 
 ## Reproduce
 

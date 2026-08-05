@@ -111,6 +111,7 @@ def safe_result() -> SimpleNamespace:
                 "cost": [0.0, 0.001],
                 "gross_notional_multiple": [0.0, 2.0],
                 "static_margin_fraction": [0.0, 0.10],
+                "max_order_participation": [0.0, 0.01],
                 "max_rebalance_participation": [0.0, 0.01],
                 "max_roll_participation_proxy": [0.0, 0.01],
                 "pending_markets": [0, 0],

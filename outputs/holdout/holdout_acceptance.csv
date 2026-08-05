@@ -1,0 +1,4 @@
+criterion,threshold,observed,met,detail
+annualized_return,0.0,0.0371468381840907,True,pre-registered before the dataset was read
+max_drawdown,-0.15,-0.08024398922775389,True,pre-registered before the dataset was read
+naive_sharpe,0.0,0.5563913062178172,True,pre-registered before the dataset was read

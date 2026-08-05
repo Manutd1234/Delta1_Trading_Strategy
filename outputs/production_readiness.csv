@@ -1,15 +1,16 @@
 gate,category,critical,status,observed,limit,reason
 backtest_daily_available,backtest,True,PASS,9683,> 0 rows,gate passed
 required_daily_columns,backtest,True,PASS,all present,all required columns,gate passed
-finite_positive_nav,ledger,True,PASS,961972.261249416,> 0,gate passed
+finite_positive_nav,ledger,True,PASS,961972.2418222325,> 0,gate passed
 finite_net_returns,ledger,True,PASS,finite,all finite,gate passed
 nonnegative_costs,ledger,True,PASS,0.0,>= 0,gate passed
-historical_gross_notional,risk,True,PASS,5.198410312544924,6.0,gate passed
-historical_rebalance_participation,risk,True,BLOCKED,0.06818181818181818,0.02,historical rebalance participation exceeds the production limit
-historical_static_margin_proxy,research limitation,False,INFORMATIONAL,0.5273192516158127,not a point-in-time historical gate,computed from a current static catalogue snapshot and must not resize historical positions; live margin is governed by effective_dated_margin_and_fees evidence and runtime controls
-historical_drawdown,risk,True,PASS,0.1183350530575159,0.15,gate passed
+historical_gross_notional,risk,True,PASS,5.1117169008057015,6.0,gate passed
+historical_rebalance_participation,risk,True,PASS,0.019863438857852266,0.02,gate passed
+historical_order_participation,risk,True,PASS,0.01999375195251484,0.02,gate passed
+historical_static_margin_proxy,research limitation,False,INFORMATIONAL,0.5259920430451536,not a point-in-time historical gate,computed from a current static catalogue snapshot and must not resize historical positions; live margin is governed by effective_dated_margin_and_fees evidence and runtime controls
+historical_drawdown,risk,True,PASS,0.11847122445591829,0.15,gate passed
 terminal_pending_orders,execution,True,PASS,0.0,0,gate passed
-continuous_roll_participation_proxy,research limitation,False,INFORMATIONAL,1.5,not a live-capacity gate,continuous-contract roll turnover is only a diagnostic proxy; production roll capacity is governed by serial_contract_data evidence
+continuous_roll_participation_proxy,research limitation,False,INFORMATIONAL,0.01999375195251484,not a live-capacity gate,continuous-contract roll turnover is only a diagnostic proxy; production roll capacity is governed by serial_contract_data evidence
 serial_contract_data,external evidence,True,BLOCKED,,valid artifact-backed approval,Tradeable serial-contract data and roll liquidity has no verified evidence record
 timestamped_live_market_data,external evidence,True,BLOCKED,,valid artifact-backed approval,Timestamped live market data and calendars has no verified evidence record
 effective_dated_contract_specs,external evidence,True,BLOCKED,,valid artifact-backed approval,Effective-dated contract specifications has no verified evidence record

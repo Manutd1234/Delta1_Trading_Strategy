@@ -1,0 +1,13 @@
+root,shared_sessions,maximum_absolute_difference,status,detail
+CGB,4570,0.0,PASS,extension continues the canonical series without re-anchoring
+FGBL,4069,0.0,PASS,extension continues the canonical series without re-anchoring
+FGBM,4049,0.0,PASS,extension continues the canonical series without re-anchoring
+FGBS,4057,0.0,PASS,extension continues the canonical series without re-anchoring
+FGBX,2367,0.0,PASS,extension continues the canonical series without re-anchoring
+GC,9238,0.0,PASS,extension continues the canonical series without re-anchoring
+LLG,6788,0.0,PASS,extension continues the canonical series without re-anchoring
+SJB,3986,0.0,PASS,extension continues the canonical series without re-anchoring
+ZB,9268,0.0,PASS,extension continues the canonical series without re-anchoring
+ZF,6694,0.0,PASS,extension continues the canonical series without re-anchoring
+ZN,8224,0.0,PASS,extension continues the canonical series without re-anchoring
+ZT,6166,0.0,PASS,extension continues the canonical series without re-anchoring

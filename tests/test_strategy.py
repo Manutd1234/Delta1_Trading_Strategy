@@ -118,6 +118,10 @@ def execution_inputs(
     execution_delay_sessions: int = 0,
     charge_roll_costs: bool = True,
     launch_date: str | None = None,
+    cap_fills_at_realized_capacity: bool = True,
+    spread_roll_turnover: bool = True,
+    max_roll_backlog_sessions: int | None = 5,
+    roll_slice_impact_reference: str = "parent",
 ) -> tuple[object, pd.DatetimeIndex]:
     index = pd.bdate_range("2020-01-30", periods=len(closes))
     frame = lambda values: pd.DataFrame({"X": values}, index=index)
@@ -141,6 +145,10 @@ def execution_inputs(
         execution_delay_sessions=execution_delay_sessions,
         charge_roll_costs=charge_roll_costs,
         impact_bps_at_full_participation=impact_bps,
+        cap_fills_at_realized_capacity=cap_fills_at_realized_capacity,
+        spread_roll_turnover=spread_roll_turnover,
+        max_roll_backlog_sessions=max_roll_backlog_sessions,
+        roll_slice_impact_reference=roll_slice_impact_reference,
     )
     ledger = _simulate_execution(
         targets,
@@ -722,6 +730,169 @@ class TestRiskAndExecution(unittest.TestCase):
             ledger.daily.loc[index[2], "roll_contract_turnover_increment"], 2.0
         )
 
+    def test_roll_turnover_is_spread_but_the_total_is_preserved(self) -> None:
+        """A thin session defers roll turnover; it never discards it.
+
+        The position transfers to the new delivery whether or not the turnover
+        is charged, so dropping a slice would hand out an uncosted transfer.
+        Spreading must therefore move the charge in time and leave the total
+        alone.
+        """
+
+        # The position must be established before the thin session, or the
+        # capacity cap changes the position path and the two runs would be
+        # rolling different books.
+        common = dict(
+            closes=[100.0] * 7,
+            opens=[100.0] * 7,
+            target=0.04,
+            target_date=0,
+            initial_capital=100.0,
+            integer_contracts=True,
+            roll_dates=(4,),
+            one_way_cost=1.0,
+            max_participation=0.05,
+            execution_timing="next_close",
+        )
+        unspread, _ = execution_inputs(volumes=[500.0] * 7, **common)
+        spread, index = execution_inputs(
+            volumes=[500.0, 500.0, 500.0, 500.0, 40.0, 500.0, 500.0], **common
+        )
+        # Same book rolled in both runs.
+        self.assertEqual(
+            spread.positions["X"].tolist(), unspread.positions["X"].tolist()
+        )
+        self.assertAlmostEqual(
+            float(spread.daily["roll_contract_turnover_increment"].sum()),
+            float(unspread.daily["roll_contract_turnover_increment"].sum()),
+            places=9,
+        )
+        # Bounded per session, spread over more than one, reported once.
+        self.assertLessEqual(
+            float(spread.daily["max_order_participation"].max()), 0.05 + 1e-12
+        )
+        self.assertGreater(
+            float(spread.daily.loc[index[4], "roll_backlog_contracts"]), 0.0
+        )
+        self.assertEqual(int(spread.executed_rolls["X"].sum()), 1)
+
+    def test_roll_slice_impact_cost_is_priced_against_the_parent(self) -> None:
+        """Splitting a roll must not earn a square-root impact discount.
+
+        Impact is proportional to turnover times sqrt(participation), which is
+        superadditive, so per-slice pricing would make an order cheaper simply
+        by being cut up.  This model prices neither permanent impact nor delay
+        cost, so that discount would be an arbitrage against the cost model
+        rather than a modelled saving.
+        """
+
+        common = dict(
+            closes=[100.0] * 7,
+            opens=[100.0] * 7,
+            target=0.04,
+            target_date=0,
+            initial_capital=100.0,
+            integer_contracts=True,
+            roll_dates=(4,),
+            impact_bps=50.0,
+            max_participation=0.05,
+            execution_timing="next_close",
+        )
+        # The control must be the same market with spreading disabled, not a
+        # different volume series: the parent reference is defined against the
+        # roll session's own depth.
+        thin = [500.0, 500.0, 500.0, 500.0, 40.0, 500.0, 500.0]
+        unspread, _ = execution_inputs(
+            volumes=thin, spread_roll_turnover=False, **common
+        )
+        spread, _ = execution_inputs(volumes=thin, **common)
+        discounted, _ = execution_inputs(
+            volumes=thin, roll_slice_impact_reference="session", **common
+        )
+        total = lambda ledger: float(ledger.daily["transaction_cost_usd"].sum())
+        self.assertAlmostEqual(total(spread), total(unspread), places=6)
+        # The permissive convention is measurably cheaper; that gap is the
+        # size of the artifact the parent reference removes.
+        self.assertLess(total(discounted), total(spread))
+
+    def test_reducing_a_position_extinguishes_the_roll_backlog(self) -> None:
+        """Closing out of the expiring leg costs nothing extra, and is not free.
+
+        A reduction is filled from the expiring contract, so the new leg was
+        never bought for those contracts.  The ordinary trade already paid for
+        the exit, so no incremental roll turnover may be charged and no
+        obligation may survive.
+        """
+
+        ledger, index = execution_inputs(
+            closes=[100.0] * 5,
+            opens=[100.0] * 5,
+            volumes=[500.0, 500.0, 20.0, 500.0, 500.0],
+            target_schedule={0: 0.04, 2: 0.0},
+            initial_capital=100.0,
+            integer_contracts=True,
+            roll_dates=(2,),
+            one_way_cost=1.0,
+            max_participation=0.05,
+            execution_timing="next_close",
+        )
+        self.assertEqual(float(ledger.positions.iloc[-1, 0]), 0.0)
+        self.assertEqual(float(ledger.daily["roll_backlog_contracts"].iloc[-1]), 0.0)
+        self.assertTrue(bool((ledger.daily["roll_backlog_contracts"] >= 0).all()))
+
+    def test_roll_backlog_never_exceeds_the_position(self) -> None:
+        ledger, _ = execution_inputs(
+            closes=[100.0] * 6,
+            opens=[100.0] * 6,
+            volumes=[500.0, 500.0, 30.0, 30.0, 500.0, 500.0],
+            target=0.05,
+            target_date=0,
+            initial_capital=100.0,
+            integer_contracts=True,
+            roll_dates=(2,),
+            max_participation=0.05,
+            execution_timing="next_close",
+        )
+        backlog = ledger.daily["roll_backlog_contracts"]
+        held = ledger.positions["X"].abs()
+        self.assertTrue(bool((backlog <= held + 1e-12).all()))
+
+    def test_an_unrollable_position_fails_closed(self) -> None:
+        """Delivery is a hard deadline, so a stuck transfer must not pass silently."""
+
+        with self.assertRaisesRegex(ValueError, "Delivery roll cannot be completed"):
+            execution_inputs(
+                closes=[100.0] * 10,
+                opens=[100.0] * 10,
+                volumes=[500.0] * 4 + [2.0] * 6,
+                target=0.04,
+                target_date=0,
+                initial_capital=100.0,
+                integer_contracts=True,
+                roll_dates=(4,),
+                max_participation=0.05,
+                max_roll_backlog_sessions=3,
+                execution_timing="next_close",
+            )
+
+    def test_roll_spreading_is_inert_without_a_participation_limit(self) -> None:
+        """With no limit the backlog model reduces to the two-leg expression."""
+
+        ledger, index = execution_inputs(
+            closes=[100.0] * 4,
+            opens=[100.0] * 4,
+            volumes=[100.0, 100.0, 0.0, 100.0],
+            roll_dates=(2,),
+            one_way_cost=3.0,
+            target=0.01,
+            target_date=0,
+        )
+        self.assertEqual(ledger.daily.loc[index[3], "transaction_cost_usd"], 6.0)
+        self.assertEqual(
+            ledger.daily.loc[index[3], "roll_contract_turnover_increment"], 2.0
+        )
+        self.assertEqual(float(ledger.daily["roll_backlog_contracts"].max()), 0.0)
+
     def test_contracts_and_nav_are_stateful_and_self_financing(self) -> None:
         ledger, index = execution_inputs(
             [100.0, 110.0, 121.0], [100.0, 100.0, 110.0], [100.0] * 3
@@ -807,7 +978,16 @@ class TestRiskAndExecution(unittest.TestCase):
             float(ledger.daily["max_rebalance_participation"].max()), 0.10
         )
 
-    def test_execution_day_volume_cannot_resize_a_precomputed_order(self) -> None:
+    def test_execution_day_volume_caps_a_fill_but_never_enlarges_it(self) -> None:
+        """Realized depth may truncate a fill; it may never resize the order.
+
+        The distinction is the whole basis for conditioning a fill on the
+        executing session's volume.  Sizing an order that way would be an
+        optimistic look-ahead — more would be traded precisely when liquidity
+        turned out well.  Truncating a fill is a market-response model, and it
+        is monotonically unfavourable.
+        """
+
         common = dict(
             closes=[100.0] * 4,
             opens=[100.0] * 4,
@@ -822,12 +1002,68 @@ class TestRiskAndExecution(unittest.TestCase):
             volumes=[100.0, 100.0, 100.0, 100.0], **common
         )
         thin, _ = execution_inputs(volumes=[100.0, 100.0, 1.0, 100.0], **common)
+
+        # The order is sized identically from lagged information; only the
+        # fill differs, and only downward.
         self.assertEqual(liquid.positions.loc[index[2], "X"], 5.0)
-        self.assertEqual(thin.positions.loc[index[2], "X"], 5.0)
-        self.assertGreater(
-            thin.daily.loc[index[2], "max_rebalance_participation"],
-            0.10,
+        self.assertEqual(thin.positions.loc[index[2], "X"], 0.0)
+        self.assertTrue(
+            bool(
+                (thin.positions["X"].abs() <= liquid.positions["X"].abs()).all()
+            )
         )
+        # The residual is carried, not cancelled, and completes once depth
+        # returns.
+        self.assertGreater(thin.daily.loc[index[2], "pending_markets"], 0)
+        self.assertEqual(thin.positions.loc[index[3], "X"], 5.0)
+        self.assertLessEqual(
+            float(thin.daily["max_rebalance_participation"].max()), 0.10 + 1e-12
+        )
+
+    def test_realized_volume_never_enlarges_a_fill(self) -> None:
+        """Monotonicity: filled quantity is non-decreasing in session volume."""
+
+        common = dict(
+            closes=[100.0] * 4,
+            opens=[100.0] * 4,
+            target=0.05,
+            target_date=1,
+            initial_capital=100.0,
+            integer_contracts=True,
+            max_participation=0.10,
+            execution_timing="next_close",
+        )
+        filled = []
+        for session_volume in (1.0, 10.0, 30.0, 60.0, 100.0):
+            ledger, index = execution_inputs(
+                volumes=[100.0, 100.0, session_volume, 100.0], **common
+            )
+            filled.append(float(ledger.positions.loc[index[2], "X"]))
+        self.assertEqual(filled, sorted(filled))
+        self.assertLessEqual(max(filled), 5.0)
+
+    def test_realized_capacity_bounds_reported_participation(self) -> None:
+        """With integer contracts the reported participation cannot breach."""
+
+        ledger, _ = execution_inputs(
+            closes=[100.0] * 6,
+            opens=[100.0] * 6,
+            volumes=[500.0, 500.0, 40.0, 500.0, 500.0, 500.0],
+            target=0.20,
+            target_date=1,
+            initial_capital=1_000.0,
+            integer_contracts=True,
+            max_participation=0.10,
+            execution_timing="next_close",
+        )
+        for column in (
+            "max_rebalance_participation",
+            "max_order_participation",
+            "max_roll_participation_proxy",
+        ):
+            self.assertLessEqual(
+                float(ledger.daily[column].max()), 0.10 + 1e-12, column
+            )
 
     def test_order_quantity_is_frozen_at_decision_nav(self) -> None:
         ledger, index = execution_inputs(

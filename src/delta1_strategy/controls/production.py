@@ -139,6 +139,7 @@ HISTORICAL_CRITICAL_GATES = frozenset(
         "nonnegative_costs",
         "historical_gross_notional",
         "historical_rebalance_participation",
+        "historical_order_participation",
         "historical_drawdown",
         "terminal_pending_orders",
     }
@@ -777,6 +778,7 @@ def production_readiness_report(
         "cost",
         "gross_notional_multiple",
         "static_margin_fraction",
+        "max_order_participation",
         "max_rebalance_participation",
         "max_roll_participation_proxy",
         "pending_markets",
@@ -845,6 +847,16 @@ def production_readiness_report(
             "max_rebalance_participation",
             limits.max_order_participation,
             "historical rebalance participation exceeds the production limit",
+        ),
+        (
+            # Rebalance participation alone misses the roll, whose two legs are
+            # the larger order in most sessions.  A book can satisfy the
+            # rebalance limit and still have demanded many times a thin
+            # session's volume to transfer a delivery.
+            "historical_order_participation",
+            "max_order_participation",
+            limits.max_order_participation,
+            "historical two-leg order participation exceeds the production limit",
         ),
     )
     for gate, column, limit, failure_reason in metric_gates:

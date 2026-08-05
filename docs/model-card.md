@@ -86,10 +86,16 @@ proxies, not calibrated live risk of ruin. Monte Carlo cannot create alpha.
 3. Catalogue point values, ticks and margin are undated snapshots. Effective-
    dated valuation, venue calendars, FX, collateral, portfolio margin and
    position-limit history are required.
-4. Research order capacity uses only lagged volume; realized same-session
-   participation is reported ex post. The next-close fill remains an
-   approximation: an intraday POV algorithm would receive VWAP-like fills,
-   while an auction order cannot claim deterministic close execution.
+4. Research order *size* uses only lagged volume. The *fill* is additionally
+   bounded by the executing session's realized depth, with the residual
+   deferred, so realized participation is bounded by construction. That is a
+   deliberate use of same-session information: it conditions the market's
+   response, never the decision, and can only truncate a fill, never enlarge
+   one. The next-close fill remains an approximation: an intraday POV algorithm
+   would receive VWAP-like fills, while an auction order cannot claim
+   deterministic close execution. Roll turnover is spread across sessions at
+   the same limit and priced against the parent roll's participation, so
+   spreading preserves the charge rather than discounting it.
 5. Costs are transparent assumptions and stresses, not representative live
    calibration.
 6. Source hashes prove byte identity, not point-in-time membership,

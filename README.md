@@ -41,14 +41,28 @@ notebook verifies both files against
 CAGR, daily/monthly/HAC Sharpe, Sortino, drawdown, profit factors, expectancy,
 cost drag, gross exposure, and participation.
 
-Research rebalance size is capped from lagged median volume so it does not use
-the completed execution session to decide order size. Realized participation
-is then reported against that session's actual volume and can breach the
-independent live gate when volume falls. Continuous-roll participation and the
-current-catalogue static-margin series remain informational proxies: they are
-not expiry-specific capacity or point-in-time historical margin evidence. Live
-orders require current serial liquidity, a route-time participation check and
-effective-dated USD margin.
+Order **size** is capped from lagged median volume, so the completed execution
+session never decides how much to trade. The **fill** is separately capped at
+the participation limit of the volume that session actually traded, and any
+residual carries to the next session — the same partial-fill-and-defer rule the
+live roll control applies. The two bounds use different information sets on
+purpose: sizing from realized volume would be an optimistic look-ahead, while
+capping a fill can only ever truncate it. Realized participation is therefore
+bounded by construction rather than merely reported, and
+`capacity_deferred_contracts` records what depth refused.
+
+Roll turnover is bounded the same way. A delivery change obliges the book to
+transfer every contract held through it, two contracts of turnover each; that
+obligation is tracked as `roll_backlog_contracts` and worked off in
+capacity-sized slices. Slices are priced against the parent roll's
+participation, so spreading preserves the total charge instead of earning a
+square-root discount, and a backlog that cannot clear within one roll cycle
+fails closed rather than silently transferring for free.
+
+The current-catalogue static-margin series remains an informational proxy: it
+is not point-in-time historical margin evidence. Live orders still require
+current serial liquidity, a route-time participation check and effective-dated
+USD margin.
 
 Reported CAGR is a futures **excess-return CAGR**: cash collateral earns zero
 and the research ledger omits collateral yield, variation-margin funding, and
@@ -112,8 +126,13 @@ trading. Useful methodological references include
 - Made execution-cost calibration order-weighted and raw-fill-hash-bound, with
   unique-order, session, recency, side, style, regime and delivery-cycle gates.
 - Removed execution-session completed-volume look-ahead from close-order
-  sizing; order capacity now uses lagged volume only and realized participation
-  remains visible against actual volume.
+  sizing; order size uses lagged volume only. The fill is separately bounded by
+  the executing session's realized depth with the residual deferred, so
+  realized participation is now bounded rather than merely observed.
+- Bounded roll turnover, which previously bypassed every capacity cap and could
+  demand one and a half times a thin session's entire volume. The transfer
+  obligation is now tracked as a quantity and worked off in slices priced
+  against the parent roll, so no uncosted transfer and no split discount.
 - Corrected the optional equal-asset-class allocator so excluded or subset
   contracts cannot be reintroduced through catalogue indexing.
 - Required fill-time USD point values in cost calibration and aligned the
