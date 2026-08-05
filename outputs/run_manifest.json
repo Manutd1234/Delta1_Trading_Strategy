@@ -1,6 +1,6 @@
 {
   "bootstrap_samples": 2000,
-  "config_sha256": "f8eae8574905f2050eef03730ac2f4b888d5e490003adf0b352fdc05514d3e5f",
+  "config_sha256": "27ef732ef17cc8e6d24301835f9e3989750e54f4ebfb5eb2094ad30073a75906",
   "daily_drawdown_bootstrap": {
     "block_lengths_sessions": [
       21,
@@ -34,20 +34,23 @@
     "src/delta1_strategy/marketdata/__init__.py": "2cd73ed55367d3cb267a6ea2ad5f0728a21720e0b1abce778613d727976762fe",
     "src/delta1_strategy/marketdata/contracts.py": "d5a68934538505af6258f9d83b9826cf4f91e637fd80fc570fa80e04aca4bfe6",
     "src/delta1_strategy/research/__init__.py": "d89319bbdf987c9f526d15fc89862c79d81006687ecfc2a130a827b92d5bd22a",
+    "src/delta1_strategy/research/collateral.py": "672199ce9f0774f6b2994a149a4b10f87eb635ee22ae1b87587f00331650bbde",
     "src/delta1_strategy/research/diagnostics.py": "8a38e78fe6e7436b7ecefee5c230b1f6f40161a211aa0c0ba0ff7d7aa10b0051",
     "src/delta1_strategy/research/drawdown.py": "2c4c6fa6ad8aa31909b732d00355434aff29c915e6b4eafc488599c79f57e37a",
     "src/delta1_strategy/research/friction.py": "119158a5a5a391c58b302ebfbaea8946eb91de921d578a88da507a984c9ad4d9",
+    "src/delta1_strategy/research/inference.py": "aec42d5ecd14aaa67121f86cb62bcfc7b37382cc2aeb67599bfe24970bf4063e",
+    "src/delta1_strategy/research/levers.py": "07091860437135771148b271a6b36e2a3a9fbd66b881b73062411a5827a7c2a8",
     "src/delta1_strategy/research/registry.py": "b59f8bc7fb0f94d2bf096f7d6f5535ee1a85a4d11ef68e618231749f749ac5ab",
-    "src/delta1_strategy/research/strategy.py": "7cd5047345e46c159cc61821d5ce2b4fb3da6606d6f2cee2b2c0f0722b23c313",
+    "src/delta1_strategy/research/strategy.py": "cd131f21840de74df321fa8811c864f4328b0fda5e2df54287cd70fbd51c5601",
     "src/delta1_strategy/research/trade_sequence.py": "dddb0be32ae48fb40ade947cf344d8026b78c3256066132479bdf66805453b30"
   },
-  "implementation_fingerprint_sha256": "17f95e21a6f9739e7847445b9d35a94a8e9d5219778179837fda229aa521a021",
+  "implementation_fingerprint_sha256": "8b67636985d4dd48f304030f0a58b88a4983f7aa892860cff92e38fbe65ad14c",
   "launch_date": "1990-01-01",
   "output_files": {
     "cost_model_assumptions.csv": "35dfdc5f8d09e5492ab3465d90f6bbb90aa368104856ff4ed24a8504afd2287a",
     "production_readiness.csv": "6015af2fbf909512d8f864b5fde122570c0dbd4b4fe7137cd003fc9b0bbc51b4",
     "source_manifest.csv": "f9ca902489b4061ec03b48a1b4060156546ae699226a3d61c327b0d9a1d27615",
-    "strategy_config.json": "6e7e51202856ff9ea31ce0b79c4919e9e40606351b69d0887990fc250baecf1a",
+    "strategy_config.json": "90a9dfdee49523a077ff5e0553f340233a3044090af04ccab98395a2210c146f",
     "strategy_daily.csv": "ee98afa7ffc6da48ee26a3cc4be6cab7dcfc590cc9fe7bba388361e789f86f36",
     "strategy_daily_drawdown_monte_carlo.csv": "494e3af7ac292b1b636927f9bc8380087864fe3ec51027f5954f7f4c654d0847",
     "strategy_data_quality.csv": "fe9e9e2283c7a05be504ddc934b3772e596205cac9580c048eec1454cf0f84b0",

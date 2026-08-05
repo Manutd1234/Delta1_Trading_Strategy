@@ -122,6 +122,12 @@ class StrategyConfig:
     risk_managed_window: int | None = 63
     risk_managed_cap: float = 2.00
     no_trade_buffer: float = 0.25
+    # Both default to the historical behaviour so the canonical run is
+    # unchanged until a lever is switched on deliberately.
+    cost_aware_buffer: bool = False
+    cost_aware_buffer_floor: float = 0.05
+    cost_aware_buffer_ceiling: float = 0.60
+    buffer_suppresses_risk_scalar: bool = True
 
     half_spread_ticks: float = 0.50
     slippage_ticks: float = 0.25
@@ -174,6 +180,15 @@ class StrategyConfig:
             raise ValueError("risk_managed_cap must be positive")
         if not 0 <= self.no_trade_buffer < 1:
             raise ValueError("no_trade_buffer must be in [0, 1)")
+        if not isinstance(self.cost_aware_buffer, bool):
+            raise ValueError("cost_aware_buffer must be a boolean")
+        if not isinstance(self.buffer_suppresses_risk_scalar, bool):
+            raise ValueError("buffer_suppresses_risk_scalar must be a boolean")
+        if not 0 <= self.cost_aware_buffer_floor < self.cost_aware_buffer_ceiling < 1:
+            raise ValueError(
+                "cost-aware buffer bounds must satisfy "
+                "0 <= floor < ceiling < 1"
+            )
         if min(
             self.half_spread_ticks,
             self.slippage_ticks,
@@ -1484,21 +1499,80 @@ def ewma_portfolio_risk_scalar(
 
 def apply_no_trade_buffer(
     desired: pd.DataFrame,
-    buffer_fraction: float = 0.25,
+    buffer_fraction: float | pd.Series = 0.25,
 ) -> pd.DataFrame:
-    """Keep the previous target when a month-end adjustment is too small."""
-    if not 0 <= buffer_fraction < 1:
-        raise ValueError("buffer_fraction must be in [0, 1)")
+    """Keep the previous target when a month-end adjustment is too small.
+
+    ``buffer_fraction`` may be a scalar, which is the historical behaviour, or
+    a per-market Series.  A per-market width lets the band scale with what a
+    trade actually costs: trading is many times more expensive per unit of risk
+    in a thin bond future than in an equity index, so one uniform band
+    necessarily overtrades the expensive markets and undertrades the cheap
+    ones.
+    """
+
+    if isinstance(buffer_fraction, pd.Series):
+        widths = buffer_fraction.reindex(desired.columns)
+        if widths.isna().any():
+            missing = widths.index[widths.isna()].tolist()[:5]
+            raise ValueError(f"buffer_fraction is missing markets: {missing}")
+        if not ((widths >= 0) & (widths < 1)).all():
+            raise ValueError("buffer_fraction values must be in [0, 1)")
+    else:
+        if not 0 <= buffer_fraction < 1:
+            raise ValueError("buffer_fraction must be in [0, 1)")
+        widths = pd.Series(float(buffer_fraction), index=desired.columns)
+
     executable = pd.DataFrame(0.0, index=desired.index, columns=desired.columns)
     previous = pd.Series(0.0, index=desired.columns)
     for date, raw_target in desired.iterrows():
         target = raw_target.fillna(0.0)
         change = target - previous
         reference = pd.concat([target.abs(), previous.abs()], axis=1).max(axis=1)
-        should_trade = change.abs() > buffer_fraction * reference
+        should_trade = change.abs() > widths * reference
         previous = previous.where(~should_trade, target)
         executable.loc[date] = previous
     return executable
+
+
+def cost_aware_buffer_widths(
+    prices: pd.DataFrame,
+    point_values: pd.DataFrame,
+    one_way_costs: pd.DataFrame,
+    config: StrategyConfig,
+) -> pd.Series:
+    """Per-market no-trade widths scaled by round-trip cost per unit of risk.
+
+    The width is proportional to what a round trip costs measured against the
+    market's own daily risk, so a band is wide exactly where trading destroys
+    the most value.  Every input is a configured cost parameter or a realized
+    price, and the proportionality constant is fixed so the book's
+    risk-weighted average width reproduces ``config.no_trade_buffer``.  Nothing
+    here is fitted to returns.
+    """
+
+    daily_price_vol = prices.diff().ewm(
+        span=config.vol_span,
+        min_periods=config.vol_span,
+        adjust=False,
+    ).std()
+    risk_per_contract = (daily_price_vol * point_values).replace(
+        [np.inf, -np.inf], np.nan
+    )
+    round_trip = 2.0 * one_way_costs
+    ratio = (round_trip / risk_per_contract).replace([np.inf, -np.inf], np.nan)
+    typical = ratio.median(axis=0, skipna=True)
+    if typical.notna().sum() == 0:
+        return pd.Series(config.no_trade_buffer, index=prices.columns)
+    # Normalize so the cross-sectional mean width equals the configured
+    # buffer: this varies *where* the band is wide without changing how much
+    # buffering the book does in aggregate, which keeps the change attributable.
+    scale = config.no_trade_buffer / float(typical.mean(skipna=True))
+    widths = (typical * scale).fillna(config.no_trade_buffer)
+    return widths.clip(
+        lower=config.cost_aware_buffer_floor,
+        upper=config.cost_aware_buffer_ceiling,
+    )
 
 
 def run_backtest(
@@ -1622,11 +1696,28 @@ def run_backtest(
     warmed_up = live & live.shift(config.portfolio_vol_window).fillna(False)
     risk_scalar = risk_scalar.where(warmed_up, 1.0)
     monthly_risk_scalar = _month_end_rows(risk_scalar)
-    desired = base_monthly.mul(
-        monthly_risk_scalar.reindex(base_monthly.index), axis=0
-    )
+    scalar_rows = monthly_risk_scalar.reindex(base_monthly.index)
+    desired = base_monthly.mul(scalar_rows, axis=0)
 
-    buffered = apply_no_trade_buffer(desired, config.no_trade_buffer)
+    buffer_widths: float | pd.Series = config.no_trade_buffer
+    if config.cost_aware_buffer:
+        buffer_widths = cost_aware_buffer_widths(
+            prices, point_values, one_way_costs, config
+        )
+
+    # The buffer normally filters the scalar-multiplied target, so a portfolio
+    # de-risking smaller than the band is suppressed along with the market's
+    # own drift.  Applying it to the pre-scalar target instead lets every
+    # volatility-target move reach the book while still buffering signal churn.
+    buffer_input = desired if config.buffer_suppresses_risk_scalar else base_monthly
+
+    def _buffered_targets(frame: pd.DataFrame) -> pd.DataFrame:
+        executable = apply_no_trade_buffer(frame, buffer_widths)
+        if config.buffer_suppresses_risk_scalar:
+            return executable
+        return executable.mul(scalar_rows.reindex(executable.index), axis=0)
+
+    buffered = _buffered_targets(buffer_input)
     if config.launch_date is not None and not desired.empty:
         launch_timestamp = pd.Timestamp(config.launch_date)
         prior_decisions = desired.index[desired.index < launch_timestamp]
@@ -1635,10 +1726,7 @@ def run_backtest(
             first_live_decision = (
                 prior_decisions[-1] if len(prior_decisions) else live_decisions[0]
             )
-            buffered = apply_no_trade_buffer(
-                desired.loc[first_live_decision:],
-                config.no_trade_buffer,
-            )
+            buffered = _buffered_targets(buffer_input.loc[first_live_decision:])
         else:
             buffered = desired.iloc[0:0].copy()
     execution = _simulate_execution(

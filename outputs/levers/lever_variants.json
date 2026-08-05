@@ -1,0 +1,36 @@
+[
+  {
+    "assumption": "Canonical v3.2.1 configuration at a 7% risk budget.",
+    "evaluation_mode": "baseline",
+    "lever": "baseline",
+    "name": "baseline",
+    "overrides": {}
+  },
+  {
+    "assumption": "Portfolio risk budget raised to 7.50% with every other control unchanged.",
+    "evaluation_mode": "marginal",
+    "lever": "risk_budget_volatility",
+    "name": "risk_budget_0.075",
+    "overrides": {
+      "target_vol": 0.075
+    }
+  },
+  {
+    "assumption": "Portfolio risk budget raised to 8.00% with every other control unchanged.",
+    "evaluation_mode": "marginal",
+    "lever": "risk_budget_volatility",
+    "name": "risk_budget_0.08",
+    "overrides": {
+      "target_vol": 0.08
+    }
+  },
+  {
+    "assumption": "Portfolio risk budget raised to 8.50% with every other control unchanged.",
+    "evaluation_mode": "marginal",
+    "lever": "risk_budget_volatility",
+    "name": "risk_budget_0.085",
+    "overrides": {
+      "target_vol": 0.085
+    }
+  }
+]
