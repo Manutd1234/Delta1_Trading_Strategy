@@ -176,7 +176,7 @@ class OperationsFixture(unittest.TestCase):
             encoding="utf-8",
         )
         source = hashlib.sha256(
-            f"raw.csv:{source_row_hash}".encode("utf-8")
+            f"raw.csv:{source_row_hash}".encode()
         ).hexdigest()
         daily_path = outputs / "strategy_daily.csv"
         result.daily.to_csv(daily_path, index_label="date")

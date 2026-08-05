@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 from dataclasses import FrozenInstanceError, replace
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone, UTC
 
 from delta1_strategy.research.registry import (
     FrozenPayload,
@@ -17,7 +17,7 @@ from delta1_strategy.research.registry import (
 )
 
 
-NOW = datetime(2026, 8, 4, 8, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 8, 4, 8, 0, tzinfo=UTC)
 FORMULA = "1" * 64
 CONFIG = "2" * 64
 SOURCE = "3" * 64

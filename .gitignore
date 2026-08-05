@@ -226,3 +226,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Generated fixture data; the generator is committed instead.
+examples/data/synthetic/

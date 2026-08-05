@@ -92,9 +92,10 @@ class InferenceResult:
             raise ValueError(f"unknown inference status: {self.status!r}")
         if self.status == NOT_ESTIMABLE and self.value is not None:
             raise ValueError("a NOT_ESTIMABLE result cannot carry a value")
-        if self.status == ESTIMATED:
-            if self.value is None or not np.isfinite(self.value):
-                raise ValueError("an ESTIMATED result requires a finite value")
+        if self.status == ESTIMATED and (
+            self.value is None or not np.isfinite(self.value)
+        ):
+            raise ValueError("an ESTIMATED result requires a finite value")
         if not self.statistic or not self.reason:
             raise ValueError("statistic and reason must both be non-empty")
 

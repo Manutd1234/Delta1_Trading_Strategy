@@ -251,8 +251,29 @@ Python 3.11 or newer:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e ".[notebook]"
+pip install -e ".[notebook,dev]"
+```
 
+The licensed history cannot be redistributed, so start with generated data in
+the same vendor layout. This runs the whole pipeline and, more importantly,
+lets the causality tests execute:
+
+```bash
+python scripts/make_synthetic_data.py --output-dir examples/data/synthetic
+delta1-strategy --data-dir examples/data/synthetic --output-dir /tmp/synthetic-outputs
+DELTA1_DATA_DIR=examples/data/synthetic python -m unittest \
+  tests.test_strategy.TestSuppliedDataIntegration -v
+```
+
+Those prices are driftless and independent by construction. Any performance
+measured on them is an arithmetic check, never evidence — what they establish
+is that the ledger reconciles and the engine has no look-ahead. See
+[docs/causality.md](docs/causality.md) for what is being proved and why the
+truncation-invariance test is the one that matters.
+
+With the licensed data in place:
+
+```bash
 delta1-strategy \
   --data-dir "Round1AllData/Quant Researcher/Delta1" \
   --output-dir outputs

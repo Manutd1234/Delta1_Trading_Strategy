@@ -31,9 +31,8 @@ class TestInferenceResult(unittest.TestCase):
 
     def test_estimated_requires_a_finite_value(self) -> None:
         for value in (None, float("nan"), float("inf")):
-            with self.subTest(value=value):
-                with self.assertRaises(ValueError):
-                    InferenceResult("s", ESTIMATED, value, "reason")
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                InferenceResult("s", ESTIMATED, value, "reason")
 
 
 class TestPairedBootstrap(unittest.TestCase):

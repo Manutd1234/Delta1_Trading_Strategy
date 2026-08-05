@@ -13,7 +13,8 @@ import math
 from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
+from collections.abc import Mapping
 
 import numpy as np
 import pandas as pd

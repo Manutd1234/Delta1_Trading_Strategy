@@ -29,7 +29,7 @@ import json
 import math
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Iterable
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -1086,12 +1086,11 @@ def _simulate_execution(
                 close_values[i, actual_session] - open_values[i, actual_session]
             )
             new_held = quantity != 0
-            if new_held.any():
-                if (
-                    not np.isfinite(intraday_change[new_held]).all()
-                    or not np.isfinite(point_value_values[i, new_held]).all()
-                ):
-                    raise ValueError(f"Missing held intraday or FX value on {date.date()}")
+            if new_held.any() and (
+                not np.isfinite(intraday_change[new_held]).all()
+                or not np.isfinite(point_value_values[i, new_held]).all()
+            ):
+                raise ValueError(f"Missing held intraday or FX value on {date.date()}")
             intraday_pnl = np.where(
                 new_held,
                 quantity * intraday_change * point_value_values[i],

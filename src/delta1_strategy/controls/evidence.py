@@ -17,9 +17,10 @@ import json
 import os
 import re
 from dataclasses import dataclass, fields
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any
+from collections.abc import Mapping, Sequence
 
 import pandas as pd
 
@@ -172,7 +173,7 @@ def _parse_utc_timestamp(value: Any, label: str) -> tuple[datetime | None, str |
         return None, f"{label} must include an explicit UTC offset"
     if parsed.utcoffset() != timedelta(0):
         return None, f"{label} must be expressed in UTC"
-    return parsed.astimezone(timezone.utc), None
+    return parsed.astimezone(UTC), None
 
 
 def _normalise_sha256(value: Any, label: str) -> tuple[str | None, str | None]:
@@ -386,7 +387,7 @@ def verify_evidence_registry(
         expected.append(digest)
 
     if as_of is None:
-        as_of_time = datetime.now(timezone.utc)
+        as_of_time = datetime.now(UTC)
     else:
         as_of_time, error = _parse_utc_timestamp(as_of, "as_of")
         if error or as_of_time is None:

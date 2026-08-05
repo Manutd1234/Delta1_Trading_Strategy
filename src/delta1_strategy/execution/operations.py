@@ -25,7 +25,8 @@ import os
 import fcntl
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Callable, Mapping, Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
+from collections.abc import Callable, Mapping
 
 import numpy as np
 import pandas as pd
@@ -1512,7 +1513,7 @@ def assess_order_batch(
     for order in orders:
         if order.roll_id is not None:
             roll_groups.setdefault(order.roll_id, []).append(order)
-    for roll_id, group in roll_groups.items():
+    for group in roll_groups.values():
         roll_errors: list[str] = []
         if len(group) != 2:
             roll_errors.append("roll group must contain exactly two legs")

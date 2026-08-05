@@ -23,7 +23,6 @@ import argparse
 import dataclasses
 import hashlib
 import json
-from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -45,11 +44,8 @@ from delta1_strategy.research.strategy import (
     load_delivery_months,
     load_fx_rates,
     load_metadata,
-    load_observed_prices,
     load_prices,
-    load_unadjusted_prices,
     load_volumes,
-    performance_metrics,
     run_backtest,
 )
 

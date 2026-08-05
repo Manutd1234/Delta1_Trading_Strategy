@@ -380,7 +380,7 @@ def artifact_backed_check(
         encoding="utf-8",
     )
     source_fingerprint = hashlib.sha256(
-        f"raw.csv:{source_row_hash}".encode("utf-8")
+        f"raw.csv:{source_row_hash}".encode()
     ).hexdigest()
 
     daily_path = output_dir / "strategy_daily.csv"

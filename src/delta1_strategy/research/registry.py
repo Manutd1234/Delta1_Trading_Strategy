@@ -10,9 +10,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, is_dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, UTC
 from typing import Any
 
 
@@ -56,7 +56,7 @@ def _utc(value: Any, label: str) -> datetime:
         raise ValueError(f"{label} must be timezone-aware")
     if timestamp.utcoffset() != timedelta(0):
         raise ValueError(f"{label} must be expressed in UTC")
-    return timestamp.astimezone(timezone.utc)
+    return timestamp.astimezone(UTC)
 
 
 def _date(value: Any, label: str) -> date:

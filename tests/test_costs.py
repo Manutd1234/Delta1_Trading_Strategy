@@ -91,9 +91,11 @@ class CostObservationTests(unittest.TestCase):
             fill_records(2, volatility_regime=" "),
         )
         for frame in cases:
-            with self.subTest(columns=frame.columns.tolist()):
-                with self.assertRaises(CostCalibrationError):
-                    execution_cost_observations(frame)
+            with (
+                self.subTest(columns=frame.columns.tolist()),
+                self.assertRaises(CostCalibrationError),
+            ):
+                execution_cost_observations(frame)
 
     def test_order_identifiers_have_invariant_execution_identity(self) -> None:
         for column, replacement in (

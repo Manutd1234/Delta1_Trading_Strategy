@@ -4,7 +4,7 @@ import hashlib
 import json
 import tempfile
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 import pandas as pd
@@ -21,7 +21,7 @@ MODEL = "1" * 64
 CONFIG = "2" * 64
 SOURCE = "3" * 64
 SUBJECT = "4" * 64
-AS_OF = datetime(2026, 8, 3, 12, 0, tzinfo=timezone.utc)
+AS_OF = datetime(2026, 8, 3, 12, 0, tzinfo=UTC)
 
 
 class EvidenceFixture(unittest.TestCase):

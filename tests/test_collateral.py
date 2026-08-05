@@ -41,9 +41,8 @@ class TestCollateralConfig(unittest.TestCase):
             {"max_stale_rate_sessions": 0},
             {"annualization": 0},
         ):
-            with self.subTest(override=override):
-                with self.assertRaises(ValueError):
-                    dataclasses.replace(CollateralConfig(), **override)
+            with self.subTest(override=override), self.assertRaises(ValueError):
+                dataclasses.replace(CollateralConfig(), **override)
 
 
 class TestFundedLedger(unittest.TestCase):
