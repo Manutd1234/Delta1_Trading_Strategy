@@ -1,0 +1,18 @@
+variant,assumption,overrides,cagr,annualized_volatility,sharpe,max_drawdown,annual_cost_drag,validation_status,selection_adjusted
+baseline,Canonical v3.2.1 configuration at a 7% risk budget.,{},0.13189524685750764,0.07718572567461184,1.5895266624546427,-0.11847122445591607,0.010421436303130022,declared_family_member_on_reused_history,False
+trend_126,Six-month trend lookback.,"{""trend_lookback"": 126}",0.08446749055877056,0.07732558910851091,1.0518568457748443,-0.15451247251580036,0.010813759028856515,declared_family_member_on_reused_history,False
+trend_189,Nine-month trend lookback.,"{""trend_lookback"": 189}",0.09660927538712372,0.07766002049982115,1.186196906376179,-0.14902976150064817,0.01060201450542676,declared_family_member_on_reused_history,False
+trend_315,Fifteen-month trend lookback.,"{""trend_lookback"": 315}",0.0936363650582912,0.07618557589127961,1.173241996539545,-0.19173778005620334,0.010128278209389637,declared_family_member_on_reused_history,False
+basis_030,Basis sleeve weighted 30%.,"{""basis_weight"": 0.3}",0.11851756990698115,0.07924813810928595,1.4052175519089876,-0.10305925355382417,0.010498225006199447,declared_family_member_on_reused_history,False
+basis_040,Basis sleeve weighted 40%.,"{""basis_weight"": 0.4}",0.12474859389026749,0.07883668250831857,1.4802379556778587,-0.10034538679377936,0.01055945234553837,declared_family_member_on_reused_history,False
+basis_060,Basis sleeve weighted 60%.,"{""basis_weight"": 0.6}",0.13936297188547098,0.07692057478843035,1.6773533887459866,-0.11962738762629055,0.011383104224206242,declared_family_member_on_reused_history,False
+basis_070,Basis sleeve weighted 70%.,"{""basis_weight"": 0.7}",0.12295745511036205,0.07608520780407943,1.5107112038597912,-0.12197674056662788,0.01181207458024116,declared_family_member_on_reused_history,False
+buffer_015,No-trade band narrowed to 15%.,"{""no_trade_buffer"": 0.15}",0.13348850218433483,0.07759708753923364,1.5990293007250367,-0.10741401666167971,0.010710487207493388,declared_family_member_on_reused_history,False
+buffer_020,No-trade band narrowed to 20%.,"{""no_trade_buffer"": 0.2}",0.13214835853605278,0.07737960935706992,1.5885293580739568,-0.11678160154700634,0.010594217869458354,declared_family_member_on_reused_history,False
+buffer_030,No-trade band widened to 30%.,"{""no_trade_buffer"": 0.3}",0.1312297620630143,0.0771196723885666,1.5834561742237938,-0.11819706747007663,0.010307530480984064,declared_family_member_on_reused_history,False
+risk_060,Portfolio risk budget at 6.0%.,"{""target_vol"": 0.06}",0.11747314439508783,0.06705799139235778,1.6338887735585361,-0.09221462462297225,0.008902712679404545,declared_family_member_on_reused_history,False
+risk_065,Portfolio risk budget at 6.5%.,"{""target_vol"": 0.065}",0.12510550021223765,0.07190992603209675,1.6198148176554075,-0.10607176286919484,0.009653581272969043,declared_family_member_on_reused_history,False
+risk_075,Portfolio risk budget at 7.5%.,"{""target_vol"": 0.075}",0.143100501551356,0.08286600260640274,1.6009455734346083,-0.11839758523602761,0.011302247516378896,declared_family_member_on_reused_history,False
+risk_080,Portfolio risk budget at 8.0%.,"{""target_vol"": 0.08}",0.15307331966378102,0.0886471036760845,1.5968363461508628,-0.1335383047559714,0.012130237545299974,declared_family_member_on_reused_history,False
+volspan_040,Faster 40-session sizing volatility.,"{""vol_span"": 40}",0.13152963137901064,0.0779122118078807,1.571420011929513,-0.11704471162141428,0.010754888022048046,declared_family_member_on_reused_history,False
+volspan_090,Slower 90-session sizing volatility.,"{""vol_span"": 90}",0.13513295713367102,0.07732082766665734,1.6225862994167006,-0.12337752798606727,0.010248938221941895,declared_family_member_on_reused_history,False

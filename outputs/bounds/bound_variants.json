@@ -1,0 +1,275 @@
+{
+  "baseline_daily_fingerprint_sha256": "8a4f63aaacfe32671c3aa8f120198fd9e256bb839d8ca2ff71ddec42466a4ac8",
+  "declared_paired_comparisons": [
+    "risk_scalar_max1.00_min0.25_risk_matched",
+    "risk_scalar_max1.25_min0.25_risk_matched",
+    "risk_scalar_max1.50_min0.25_risk_matched",
+    "risk_scalar_max1.75_min0.25_risk_matched",
+    "risk_scalar_max2.00_min0.00_risk_matched",
+    "risk_scalar_max2.00_min0.10_risk_matched",
+    "signal_cap_1.00_risk_matched",
+    "risk_managed_cap_1.00_risk_matched",
+    "shock_floor_0.25_risk_matched",
+    "max_gross_notional_multiple_3.00_risk_matched"
+  ],
+  "grid": {
+    "max_gross_notional_multiples": [
+      3.0,
+      4.0,
+      5.0
+    ],
+    "max_risk_scalars": [
+      1.0,
+      1.25,
+      1.5,
+      1.75,
+      2.0
+    ],
+    "min_risk_scalars": [
+      0.0,
+      0.1,
+      0.25
+    ],
+    "risk_managed_caps": [
+      1.0,
+      1.5,
+      2.0
+    ],
+    "shock_floors": [
+      0.25,
+      0.5,
+      0.75
+    ],
+    "signal_caps": [
+      1.0,
+      1.5,
+      2.0
+    ]
+  },
+  "validation_status": "retrospective_bound_sensitivity",
+  "variants": [
+    {
+      "assumption": "Canonical configuration: risk-scalar clip [0.25, 2], signal_cap 2, risk_managed_cap 2, shock_floor 0.75, gross-notional multiple 5.0.",
+      "evaluation_mode": "baseline",
+      "lever": "baseline",
+      "name": "baseline",
+      "overrides": {}
+    },
+    {
+      "assumption": "EWMA volatility-target multiplier clipped to [0, 1] with every other control unchanged.",
+      "evaluation_mode": "as_is",
+      "lever": "risk_scalar_bounds",
+      "name": "risk_scalar_max1.00_min0.00",
+      "overrides": {
+        "max_risk_scalar": 1.0,
+        "min_risk_scalar": 0.0
+      }
+    },
+    {
+      "assumption": "EWMA volatility-target multiplier clipped to [0.1, 1] with every other control unchanged.",
+      "evaluation_mode": "as_is",
+      "lever": "risk_scalar_bounds",
+      "name": "risk_scalar_max1.00_min0.10",
+      "overrides": {
+        "max_risk_scalar": 1.0,
+        "min_risk_scalar": 0.1
+      }
+    },
+    {
+      "assumption": "EWMA volatility-target multiplier clipped to [0.25, 1] with every other control unchanged.",
+      "evaluation_mode": "as_is",
+      "lever": "risk_scalar_bounds",
+      "name": "risk_scalar_max1.00_min0.25",
+      "overrides": {
+        "max_risk_scalar": 1.0,
+        "min_risk_scalar": 0.25
+      }
+    },
+    {
+      "assumption": "EWMA volatility-target multiplier clipped to [0, 1.25] with every other control unchanged.",
+      "evaluation_mode": "as_is",
+      "lever": "risk_scalar_bounds",
+      "name": "risk_scalar_max1.25_min0.00",
+      "overrides": {
+        "max_risk_scalar": 1.25,
+        "min_risk_scalar": 0.0
+      }
+    },
+    {
+      "assumption": "EWMA volatility-target multiplier clipped to [0.1, 1.25] with every other control unchanged.",
+      "evaluation_mode": "as_is",
+      "lever": "risk_scalar_bounds",
+      "name": "risk_scalar_max1.25_min0.10",
+      "overrides": {
+        "max_risk_scalar": 1.25,
+        "min_risk_scalar": 0.1
+      }
+    },
+    {
+      "assumption": "EWMA volatility-target multiplier clipped to [0.25, 1.25] with every other control unchanged.",
+      "evaluation_mode": "as_is",
+      "lever": "risk_scalar_bounds",
+      "name": "risk_scalar_max1.25_min0.25",
+      "overrides": {
+        "max_risk_scalar": 1.25,
+        "min_risk_scalar": 0.25
+      }
+    },
+    {
+      "assumption": "EWMA volatility-target multiplier clipped to [0, 1.5] with every other control unchanged.",
+      "evaluation_mode": "as_is",
+      "lever": "risk_scalar_bounds",
+      "name": "risk_scalar_max1.50_min0.00",
+      "overrides": {
+        "max_risk_scalar": 1.5,
+        "min_risk_scalar": 0.0
+      }
+    },
+    {
+      "assumption": "EWMA volatility-target multiplier clipped to [0.1, 1.5] with every other control unchanged.",
+      "evaluation_mode": "as_is",
+      "lever": "risk_scalar_bounds",
+      "name": "risk_scalar_max1.50_min0.10",
+      "overrides": {
+        "max_risk_scalar": 1.5,
+        "min_risk_scalar": 0.1
+      }
+    },
+    {
+      "assumption": "EWMA volatility-target multiplier clipped to [0.25, 1.5] with every other control unchanged.",
+      "evaluation_mode": "as_is",
+      "lever": "risk_scalar_bounds",
+      "name": "risk_scalar_max1.50_min0.25",
+      "overrides": {
+        "max_risk_scalar": 1.5,
+        "min_risk_scalar": 0.25
+      }
+    },
+    {
+      "assumption": "EWMA volatility-target multiplier clipped to [0, 1.75] with every other control unchanged.",
+      "evaluation_mode": "as_is",
+      "lever": "risk_scalar_bounds",
+      "name": "risk_scalar_max1.75_min0.00",
+      "overrides": {
+        "max_risk_scalar": 1.75,
+        "min_risk_scalar": 0.0
+      }
+    },
+    {
+      "assumption": "EWMA volatility-target multiplier clipped to [0.1, 1.75] with every other control unchanged.",
+      "evaluation_mode": "as_is",
+      "lever": "risk_scalar_bounds",
+      "name": "risk_scalar_max1.75_min0.10",
+      "overrides": {
+        "max_risk_scalar": 1.75,
+        "min_risk_scalar": 0.1
+      }
+    },
+    {
+      "assumption": "EWMA volatility-target multiplier clipped to [0.25, 1.75] with every other control unchanged.",
+      "evaluation_mode": "as_is",
+      "lever": "risk_scalar_bounds",
+      "name": "risk_scalar_max1.75_min0.25",
+      "overrides": {
+        "max_risk_scalar": 1.75,
+        "min_risk_scalar": 0.25
+      }
+    },
+    {
+      "assumption": "EWMA volatility-target multiplier clipped to [0, 2] with every other control unchanged.",
+      "evaluation_mode": "as_is",
+      "lever": "risk_scalar_bounds",
+      "name": "risk_scalar_max2.00_min0.00",
+      "overrides": {
+        "max_risk_scalar": 2.0,
+        "min_risk_scalar": 0.0
+      }
+    },
+    {
+      "assumption": "EWMA volatility-target multiplier clipped to [0.1, 2] with every other control unchanged.",
+      "evaluation_mode": "as_is",
+      "lever": "risk_scalar_bounds",
+      "name": "risk_scalar_max2.00_min0.10",
+      "overrides": {
+        "max_risk_scalar": 2.0,
+        "min_risk_scalar": 0.1
+      }
+    },
+    {
+      "assumption": "Basis-momentum normalisation cap set to 1. Every other control unchanged.",
+      "evaluation_mode": "as_is",
+      "lever": "signal_cap",
+      "name": "signal_cap_1.00",
+      "overrides": {
+        "signal_cap": 1.0
+      }
+    },
+    {
+      "assumption": "Basis-momentum normalisation cap set to 1.5. Every other control unchanged.",
+      "evaluation_mode": "as_is",
+      "lever": "signal_cap",
+      "name": "signal_cap_1.50",
+      "overrides": {
+        "signal_cap": 1.5
+      }
+    },
+    {
+      "assumption": "Forecast volatility-weight cap set to 1. Every other control unchanged.",
+      "evaluation_mode": "as_is",
+      "lever": "risk_managed_cap",
+      "name": "risk_managed_cap_1.00",
+      "overrides": {
+        "risk_managed_cap": 1.0
+      }
+    },
+    {
+      "assumption": "Forecast volatility-weight cap set to 1.5. Every other control unchanged.",
+      "evaluation_mode": "as_is",
+      "lever": "risk_managed_cap",
+      "name": "risk_managed_cap_1.50",
+      "overrides": {
+        "risk_managed_cap": 1.5
+      }
+    },
+    {
+      "assumption": "Volatility-shock taper floor set to 0.25. Every other control unchanged.",
+      "evaluation_mode": "as_is",
+      "lever": "shock_floor",
+      "name": "shock_floor_0.25",
+      "overrides": {
+        "shock_floor": 0.25
+      }
+    },
+    {
+      "assumption": "Volatility-shock taper floor set to 0.5. Every other control unchanged.",
+      "evaluation_mode": "as_is",
+      "lever": "shock_floor",
+      "name": "shock_floor_0.50",
+      "overrides": {
+        "shock_floor": 0.5
+      }
+    },
+    {
+      "assumption": "Gross-notional multiple limited to 3 of NAV. Every other control unchanged.",
+      "evaluation_mode": "as_is",
+      "lever": "max_gross_notional_multiple",
+      "name": "max_gross_notional_multiple_3.00",
+      "overrides": {
+        "max_gross_notional_multiple": 3.0
+      }
+    },
+    {
+      "assumption": "Gross-notional multiple limited to 4 of NAV. Every other control unchanged.",
+      "evaluation_mode": "as_is",
+      "lever": "max_gross_notional_multiple",
+      "name": "max_gross_notional_multiple_4.00",
+      "overrides": {
+        "max_gross_notional_multiple": 4.0
+      }
+    }
+  ],
+  "window": [
+    "1990-01-01",
+    "2014-12-31"
+  ]
+}

@@ -39,3 +39,17 @@ validation for this boundary. It does not implement the broker/clearing
 provider, post cash, simulate liquidation, or create external evidence. The
 live gate must remain BLOCKED until verified broker/clearing data and a
 prospective shadow record exist.
+
+The ETF regime-allocation sleeve does not supply any of the objects above and
+must not be read as a funded-account record. Its book is fully funded, long-only
+and unlevered, and its "cash" position is a short-duration Treasury ETF that
+carries duration — an allocation sleeve, not a cash balance, and it can lose
+money. The ETF panel contains no risk-free series and no financing series, so
+that record is neither excess-of-financing nor funded-with-yield; it is a
+total-return path on eleven funds with no interest leg at all, which is a
+different and non-comparable convention from the futures ledger's
+excess-return NAV. Its costs are a pre-declared assumption rather than a
+calibration,
+and its artifacts carry those statements as inline limitations. Nothing in
+`outputs/etf/` bears on cash, variation margin, collateral, funding or
+liquidation, and it cannot be filed against `cash_margin_funding_controls`.

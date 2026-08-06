@@ -15,7 +15,9 @@ honest uncertainty to that measurement.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import zlib
 from pathlib import Path
 
 import numpy as np
@@ -63,13 +65,12 @@ def volatility_frontier_variants(
 def bootstrap_breach_probability(
     returns: pd.Series,
     *,
-    label: str,
     threshold: float = 0.15,
     horizon: int = 2_520,
     block_length: int = 63,
     samples: int = 2_000,
     seed: int = inference.DEFAULT_PAIRED_SEED,
-) -> dict[str, float]:
+) -> dict[str, object]:
     """Probability a ten-year path breaches the drawdown policy.
 
     The historical maximum drawdown is a single realized path and says little
@@ -81,8 +82,19 @@ def bootstrap_breach_probability(
     values = returns.dropna().to_numpy(dtype=float)
     if values.size == 0:
         raise ValueError("cannot bootstrap an empty return series")
+    # Use one index matrix for every equal-length path in the sweep. Common
+    # random numbers keep variant and funded/excess differences from inheriting
+    # avoidable Monte Carlo noise. CRC32 is only a stable method identifier, not
+    # a security primitive.
+    method_seed = zlib.crc32(b"lever drawdown breach bootstrap") & 0xFFFFFFFF
     entropy = np.random.SeedSequence(
-        [seed, abs(hash(label)) % (2**32), int(block_length), int(horizon)]
+        [
+            int(seed) & 0xFFFFFFFF,
+            method_seed,
+            int(block_length),
+            int(horizon),
+            int(values.size),
+        ]
     )
     rng = np.random.default_rng(entropy)
     indices = inference._stationary_indices(
@@ -96,6 +108,12 @@ def bootstrap_breach_probability(
         "bootstrap_p_drawdown_breach_20pct": float((drawdowns < -0.20).mean()),
         "bootstrap_p01_max_drawdown": float(np.percentile(drawdowns, 1)),
         "bootstrap_median_max_drawdown": float(np.median(drawdowns)),
+        "bootstrap_samples": int(samples),
+        "bootstrap_seed": int(seed),
+        "bootstrap_expected_block_sessions": int(block_length),
+        "bootstrap_horizon_sessions": int(horizon),
+        "common_random_numbers": True,
+        "bootstrap_index_sha256": hashlib.sha256(indices.tobytes()).hexdigest(),
     }
 
 
@@ -180,17 +198,26 @@ def main() -> None:
                     collateral_module.FUNDED_BASIS_LABEL, "Max drawdown"
                 ]
             ),
+            "funded_basis_limitation": str(
+                funded_report.loc[
+                    collateral_module.FUNDED_BASIS_LABEL, "Limitations"
+                ]
+            ),
         }
         row.update(
             bootstrap_breach_probability(
-                returns, label=variant.name, samples=args.bootstrap_samples
+                returns, samples=args.bootstrap_samples
             )
         )
         funded_risk = bootstrap_breach_probability(
             funded["funded_net_return"],
-            label=f"{variant.name}_funded",
             samples=args.bootstrap_samples,
         )
+        if (
+            funded_risk["bootstrap_index_sha256"]
+            != row["bootstrap_index_sha256"]
+        ):
+            raise RuntimeError("funded and excess paths did not share bootstrap draws")
         row["funded_bootstrap_p_drawdown_breach_15pct"] = funded_risk[
             "bootstrap_p_drawdown_breach_15pct"
         ]

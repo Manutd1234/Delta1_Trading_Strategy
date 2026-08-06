@@ -351,6 +351,7 @@ def paired_hac_report(
             "Standard error (annualized)": standard_error * annualization,
             "t statistic": t_statistic,
             "Confidence lower": (mean - 1.645 * standard_error) * annualization,
+            "Confidence upper": (mean + 1.645 * standard_error) * annualization,
             "Selection adjusted": False,
             "Permitted use": _PERMITTED_USE,
         }
@@ -444,8 +445,15 @@ def deflated_sharpe_ratio(
             + euler * normal.inv_cdf(1.0 - 1.0 / (trials * math.e))
         )
 
+    # Bailey and Lopez de Prado write the higher-moment term as
+    # (gamma_4 - 1)/4 on NON-excess kurtosis.  This argument is excess
+    # kurtosis, so gamma_4 = excess_kurtosis + 3 and the coefficient is
+    # (excess_kurtosis + 2)/4.  Dividing the excess figure directly by four
+    # drops the constant entirely and, for a normal return series, removes the
+    # whole 0.5 * SR^2 term the published denominator carries -- which
+    # understates the variance adjustment and inflates the statistic.
     denominator = 1.0 - skewness * observed_sharpe + (
-        (excess_kurtosis) / 4.0
+        (excess_kurtosis + 2.0) / 4.0
     ) * observed_sharpe**2
     if denominator <= 0:
         return InferenceResult(

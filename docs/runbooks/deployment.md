@@ -13,6 +13,13 @@ prospective paper/shadow deployment after current serial data and
 effective-dated specifications pass validation. The supplied continuous data
 end in 2014 and cannot satisfy the external gates.
 
+The research out-of-sample records added since the correctness audit do not
+change this decision and must not be presented at a launch review as if they
+did. The 2015-2016 twelve-root subset, the stitched 1995-2014 walk-forward and
+the ETF sealed block are replays on vendor panels already in hand. None is
+post-freeze, independently custodied or prospective, so none satisfies
+`independent_holdout` or `forward_paper_trading`.
+
 ## System boundary
 
 1. `delta1_strategy.research.strategy` is a deterministic research ledger; it never routes orders.
@@ -28,6 +35,14 @@ end in 2014 and cannot satisfy the external gates.
 6. `delta1_strategy.execution.operations` owns authenticated intents, route-time recomputation,
    broker submission, journal/OMS, reconciliation, monitoring, DR and kill.
 7. `delta1_strategy.research.drawdown` is diagnostic only and cannot clear a launch gate.
+8. `delta1_strategy.research.attribution`, `.bounds`, `.benchmarks`,
+   `.validation`, `.regimes`, `.allocation` and `delta1_strategy.marketdata.etfs`
+   are study modules. They never route orders, never write into the canonical
+   bundle, and cannot clear a launch gate. Their addition changed
+   `implementation_fingerprint_sha256` — the hashed file count moved from 22 to
+   29 — while `config_sha256` and `daily_fingerprint_sha256` are unchanged. A
+   deployment bundle frozen before that change is stale and must be regenerated
+   and re-approved, even though the engine's ledger is byte-identical.
 
 ## Before paper/shadow trading
 
@@ -50,7 +65,15 @@ end in 2014 and cannot satisfy the external gates.
   bind that identity digest to the external evidence registry.
 - Commission reconciliation, monitoring, durable journal storage/backups and
   the kill switch with separate operator/risk identities.
-- Predeclare paper, drawdown, cost, roll and recovery acceptance criteria.
+- Predeclare paper, drawdown, cost, roll and recovery acceptance criteria. The
+  drawdown criteria must not be written as if the position-magnitude bounds
+  enforce them. `max_risk_scalar` and `min_risk_scalar` bind on 0 of 300
+  historical monthly decisions and `max_gross_notional_multiple` on 24 of 6,523
+  sessions; measured drawdowns are broad accuracy failures at slightly *lower*
+  volatility and a *smaller* book, not size failures. Tightening the scalar
+  ceiling to 1.00 at matched risk raises simulated P(drawdown > 15%) from 4.90%
+  to 5.95%. Treat those bounds as compliance ceilings and the latched halt plus
+  the allocation decision as the drawdown response.
 - Do not count the bundled `PaperBroker` as a qualifying forward record; it
   lacks price marks, margin, collateral, funding and liquidation.
 
@@ -118,3 +141,14 @@ broker and operations, a broker-certification subject matching the selected
 deployment identity, a compliance-approval subject matching the signed policy
 digest, successful DR/kill drills, and independent risk/compliance/model
 approval.
+
+Walk-forward, benchmark, family-wise, CSCV and ETF artifacts cannot authorize
+capital either, and they are not evidence records. `outputs/holdout/`,
+`outputs/validation/` and `outputs/etf/` are research output, not registered
+evidence, and cannot be filed against `independent_holdout` or
+`forward_paper_trading` — see
+[`../controls/evidence-registry.md`](../controls/evidence-registry.md). If a
+review presents them, the correct reading is the one their own artifacts carry:
+the futures walk-forward is out of sample with respect to a selector only, and
+the ETF sleeve loses to a passive 60/40 on the one contiguous forward block that
+exists anywhere in this repository.

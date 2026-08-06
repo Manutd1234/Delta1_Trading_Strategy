@@ -2,95 +2,99 @@
 
 Objective: raise CAGR and Sharpe without sacrificing drawdown.
 
-All results below are the reused 1990-2014 history. Nothing here promotes a
+Except for the explicitly labelled continuation and ETF diagnostics near the
+end, results below are the reused 1990-2014 history. Nothing here promotes a
 configuration. `docs/research-methodology.md` makes the Deflated Sharpe Ratio a
 conjunctive promotion gate and the incumbent's trial count is unrecoverable, so
 `research.inference.promotion_support` returns `NOT_ESTIMABLE` and refuses
 promotion for every configuration measured on this data, whatever its point
 estimates. These numbers price decisions; they do not make them.
 
-## The constraint had to be defined before anything could be measured
+Since this was written, the estimators `docs/research-methodology.md` names have
+been implemented in `research.validation` and pointed back at this sweep. Both
+answers belong here, at the top, because they qualify everything below:
 
-"Without sacrificing drawdown" has two readings that give opposite answers.
+- **Family-wise, on the four variants of this sweep.** White's Reality Check and
+  Hansen's SPA do not reject on Sharpe at any block length — *p* between 0.54
+  and 0.67. They reject on the annualized mean at *p* ≈ 1e-4, which is the
+  risk-budget rescale showing up exactly where "CAGR is purchasable, Sharpe is
+  not" predicts it will.
+- **CSCV refuses.** Fed this same four-variant family, `cscv_pbo` returns
+  `NOT_ESTIMABLE` for all four statistics: four configurations quantise the
+  out-of-sample rank in steps of 1/5, which measures the grid rather than the
+  overfitting, and the floor is ten. The sweep is too small to be its own
+  overfitting diagnostic, and the code says so rather than printing a number.
 
-| Configuration | CAGR | Sharpe | Historical MDD | P(MDD>15%) over 10y |
-|---|---|---|---|---|
-| Base (excess basis) | 13.19% | 1.590 | −11.83% | 3.85% |
-| + drawdown overlay | 12.80% | 1.563 | −10.54% | 4.7% |
-| + overlay, rescaled to match historical MDD | 14.50% | 1.563 | −11.83% | 9.6% |
+Artifacts: `outputs/validation/validation_family_wise_lever_sweep.csv` and
+`outputs/validation/validation_cscv_lever_sweep.csv`.
 
-The overlay lowers the historical maximum drawdown by 1.30 percentage points
-and leaves forward breach probability unchanged. It clipped one 2008-09 path
-rather than reducing risk, which its 0.985 average exposure multiplier already
-implied. Rescaling on the strength of it doubles the breach probability while
-the historical number stays put.
+## The current sweep is a risk-budget frontier, and the result is a refusal
 
-**Historical maximum drawdown is therefore not usable as the constraint.** Every
-result below holds the bootstrap breach probability instead, measured on a
-common index draw so configurations are compared on identical resamples.
+The executable sweep registers exactly four configurations: the frozen 7.0%
+risk budget and otherwise unchanged 7.5%, 8.0% and 8.5% budgets. Earlier
+cost-lever variants are not in the current registry or artifacts and therefore
+cannot support a claim here.
 
-The overlay finances a risk-neutral rescale of k = 0.981 — no headroom at all.
-It is not part of any recommended configuration.
+"Without sacrificing drawdown" must mean forward path risk rather than the one
+historical maximum. The 7.5% row demonstrates why: its realized maximum drawdown
+is fractionally shallower than the baseline's, yet its ten-year bootstrap breach
+probability is higher on both the excess and funded bases.
 
-## What the levers deliver
+Each breach estimate below uses one common-random-number matrix of 2,000
+stationary-bootstrap paths, a 63-session expected block and a 2,520-session
+horizon. The artifact records those settings and the seed.
 
-Measured with paired common random numbers throughout (2,000 paths, block 63,
-10-year horizon).
-
-| Configuration | Excess CAGR | Funded CAGR | Sharpe | HAC | Hist. MDD | Excess P(DD>15%) | Funded P(DD>15%) | Peak participation |
+| Configuration | Excess CAGR | Funded CAGR | Sharpe | HAC | Hist. MDD | Excess P(DD>15%) | Funded P(DD>15%) | Peak order participation |
 |---|---|---|---|---|---|---|---|---|
-| Baseline, 7.0% budget | 13.18% | 17.01% | 1.590 | 1.492 | −11.83% | 3.85% | 1.05% | 6.82% |
-| Cost levers, 7.0% | 13.46% | 17.30% | 1.627 | 1.517 | −11.09% | 2.95% | 0.75% | 7.95% |
-| Cost levers, 8.0% | 15.36% | 19.26% | 1.617 | 1.510 | −11.93% | 8.45% | 3.05% | 7.95% |
-| Cost levers, 8.5% | 16.19% | 20.12% | 1.605 | 1.499 | −12.45% | 12.45% | 5.55% | 9.09% |
-| Cost levers, 9.0% | 17.24% | 21.21% | 1.614 | 1.496 | −13.24% | 18.85% | 9.05% | 10.23% |
+| Baseline, 7.0% budget | 13.19% | 17.01% | 1.590 | 1.489 | −11.85% | 4.05% | 0.90% | 2.00% |
+| 7.5% risk budget | 14.32% | 18.17% | 1.601 | 1.492 | −11.84% | 6.70% | 1.90% | 2.00% |
+| 8.0% risk budget | 15.31% | 19.20% | 1.597 | 1.482 | −13.35% | 10.80% | 4.40% | 2.00% |
+| 8.5% risk budget | 16.28% | 20.20% | 1.602 | 1.493 | −13.09% | 13.90% | 6.75% | 2.00% |
 
-Two defensible answers follow, depending on which baseline risk level the
-committee treats as the budget.
-
-**Strict, funded against funded (0.75% vs 1.05%).** Keep the 7.0% risk budget
-and take the cost levers only: **17.30% funded CAGR, Sharpe 1.627, historical
-drawdown −11.09%, breach probability 0.75%.** Better than the incumbent on
-every axis simultaneously. No risk budget is spent.
-
-**Against the currently reported and accepted level (3.85%).** Raise the budget
-to 8.0%: **19.26% funded CAGR at 3.05% funded breach probability**, still under
-the risk the committee already accepts on today's reported basis.
-
-**20% CAGR requires an 8.5% budget, which breaches both readings** — funded
-breach probability 5.55% against a 1.05% strict and 3.85% accepted baseline.
-The last 0.7 percentage points of CAGR cost roughly a doubling of drawdown risk.
+The 8.5% budget buys the requested 20% funded CAGR, but it raises the
+excess-basis 15% drawdown-breach probability from 4.05% to 13.90% and the
+funded probability from 0.90% to 6.75%. Even the smallest increase fails the
+no-sacrifice reading: the 7.5% row raises funded breach risk from 0.90% to 1.90% while its favorable
+historical maximum drawdown differs from the baseline by less than one basis
+point. No row satisfies the stated objective.
 
 ## Sharpe barely moves, and the movement is not certifiable
 
-This is the finding that most constrains what can be claimed.
+The paired block-63 comparisons use shared bootstrap index draws. Every lower
+bound remains below zero, and every point estimate is below its own minimum
+detectable effect.
 
 | Variant | ΔSharpe | 95% lower bound | Detection floor | Correlation |
 |---|---|---|---|---|
-| Risk-scalar pass-through | +0.0221 | −0.0219 | 0.0431 | 0.9908 |
-| Cost-aware buffer | −0.0031 | −0.0432 | 0.0401 | 0.9927 |
-| Both | +0.0372 | −0.0121 | 0.0483 | 0.9885 |
+| 7.5% risk budget | +0.0114 | −0.0151 | 0.0264 | 0.9960 |
+| 8.0% risk budget | +0.0073 | −0.0232 | 0.0304 | 0.9940 |
+| 8.5% risk budget | +0.0128 | −0.0276 | 0.0401 | 0.9914 |
 
-Every lower bound sits below zero. The best point estimate (+0.037) is smaller
-than its own minimum detectable effect (0.048), so it cannot be distinguished
-from zero on 25 years of daily data even with paired resampling.
+The family-wise procedures reach the same answer: none rejects on Sharpe at any
+block length, while every annualized-mean row rejects because the experiment is
+a volatility-budget rescale. The honest summary is **CAGR is purchasable, Sharpe
+is not**. Financing and leverage change the return level; neither establishes a
+new risk-adjusted edge.
 
-For scale, the unpaired bootstrap standard error of the headline Sharpe is
-**0.201**, which makes the +0.10 promotion gate half of one standard deviation.
-Pairing cuts the standard error to about 0.03 at these correlations — a
-seven-fold gain, and still not enough. Comparing headline Sharpes without
-pairing is not a weak test; it is not a test.
-
-The honest summary: **CAGR is purchasable, Sharpe is not.** Rescaling is
-Sharpe-neutral by construction, financing is Sharpe-neutral when measured
-correctly, and the cost levers move it by less than the data can resolve.
+Two later measurements reach the same conclusion from outside this sweep, and
+neither was available when the paragraph above was written. Across seventeen
+declared configurations of the incumbent, no family-wise procedure rejects on
+Sharpe at any block length. Hansen SPA rejects the annualized mean at the
+*p* ≈ 1e-4 resolution floor on the strength of one member raising the volatility
+target from 7% to 8%, while White Reality Check does not. And
+Barroso-Santa-Clara volatility scaling applied to the incumbent's own decision
+frame delivers 19.27% CAGR at Sharpe 1.588 against 13.19% at 1.590 — a
+time-varying volatility-management overlay that raises return and risk without
+establishing a Sharpe improvement. Both are in
+`docs/benchmark-and-validation-findings.md`.
 
 ## The funded basis, and the trap inside it
 
 Recognizing collateral yield on the 1990-2014 Fed Funds path adds **3.82
 percentage points of CAGR (13.19% → 17.01%) and improves both the historical
-drawdown (−11.18% vs −11.83%) and the breach probability (1.05% vs 3.85%)**.
-Carry adds drift without adding volatility, so it strictly improves the
+drawdown (−11.18% vs −11.85%) and the breach probability (0.90% vs 4.05%)**.
+Carry adds drift without adding market exposure and added only about 0.005
+percentage points of realized volatility here, so it improves the measured
 drawdown distribution. That is the largest single step toward 20%, and it is
 accounting rather than alpha.
 
@@ -123,19 +127,20 @@ liquidation are absent, so it is systematically optimistic; the artifacts carry
 
 ## What was dropped, and why
 
-- **Drawdown overlay integration** — no forward risk reduction; finances k = 0.981.
-- **Correlation-aware risk budget** — mean pairwise P&L correlation is 0.0466
-  (effective N ≈ 15.9), so the budget scales targets by about 0.59, and the EWMA
-  portfolio scalar reverses roughly 99% of any constant rescale (median relative
-  difference 0.7% at k = 0.6). The level effect is a no-op by construction.
-- **Breadth expansion** — the HKD, KRW and SGD series required to value HSI,
-  MHI, KOS and SSG are absent; the short-rate roots fail the same
-  `price x multiplier` correctness test that excluded YXT and YYT; roughly 40%
-  of the remainder duplicate held exposures. What survives is 8-12 thin
-  softs and ags, which worsens the participation gate.
+- **Drawdown overlay integration** — an archived diagnostic was dropped before
+  the current registry because it did not establish forward risk reduction. No
+  dedicated current artifact persists it, so no quantitative effect is claimed.
+- **Correlation-aware risk budget** — a constant exposure rescale is largely
+  reversed by the downstream EWMA portfolio target. The old numerical
+  diagnostic is not a current artifact and is not used as evidence here.
+- **Breadth expansion** — archived screening found missing valuation inputs,
+  duplicate exposures and thin residual candidates. Those counts are not
+  persisted by the current sweep, so they are not repeated as current results.
 - **Capacity as a return lever** — the entire execution dimension is worth about
-  0.11 Sharpe end to end. Halving the participation limit moves Sharpe by
-  −0.0003. It remains in scope as compliance work only.
+  0.11 Sharpe end to end. In the current post-fix friction artifact, halving the
+  participation limit moves Sharpe by +0.0096. It remains in scope as
+  compliance work only; that reused-history sensitivity is not a promotable
+  return result.
 
 ## Defects this work surfaced — since resolved
 
@@ -160,7 +165,7 @@ because they are the interesting part.
 The correction cost essentially nothing: CAGR +0.46 bp, Sharpe −0.0005, and
 that is noise from eight order-days in 9,683 sessions, not a lever.
 
-## The first out-of-sample evidence
+## The 2015-2016 subset, and where it now sits
 
 `scripts/run_holdout_evaluation.py` scores the frozen specification once on the
 2015-2016 continuation series, which the canonical source manifest proves the
@@ -178,6 +183,27 @@ decay — the standard error at this sample size is far too wide to distinguish
 the two — but it is the number, and it is recorded where a second look at the
 same data will be refused.
 
+When this section was written it was the repository's only out-of-sample
+record. It no longer is, and the two additions make it narrower rather than
+stronger:
+
+- A stitched anchored walk-forward covering 1995-01-02 to 2014-12-31 — 5,218
+  sessions, 20.7 252-session-equivalent years, twenty pairwise-disjoint folds — now exists in
+  `outputs/validation/`. It is out of sample with respect to the **selector
+  only**; the specification it replays was written with that window already
+  read. Its result is unfavourable to selection: letting the trend lookback be
+  chosen out of sample cost 0.165 Sharpe and deepened maximum drawdown from
+  −11.85% to −18.19%, through the 15% drawdown policy. Only the 1995 fold
+  selects a non-baseline variant; the splice-once replay carries its state
+  forward, so the full gap is not attributed to that fold alone.
+- A ten-year ETF record with a contiguous five-year sealed block now exists in
+  `outputs/etf/`. It is on a different, survivors-only panel, and the sleeve it
+  scores **loses** to a passive 60/40 by 5.93 percentage points a year at
+  *t* = −3.48.
+
+None of the three is a post-freeze, independently custodied, prospective record.
+Counting them together does not produce one.
+
 ## Reproduce
 
 ```bash
@@ -189,5 +215,29 @@ python scripts/run_lever_sweep.py \
 The harness verifies the baseline reproduces the frozen run manifest's daily
 fingerprint before any variant runs. This is not ceremony: omitting the
 `delivery_months` frame alone disables every roll cost and flatters the result
-by **+0.83 percentage points of CAGR and +0.090 Sharpe** — close enough to the
+by **+0.92 percentage points of CAGR and +0.101 Sharpe** — close enough to the
 promotion gate to manufacture a passing lever out of a wiring mistake.
+
+The family-wise and CSCV results quoted at the top of this document come from
+the validation suite, which reads `outputs/levers` and must therefore run after
+the sweep:
+
+```bash
+python scripts/run_validation_suite.py \
+  --data-dir "Round1AllData/Quant Researcher/Delta1" \
+  --output-dir outputs/validation \
+  --levers-dir outputs/levers
+```
+
+The 2015-2016 scoring is deliberately not repeatable. It needs the continuation
+and FX extracts and an explicit `--as-of` stamp, and it appends to a hash-linked
+ledger that refuses a second scoring of the same dataset:
+
+```bash
+python scripts/run_holdout_evaluation.py \
+  --data-dir "Round1AllData/Quant Researcher/Delta1" \
+  --extension-dir "Round1AllData/Quant Researcher/FXFI/Futures Data" \
+  --forex-dir "Round1AllData/Quant Researcher/FXFI/Forex Data" \
+  --output-dir outputs/holdout \
+  --as-of 2026-08-06T00:00:00Z
+```

@@ -1,0 +1,55 @@
+{
+  "anchor": "2006-02-06",
+  "boundaries": [
+    "2009-01-02",
+    "2010-01-04",
+    "2011-01-03",
+    "2012-01-03",
+    "2013-01-02",
+    "2014-01-02",
+    "2015-01-02",
+    "2016-01-04",
+    "2017-01-03",
+    "2018-01-02"
+  ],
+  "candidates": [
+    "faber_trend_equal_weight",
+    "faber_trend_inverse_volatility",
+    "momentum_inverse_volatility"
+  ],
+  "cash_sleeve": "SHY",
+  "commission_bps": 0.5,
+  "embargo_sessions": 21,
+  "end": "2018-12-31",
+  "half_spread_bps": 2.0,
+  "impact_coefficient_bps": 10.0,
+  "initial_capital_usd": 100000000.0,
+  "limitations": [
+    "survivors_only_universe; all_745_panel_files_end_2018-12-31_with_positive_volume; no_closed_or_delisted_etf_is_present; exposure_limited_by_allocation_across_a_fixed_set_of_large_broad_index_funds_rather_than_cross_sectional_selection",
+    "sealed_block_contains_no_full_equity_bear_market; the_daniel_moskowitz_bear_and_panic_states_are_unoccupied_across_it; full_equity_bear_conditional_performance_is_not_estimable_out_of_sample",
+    "fully_funded_long_only_unlevered_book; cash_is_the_short_duration_treasury_sleeve_and_carries_duration; no_risk_free_series_and_no_financing_series_exists_in_this_panel",
+    "costs_are_a_pre_declared_assumption_and_not_a_calibration; one_half_spread_and_one_commission_in_basis_points_for_every_sleeve; liquidity_is_differentiated_only_through_the_square_root_participation_term"
+  ],
+  "lineage_id": "etf_regime_allocation_v1",
+  "no_trade_band": 0.02,
+  "participation_limit": 0.05,
+  "purge_sessions": 23,
+  "sealed_block_state_coverage_reason": "the sealed block 2014-01-01..2018-12-31 holds 1258 sessions and none of them is in the Daniel-Moskowitz bear state, so the conditional statistic has no observations; performance through a full equity bear is not tested by this block",
+  "sealed_block_state_coverage_status": "NOT_ESTIMABLE",
+  "sealed_start": "2014-01-01",
+  "stand_off_sessions": 44,
+  "universe": [
+    "SPY",
+    "IWM",
+    "IYR",
+    "EFA",
+    "EEM",
+    "SHY",
+    "IEF",
+    "TLT",
+    "LQD",
+    "GLD",
+    "DBC"
+  ],
+  "volatility_budget_annualized": 0.07
+}

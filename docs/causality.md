@@ -36,7 +36,7 @@ is executed no earlier than the next session.** A decision made from session
 
 ## Signal lag arithmetic
 
-`risk_managed_forecast` ([strategy.py:543](../src/delta1_strategy/research/strategy.py#L543))
+`risk_managed_forecast` ([strategy.py:570](../src/delta1_strategy/research/strategy.py#L570))
 is where the shift arithmetic is justified, and it is worth reading before
 changing anything.
 
@@ -99,12 +99,24 @@ permanent impact nor the delay cost that a real desk pays for that split.
 
 ## Universe and state
 
-Anything fitted — scaling, volatility, correlation, liquidity screens, universe
+Within the flagship futures engine and its anchored walk-forward replay,
+anything fitted — scaling, volatility, correlation, liquidity screens, universe
 membership — is fitted only on information available at the decision date. Folds
 replay chronologically carrying real book state; a fold that restarts NAV or
-splices an optimized path is not evidence.
+splices an optimized path is not evidence. This statement does **not** extend to
+the separate ETF study: its universe and liquidity rule was written after the
+whole 2006–2018 panel had been read, including the nominally sealed block, as
+disclosed in [etf-regime-allocation-findings.md](etf-regime-allocation-findings.md).
 See [research-methodology.md](research-methodology.md) for the governance form
 of this rule.
+
+`research.validation.anchored_walk_forward` is that rule in code. It builds each
+candidate's decision frame over the whole history, splices the selected regimes
+into one frame, and calls `_simulate_execution` exactly once, so NAV, the
+executed book, the roll backlog and the cost ledger cross every fold boundary
+intact and switching turnover is charged. The alternative — running each fold
+standalone and concatenating — is the flattering error, because a fold that
+starts flat never pays to get out of the previous fold's book.
 
 ## The proof
 
@@ -120,3 +132,17 @@ peeked at is no longer there.
 
 If you adapt this engine, keep that test. It is worth more than the rest of this
 document.
+
+Three later checks are the same idea applied to seams rather than to the engine,
+and each is an identity that a leak would break:
+
+| Check | Assertion | What a failure would mean |
+|---|---|---|
+| Benchmark execution seam (`outputs/benchmarks/benchmark_seam_check.csv`) | replaying the incumbent's own decision frame through the benchmark execution path reproduces the canonical ledger with maximum absolute daily net-return deviation exactly **0.0** | the benchmarks are not being costed and executed on the incumbent's terms, so any comparison between them is a comparison of two ledgers |
+| Walk-forward splice identity | with a constant parameter, the spliced replay reproduces the single-shot backtest to **1e-12** | fold boundaries are creating or destroying P&L, which is where a restarted-NAV artefact would hide |
+| ETF custody replay (`outputs/etf/etf_holdout_custody.csv`) | the development replay, reloaded from disk with the loader's last-session guard armed, is byte-identical over 1,990 sessions with maximum absolute difference **0.0** | a sealed block was read during development, which would make "out of sample" a claim about intent rather than about execution |
+
+None of the three is a substitute for truncation invariance. Truncation
+invariance tests whether the engine can see the future at all; these test whether
+a study wired around the engine has quietly changed what it is measuring. Both
+failure modes exist and they are not the same failure.

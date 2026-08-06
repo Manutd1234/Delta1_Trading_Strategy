@@ -43,3 +43,26 @@ This launch-evidence registry is separate from
 `delta1_strategy.research.registry.ResearchTrialRegistry`, which governs
 prospective candidate registration and result links. A valid research trial
 chain cannot substitute for any independent production-evidence record.
+
+Research artifacts are not evidence records either, however carefully they are
+constructed. `outputs/holdout/`, `outputs/validation/` and `outputs/etf/`
+contain out-of-sample material — a 2015-2016 twelve-root subset ledger, a
+stitched 1995-2014 walk-forward, and a ten-year ETF record with a contiguous
+five-year sealed block — and none of them may be registered against
+`independent_holdout` or `forward_paper_trading`. Each is a replay on a vendor
+panel already in the researcher's hands, produced by the same party that wrote
+the specification, with no independent custodian, no post-freeze exposure and no
+elapsed forward time. A hash-linked custody replay proves that a file was not
+read; it does not prove that a reviewer was independent. Registering one would
+be self-approval with extra steps, which is the failure mode
+`verify_evidence_registry` exists to reject.
+
+The same applies to the fingerprints these studies move. Adding the study
+modules changed the run manifest's `implementation_fingerprint_sha256` — the
+hashed file count moved from 22 to 29 — while `config_sha256` and the engine's
+daily ledger fingerprint are byte-identical to the run before the work. Every
+record above binds `model_fingerprint_sha256` to that implementation
+fingerprint, so records issued against the earlier value no longer bind and must
+be reissued. A changed fingerprint invalidates the approval regardless of
+whether the numbers it approved moved; that is the intended behaviour, not an
+inconvenience to be waived.

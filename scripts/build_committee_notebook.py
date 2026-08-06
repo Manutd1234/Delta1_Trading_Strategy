@@ -1427,7 +1427,1162 @@ cells = [
     ),
     markdown(
         """
-        ## 13. What was fixed locally, and what still requires external action
+        ## 13. Post-audit study artifacts — custody and scope
+
+        Four studies were added after the correctness and controls audit: a
+        drawdown attribution, a bound sensitivity sweep at matched risk, the
+        three validation estimators the methodology named but never had, and a
+        replication of published trend-following rules. A fifth body of work
+        builds an ETF regime-allocation sleeve on a different panel because the
+        futures history cannot supply forward data.
+
+        None of them changed the engine. The canonical daily fingerprint in
+        `outputs/run_manifest.json` is byte-identical to the incumbent
+        fingerprint the benchmark and bound studies each recorded for the path
+        they compared against, and the cell below refuses to continue if those
+        values disagree.
+
+        The sections that follow read committed artifacts and nothing else. This
+        notebook does not re-run a backtest, import the engine, or recompute any
+        figure in them; it hashes each study file it is about to read, then
+        reads it.
+
+        What custody does not establish: it fixes which bytes were measured, not
+        whether the measurement answers a live question. Every study below is
+        the same reused 1990–2014 history except the ETF sleeve, which is
+        labelled where it appears, and none of it is selection adjusted unless
+        the artifact says so. Production readiness remains BLOCKED and nothing
+        in these sections changes that.
+        """
+    ),
+    code(
+        """
+        STUDY_ARTIFACTS = {
+            "Drawdown attribution": (
+                "attribution/attribution_bound_activity.csv",
+                "attribution/attribution_drawdown_anatomy.csv",
+                "attribution/attribution_drawdown_episodes.csv",
+                "attribution/attribution_episode_summary.csv",
+                "attribution/attribution_uniform_rescale_frontier.csv",
+            ),
+            "Bound sensitivity": (
+                "bounds/bound_variants.json",
+                "bounds/bound_binding.csv",
+                "bounds/bound_match_jitter.csv",
+                "bounds/bound_shape.csv",
+                "bounds/bound_drawdown_risk.csv",
+                "bounds/bound_paired_differentials.csv",
+            ),
+            "Validation": (
+                "validation/validation_run.json",
+                "validation/validation_walk_forward_summary.csv",
+                "validation/validation_walk_forward_folds.csv",
+                "validation/validation_stability_folds.csv",
+                "validation/validation_family_wise.csv",
+                "validation/validation_cscv.csv",
+                "validation/validation_cscv_daily_secondary.csv",
+                "validation/validation_cscv_lever_sweep.csv",
+                "validation/validation_deflated_sharpe.csv",
+            ),
+            "Published benchmarks": (
+                "benchmarks/benchmark_manifest.json",
+                "benchmarks/benchmark_comparison.csv",
+                "benchmarks/benchmark_seam_check.csv",
+                "benchmarks/benchmark_spanning.csv",
+                "benchmarks/benchmark_spanning_coefficients.csv",
+                "benchmarks/benchmark_permutation_null.csv",
+                "benchmarks/benchmark_permutation_draws.csv",
+            ),
+            "ETF regime allocation": (
+                "etf/etf_run_manifest.json",
+                "etf/etf_out_of_sample_accounting.csv",
+                "etf/etf_holdout_custody.csv",
+                "etf/etf_walk_forward_summary.csv",
+                "etf/etf_comparison_rolling_out_of_sample.csv",
+                "etf/etf_comparison_sealed_block.csv",
+                "etf/etf_paired_reference_inference.csv",
+                "etf/etf_universe.csv",
+            ),
+        }
+
+        absent_study_artifacts = [
+            name
+            for artifacts in STUDY_ARTIFACTS.values()
+            for name in artifacts
+            if not (OUTPUTS / name).is_file()
+        ]
+        if absent_study_artifacts:
+            raise FileNotFoundError(
+                "Post-audit study artifacts are absent; regenerate them before "
+                "this notebook is distributed: "
+                + ", ".join(absent_study_artifacts)
+            )
+
+        benchmark_manifest = json.loads(
+            (OUTPUTS / "benchmarks" / "benchmark_manifest.json").read_text()
+        )
+        bound_variants = json.loads(
+            (OUTPUTS / "bounds" / "bound_variants.json").read_text()
+        )
+        validation_run = json.loads(
+            (OUTPUTS / "validation" / "validation_run.json").read_text()
+        )
+        etf_manifest = json.loads(
+            (OUTPUTS / "etf" / "etf_run_manifest.json").read_text()
+        )
+
+        canonical_fingerprint = manifest["daily_fingerprint_sha256"]
+        lineage_claims = [
+            (
+                "Published benchmarks",
+                "outputs/benchmarks/benchmark_manifest.json",
+                "incumbent_daily_fingerprint_sha256",
+                benchmark_manifest.get("incumbent_daily_fingerprint_sha256"),
+            ),
+            (
+                "Bound sensitivity",
+                "outputs/bounds/bound_variants.json",
+                "baseline_daily_fingerprint_sha256",
+                bound_variants.get("baseline_daily_fingerprint_sha256"),
+            ),
+        ]
+        engine_lineage = pd.DataFrame([
+            {
+                "Study": study,
+                "Recorded in": location,
+                "Field": field,
+                "Canonical daily fingerprint": canonical_fingerprint[:14] + "…",
+                "Study-recorded fingerprint": (
+                    str(recorded)[:14] + "…" if recorded else "MISSING"
+                ),
+                "Agreement": (
+                    "identical" if recorded == canonical_fingerprint else "differs"
+                ),
+            }
+            for study, location, field, recorded in lineage_claims
+        ])
+        if not engine_lineage["Agreement"].eq("identical").all():
+            raise RuntimeError(
+                "A post-audit study measured a different daily ledger than the "
+                "canonical run; the engine is not a shared reference and no "
+                "comparison below may be read"
+            )
+        display(engine_lineage)
+
+        study_custody_rows = []
+        for study, artifacts in STUDY_ARTIFACTS.items():
+            for name in artifacts:
+                payload = (OUTPUTS / name).read_bytes()
+                study_custody_rows.append({
+                    "Study": study,
+                    "Artifact": "outputs/" + name,
+                    "Bytes": len(payload),
+                    "SHA-256": hashlib.sha256(payload).hexdigest()[:14] + "…",
+                })
+        display(pd.DataFrame(study_custody_rows))
+
+        display(pd.DataFrame([
+            {
+                "Study": "Bound sensitivity",
+                "Declared scope": (
+                    f"{len(bound_variants['variants'])} variants over "
+                    f"{len(bound_variants['grid'])} bounds, "
+                    f"{bound_variants['window'][0]}..{bound_variants['window'][1]}"
+                ),
+                "Recorded status": bound_variants["validation_status"],
+            },
+            {
+                "Study": "Validation",
+                "Declared scope": (
+                    f"{validation_run['family_size']} declared configurations, "
+                    f"{validation_run['bootstrap_samples']:,} bootstrap draws, "
+                    f"block lengths {validation_run['block_lengths']}"
+                ),
+                "Recorded status": (
+                    "CSCV headline frequency: "
+                    + validation_run["cscv_primary_frequency"]
+                ),
+            },
+            {
+                "Study": "Published benchmarks",
+                "Declared scope": (
+                    f"{len(benchmark_manifest['benchmarks_declared'])} declared, "
+                    f"{len(benchmark_manifest['benchmarks_completed'])} completed, "
+                    f"{len(benchmark_manifest['benchmarks_errored'])} errored"
+                ),
+                "Recorded status": benchmark_manifest["permitted_use"],
+            },
+            {
+                "Study": "ETF regime allocation",
+                "Declared scope": (
+                    f"{len(etf_manifest['universe'])} funds, "
+                    f"{len(etf_manifest['candidates'])} candidate rules, sealed "
+                    f"block from {etf_manifest['sealed_start']} to "
+                    f"{etf_manifest['end']}"
+                ),
+                "Recorded status": etf_manifest["lineage_id"],
+            },
+        ]))
+        """
+    ),
+    markdown(
+        """
+        ## 14. Drawdown attribution — why the position-magnitude family cannot reduce drawdown
+
+        The question asked was whether drawdown can be reduced by lowering the
+        maximum and minimum position bound. It cannot, and the reason is
+        measurable before any sweep is run on it: neither bound is an active
+        constraint.
+
+        `max_risk_scalar` and `min_risk_scalar` clip the EWMA portfolio
+        volatility-target multiplier. Across the 300 monthly decisions of the
+        reused history that multiplier stays strictly inside both clips, so
+        lowering the floor is a no-op at any value at or below the realized
+        minimum, and lowering the ceiling is a no-op until it crosses the
+        realized maximum. By the time a ceiling binds often enough to act as a
+        tail control it is no longer a tail control; it is a smaller allocation,
+        which is the uniform rescale measured further down.
+
+        A third parameter looks like a member of the same family and is not.
+        `signal_cap` divides the clipped basis z-score by the cap before
+        returning it, so the sleeve always lands inside [-1, 1] and *lowering*
+        the cap raises average exposure by saturating sooner. It is the slope of
+        the sleeve map, not a ceiling on it.
+
+        The anatomy of the deep drawdowns says why the family is the wrong
+        instrument. Inside drawdowns deeper than 5% the volatility of the book
+        is within a few tenths of a per cent of its unconditional level, and the
+        book is already about a fifth smaller than usual — but the daily hit
+        rate falls by roughly nine percentage points. These are accuracy
+        failures, not volatility events, and position magnitude does not
+        address accuracy. The episode breadth table shows the same thing from
+        the other side: the losses are broad and simultaneous rather than
+        concentrated in a market a size limit could have contained.
+
+        What this does not establish: it does not show that drawdown is
+        irreducible, only that this family cannot reduce it. It is one realized
+        path on reused history, it is not selection adjusted, and losses that
+        arrive broad and simultaneous here need not do so on unseen data.
+        """
+    ),
+    code(
+        """
+        attribution_activity = pd.read_csv(
+            OUTPUTS / "attribution" / "attribution_bound_activity.csv"
+        )
+        attribution_anatomy = pd.read_csv(
+            OUTPUTS / "attribution" / "attribution_drawdown_anatomy.csv"
+        )
+        attribution_frontier = pd.read_csv(
+            OUTPUTS / "attribution" / "attribution_uniform_rescale_frontier.csv"
+        )
+        attribution_breadth = pd.read_csv(
+            OUTPUTS / "attribution" / "attribution_episode_summary.csv"
+        )
+        attribution_episodes = pd.read_csv(
+            OUTPUTS / "attribution" / "attribution_drawdown_episodes.csv"
+        )
+        bound_jitter = pd.read_csv(OUTPUTS / "bounds" / "bound_match_jitter.csv")
+
+        display(attribution_activity[[
+            "Bound", "Side", "Limit", "Observations", "Unit", "Binding share",
+            "Binding observations", "Realized minimum", "Realized median",
+            "Realized maximum", "Nearest realized value", "Headroom to limit",
+            "Activity",
+        ]].round(6))
+        display(attribution_anatomy.round(6))
+        """
+    ),
+    code(
+        """
+        anatomy_by_sample = attribution_anatomy.set_index("Sample")
+        deep_drawdown = anatomy_by_sample.loc["In drawdown deeper than 5%"]
+        every_session = anatomy_by_sample.loc["All sessions"]
+        ratio_labels = ["Volatility", "Exposure", "Daily hit rate"]
+        ratio_values = [
+            float(deep_drawdown["Volatility ratio to all sessions"]),
+            float(deep_drawdown["Exposure ratio to all sessions"]),
+            float(deep_drawdown["Daily hit rate"])
+            / float(every_session["Daily hit rate"]),
+        ]
+        shape_jitter = bound_jitter.loc[
+            bound_jitter["statistic"].eq("max_drawdown_over_annualized_volatility")
+        ].iloc[0]
+        frontier = attribution_frontier.sort_values("Exposure multiplier")
+
+        fig, axes = plt.subplots(
+            1, 2, figsize=(13, 5.2), gridspec_kw={"width_ratios": [1.6, 1]}
+        )
+        axes[0].axhspan(
+            float(shape_jitter["lowest_observed"]),
+            float(shape_jitter["highest_observed"]),
+            color=COLORS["amber"],
+            alpha=0.24,
+            label="solver jitter band, unchanged incumbent",
+        )
+        axes[0].plot(
+            frontier["Exposure multiplier"],
+            frontier["Drawdown per unit of volatility"],
+            marker="o",
+            color=COLORS["navy"],
+            lw=2.0,
+            label="uniform de-lever frontier",
+        )
+        axes[0].invert_xaxis()
+        axes[0].set_xlabel("Uniform exposure multiplier applied to every position")
+        axes[0].set_ylabel("Maximum drawdown / annualized volatility")
+        axes[0].set_title("De-levering does not improve drawdown shape")
+        axes[0].text(
+            0.03, 0.08,
+            f"Sharpe is {frontier['Sharpe (rf=0)'].iloc[0]:.4f} at every "
+            f"multiplier; Calmar falls from {frontier['Calmar'].max():.3f} to "
+            f"{frontier['Calmar'].min():.3f} as exposure halves",
+            transform=axes[0].transAxes, fontsize=8.5, color=COLORS["gray"],
+        )
+        axes[0].legend(fontsize=8, loc="upper left")
+
+        axes[1].bar(
+            ratio_labels, ratio_values,
+            color=[COLORS["blue"], COLORS["teal"], COLORS["red"]], width=0.62,
+        )
+        axes[1].axhline(1.0, color="black", lw=1.0, linestyle="--")
+        for position, value in enumerate(ratio_values):
+            axes[1].text(
+                position, value - 0.06, f"{value:.3f}",
+                ha="center", va="top", fontsize=10, weight="bold", color="white",
+            )
+        axes[1].set_ylim(0, 1.25)
+        axes[1].set_ylabel("Ratio to all sessions")
+        axes[1].set_title("Inside drawdowns deeper than 5%")
+        fig.tight_layout()
+        plt.show()
+
+        display(frontier.round(6))
+        """
+    ),
+    code(
+        """
+        display(attribution_breadth[[
+            "Episode", "Depth", "Sessions to trough", "Markets with activity",
+            "Markets losing", "Breadth of loss", "Share of loss from worst 3",
+            "Worst market", "Worst market contribution", "Worst asset class",
+            "Worst asset-class contribution", "Asset classes losing",
+            "Asset classes with activity",
+        ]].round(4))
+        display(attribution_episodes.round(6))
+        """
+    ),
+    markdown(
+        """
+        ## 15. Bound sensitivity at matched risk — the result is a refusal
+
+        The five bounds were then swept properly: every variant re-solves to the
+        incumbent's realized volatility, so a difference in shape cannot be a
+        difference in leverage. The honest headline is that the sweep cannot
+        answer the question it was built to answer.
+
+        Re-running the **unchanged** incumbent at five volatility budgets that
+        all satisfy the solver's match tolerance moves drawdown per unit of
+        volatility across a band of 0.0588. That band is solver jitter on a
+        configuration that did not change. No matched variant produces a shape
+        difference that exceeds its own resolution floor, and no floor is
+        narrower than that jitter band. Forty-nine of the fifty shape rows
+        therefore publish `not_estimable` with the floor printed beside them,
+        and the fiftieth is the reference row itself.
+
+        Forward risk moves the wrong way. Tightening `max_risk_scalar` to 1.00
+        at matched risk raises the bootstrap probability of a ten-year drawdown
+        deeper than 15% above the incumbent's, rather than lowering it. The
+        binding table explains why nothing else was available to tighten:
+        `signal_cap` saturates on about a third of market-sessions and
+        `risk_managed_cap` changes the delivered forecast on about a fifth,
+        while `shock_floor` rests on its floor in under one session in ten
+        thousand.
+
+        One statistic resolves, and it is not a drawdown statistic.
+        `shock_floor` at 0.25 is a Sharpe effect of roughly +0.023 with a
+        bootstrap interval clear of zero at all three block lengths. That is an
+        order of magnitude below the +0.10 HAC Sharpe the prospective protocol
+        in section 2 requires, it is not selection adjusted, and it is measured
+        on the history the specification was written against. An earlier
+        revision of this work reported that `shock_floor` improved drawdown
+        shape. That claim was retracted once the jitter band was measured: it
+        was inside the noise.
+
+        What this does not establish: it does not show these bounds are neutral.
+        It shows the experiment lacks the resolution to separate them from the
+        solver's own tolerance on this history, which is a statement about the
+        measurement rather than about the parameters.
+        """
+    ),
+    code(
+        """
+        bound_shape = pd.read_csv(OUTPUTS / "bounds" / "bound_shape.csv")
+        bound_binding = pd.read_csv(OUTPUTS / "bounds" / "bound_binding.csv")
+        bound_forward_risk = pd.read_csv(
+            OUTPUTS / "bounds" / "bound_drawdown_risk.csv"
+        )
+        bound_differentials = pd.read_csv(
+            OUTPUTS / "bounds" / "bound_paired_differentials.csv"
+        )
+
+        display(bound_jitter[[
+            "statistic", "band_status", "probes_inside_tolerance",
+            "lowest_risk_budget_volatility", "highest_risk_budget_volatility",
+            "lowest_achieved_annualized_volatility",
+            "highest_achieved_annualized_volatility",
+            "widest_volatility_match_error", "tolerance",
+            "lowest_observed", "highest_observed", "solver_jitter_band",
+            "selection_adjusted",
+        ]].round(6))
+
+        baseline_shape_ratio = float(
+            bound_shape.loc[
+                bound_shape["evaluation_mode"].eq("baseline"),
+                "max_drawdown_over_annualized_volatility",
+            ].iloc[0]
+        )
+        matched_shape = bound_shape.loc[
+            bound_shape["evaluation_mode"].eq("risk_matched")
+        ].copy()
+        matched_shape["Measured shape difference"] = (
+            matched_shape["max_drawdown_over_annualized_volatility"]
+            - baseline_shape_ratio
+        )
+        matched_shape["Magnitude over its resolution floor"] = (
+            matched_shape["Measured shape difference"].abs()
+            / matched_shape[
+                "max_drawdown_over_annualized_volatility_resolution_floor"
+            ]
+        )
+        display(matched_shape[[
+            "variant", "lever", "bound_setting", "annualized_volatility",
+            "annualized_volatility_gap_to_reference",
+            "max_drawdown_over_annualized_volatility",
+            "Measured shape difference",
+            "max_drawdown_over_annualized_volatility_resolution_floor",
+            "Magnitude over its resolution floor",
+            "delta_max_drawdown_over_annualized_volatility_status",
+        ]].round(6))
+
+        display(
+            bound_shape["delta_max_drawdown_over_annualized_volatility_status"]
+            .value_counts()
+            .rename_axis("Published shape-delta status")
+            .to_frame("Rows")
+            .reset_index()
+        )
+        """
+    ),
+    code(
+        """
+        display(
+            bound_binding.loc[bound_binding["evaluation_mode"].eq("baseline")][[
+                "bound", "bound_value", "binding_status", "observation_unit",
+                "observations", "binding_observations", "binding_share",
+                "extreme_observed",
+            ]].round(6)
+        )
+
+        forward_risk = bound_forward_risk.loc[
+            bound_forward_risk["evaluation_mode"].isin(["baseline", "risk_matched"])
+        ].copy()
+        display(forward_risk[[
+            "variant", "evaluation_mode", "samples", "expected_block_sessions",
+            "horizon_sessions", "common_random_numbers",
+            "bootstrap_p_drawdown_breach_15pct",
+            "bootstrap_p_drawdown_breach_20pct", "bootstrap_p05_max_drawdown",
+            "bootstrap_median_max_drawdown", "selection_adjusted",
+        ]].round(6))
+
+        incumbent_breach = float(
+            bound_forward_risk.loc[
+                bound_forward_risk["evaluation_mode"].eq("baseline"),
+                "bootstrap_p_drawdown_breach_15pct",
+            ].iloc[0]
+        )
+        distinct_forward = (
+            forward_risk.loc[forward_risk["evaluation_mode"].eq("risk_matched")]
+            .drop_duplicates(subset=[
+                "bootstrap_p_drawdown_breach_15pct",
+                "bootstrap_p_drawdown_breach_20pct",
+                "bootstrap_median_max_drawdown",
+            ])
+            .sort_values("bootstrap_p_drawdown_breach_15pct")
+        )
+        forward_labels = distinct_forward["variant"].str.replace(
+            "_risk_matched", "", regex=False
+        )
+        fig, ax = plt.subplots(figsize=(12, 6.2))
+        y = np.arange(len(distinct_forward))
+        ax.barh(
+            y,
+            distinct_forward["bootstrap_p_drawdown_breach_15pct"],
+            color=np.where(
+                distinct_forward["bootstrap_p_drawdown_breach_15pct"]
+                > incumbent_breach,
+                COLORS["red"],
+                COLORS["blue"],
+            ),
+            alpha=0.88,
+        )
+        ax.axvline(
+            incumbent_breach,
+            color="black",
+            linestyle="--",
+            lw=1.4,
+            label=f"unchanged incumbent {incumbent_breach:.2%}",
+        )
+        ax.set_yticks(y, forward_labels, fontsize=8)
+        ax.invert_yaxis()
+        ax.xaxis.set_major_formatter(mtick.PercentFormatter(1))
+        ax.set_xlabel(
+            "Bootstrap probability of a drawdown deeper than 15% on a ten-year path"
+        )
+        ax.set_title(
+            "Forward drawdown risk at matched volatility — tightening the "
+            "ceiling raises it"
+        )
+        ax.legend(fontsize=8, loc="upper right")
+        fig.text(
+            0.5, 0.01,
+            "Variants that differ only in a minimum bound are numerically "
+            "identical and are collapsed into one row",
+            ha="center", fontsize=8.5, color=COLORS["gray"],
+        )
+        fig.tight_layout(rect=(0, 0.035, 1, 1))
+        plt.show()
+        """
+    ),
+    code(
+        """
+        sharpe_differentials = bound_differentials.loc[
+            bound_differentials["Statistic"].eq("Sharpe differential")
+        ].copy()
+        sharpe_differentials["Interval excludes zero"] = (
+            sharpe_differentials["Confidence lower"] > 0
+        ) | (sharpe_differentials["Confidence upper"] < 0)
+        display(sharpe_differentials[[
+            "Comparison", "Expected block sessions", "Samples",
+            "Return correlation with incumbent", "Tracking error (annualized)",
+            "Point estimate", "Bootstrap standard error", "Confidence lower",
+            "Confidence upper", "Minimum detectable effect (95% one-sided)",
+            "Interval excludes zero", "Selection adjusted",
+        ]].round(6))
+        """
+    ),
+    markdown(
+        """
+        ## 16. Validation — walk-forward, family-wise multiplicity, and CSCV
+
+        `docs/research-methodology.md` names anchored expanding walk-forward as
+        the primary diagnostic, a family-wise max-statistic procedure as a
+        promotion gate, and CSCV/PBO as a secondary diagnostic. None of the
+        three existed in code; the gates were prose. All three now run, and none
+        of them promotes anything.
+
+        **Anchored expanding walk-forward.** Twenty annual folds anchored at
+        1990-01-01, stitched out of sample from 1995-01-02 to 2014-12-31: 5,218
+        sessions, 20.7 252-session-equivalent years (20.0 elapsed calendar years), folds pairwise disjoint with zero sessions double
+        counted. A selector that re-chooses the trend lookback each year on
+        training-span Sharpe delivers a lower stitched CAGR and Sharpe than the
+        frozen specification, at a walk-forward efficiency of 0.896. Fold 0 is
+        the only selected-variant difference: on five years of training the
+        selector chose the fifteen-month lookback and lost double digits in 1995
+        where the frozen specification gained double digits. The splice-once
+        replay carries that book and NAV state into later folds, so the full
+        metric gap is not a fold-local attribution. Read the frozen row as description
+        rather than validation — no selection occurs inside it, so it measures
+        the stability of one specification across expanding anchors and nothing
+        more. The selector row is out of sample with respect to the selector
+        only; the specification family was itself chosen with this window
+        visible.
+
+        **Family-wise multiplicity.** Over the 17 declared configurations with
+        10,000 stationary-bootstrap draws there is no rejection on the Sharpe
+        differential at any of the three block lengths under any of the four
+        procedures. The best in-sample member is indistinguishable from the
+        incumbent once the sixteen-way search is priced. The Hansen SPA
+        annualized-mean rows reject at the p-value resolution floor, while
+        White's Reality Check does not (p = 0.087 to 0.106). The SPA rejection is
+        not evidence of skill: the member responsible raises the volatility
+        budget from 7% to 8%, lifting the annualized arithmetic mean by 1.89
+        percentage points on a path correlated 0.994 with the incumbent. That is
+        leverage.
+
+        **CSCV.** On the monthly paths the methodology permits, the probability
+        of backtest overfitting is 0.4193, near the 0.5 signature of pure
+        overfitting. A daily-frequency estimate of 0.0733 is emitted as a
+        labelled secondary because the two disagree; the monthly figure is the
+        headline and the daily one must not be quoted in its place. The
+        four-variant lever sweep returns `NOT_ESTIMABLE` for all four CSCV
+        statistics — the refusal path firing on real data rather than on a test
+        fixture.
+
+        `family_deflated_sharpe` returns `NOT_ESTIMABLE` for all 17 members by
+        construction. The declared family of 17 is a lower bound on this
+        lineage's search rather than its trial count, which the methodology
+        records as unrecoverable, and a deflated probability computed against a
+        lower bound is itself only a lower bound.
+
+        What this does not establish: none of it is a holdout. Every fold, every
+        bootstrap draw and every CSCV split is taken from the same 1990–2014
+        history the specification was written against.
+        """
+    ),
+    code(
+        """
+        walk_forward_summary = pd.read_csv(
+            OUTPUTS / "validation" / "validation_walk_forward_summary.csv"
+        )
+        walk_forward_folds = pd.read_csv(
+            OUTPUTS / "validation" / "validation_walk_forward_folds.csv"
+        )
+        stability_folds = pd.read_csv(
+            OUTPUTS / "validation" / "validation_stability_folds.csv"
+        )
+
+        display(walk_forward_summary[[
+            "label", "mode", "anchor", "folds", "candidates", "stitched_start",
+            "stitched_end", "stitched_sessions", "stitched_cagr",
+            "stitched_annualized_volatility", "stitched_sharpe",
+            "stitched_hac_sharpe", "stitched_max_drawdown", "stitched_hit_rate",
+            "walk_forward_efficiency", "walk_forward_efficiency_denominator_span",
+            "selection_switches", "distinct_variants_selected",
+            "stitched_annual_cost_drag", "selection_adjusted",
+        ]].round(6))
+
+        selector_folds = walk_forward_folds.sort_values("fold").reset_index(drop=True)
+        frozen_folds = stability_folds.sort_values("fold").reset_index(drop=True)
+        fold_table = pd.DataFrame({
+            "Fold": selector_folds["fold"],
+            "Segment start": selector_folds["segment_start"],
+            "Segment end": selector_folds["segment_end"],
+            "Training sessions": selector_folds["training_sessions"],
+            "Fold sessions": selector_folds["fold_sessions"],
+            "Selected variant": selector_folds["selected_variant"],
+            "Selection switched": selector_folds["selection_switched"],
+            "Selector CAGR": selector_folds["fold_cagr"],
+            "Frozen CAGR": frozen_folds["fold_cagr"],
+            "Selector Sharpe": selector_folds["fold_sharpe"],
+            "Frozen Sharpe": frozen_folds["fold_sharpe"],
+            "Selector max drawdown": selector_folds["fold_max_drawdown"],
+            "Frozen max drawdown": frozen_folds["fold_max_drawdown"],
+        })
+        display(fold_table.round(6))
+        """
+    ),
+    code(
+        """
+        fold_years = pd.to_datetime(selector_folds["segment_start"]).dt.year
+        x = np.arange(len(selector_folds))
+        width = 0.4
+        fig, axes = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
+        axes[0].bar(
+            x - width / 2, selector_folds["fold_cagr"], width,
+            color=COLORS["blue"], label="selector active",
+        )
+        axes[0].bar(
+            x + width / 2, frozen_folds["fold_cagr"], width,
+            color=COLORS["navy"], label="frozen specification",
+        )
+        axes[0].axhline(0, color="black", lw=0.8)
+        axes[0].yaxis.set_major_formatter(mtick.PercentFormatter(1))
+        axes[0].set_ylabel("Fold CAGR")
+        axes[0].set_title(
+            "Anchored expanding walk-forward — twenty annual out-of-sample folds"
+        )
+        axes[0].legend(fontsize=8)
+        axes[0].annotate(
+            "fold 0: selector chose "
+            f"{selector_folds['selected_variant'].iloc[0]}",
+            xy=(0, float(selector_folds["fold_cagr"].iloc[0])),
+            xytext=(34, -6),
+            textcoords="offset points",
+            arrowprops=dict(arrowstyle="->", color=COLORS["red"], lw=1.4),
+            color=COLORS["red"], fontsize=9,
+        )
+        axes[1].bar(
+            x - width / 2, selector_folds["fold_sharpe"], width,
+            color=COLORS["blue"], label="selector active",
+        )
+        axes[1].bar(
+            x + width / 2, frozen_folds["fold_sharpe"], width,
+            color=COLORS["navy"], label="frozen specification",
+        )
+        axes[1].axhline(0, color="black", lw=0.8)
+        axes[1].set_ylabel("Fold Sharpe (rf=0)")
+        axes[1].set_xticks(x, fold_years, rotation=90, fontsize=8)
+        axes[1].set_xlabel("Fold test year")
+        fig.tight_layout()
+        plt.show()
+        """
+    ),
+    code(
+        """
+        family_wise = pd.read_csv(
+            OUTPUTS / "validation" / "validation_family_wise.csv"
+        )
+        cscv_monthly = pd.read_csv(OUTPUTS / "validation" / "validation_cscv.csv")
+        cscv_daily = pd.read_csv(
+            OUTPUTS / "validation" / "validation_cscv_daily_secondary.csv"
+        )
+        cscv_lever_sweep = pd.read_csv(
+            OUTPUTS / "validation" / "validation_cscv_lever_sweep.csv"
+        )
+        deflated_sharpe = pd.read_csv(
+            OUTPUTS / "validation" / "validation_deflated_sharpe.csv"
+        )
+
+        grid_order = family_wise[["Statistic", "Procedure"]].drop_duplicates()
+        family_grid = (
+            family_wise.pivot(
+                index=["Statistic", "Procedure"],
+                columns="Expected block sessions",
+                values="p value",
+            )
+            .reindex(pd.MultiIndex.from_frame(grid_order))
+            .round(6)
+        )
+        display(family_grid)
+        display(family_wise[[
+            "Statistic", "Procedure", "Expected block sessions", "Status",
+            "p value", "p value resolution", "Observed max statistic", "Samples",
+            "Family size", "Family completeness",
+            "Members without bootstrap variance", "Selection adjusted",
+        ]].round(6))
+        """
+    ),
+    code(
+        """
+        cscv_rows = pd.concat(
+            [
+                cscv_monthly.assign(Estimate="monthly paths — headline"),
+                cscv_daily.assign(Estimate="daily paths — labelled secondary"),
+                cscv_lever_sweep.assign(Estimate="four-variant lever sweep"),
+            ],
+            ignore_index=True,
+        )
+        display(cscv_rows[[
+            "Estimate", "Family", "Statistic", "Status", "Value", "Submatrices",
+            "Combinations", "Rows per submatrix", "Configurations",
+            "Family completeness", "In-sample selection ties", "Selection adjusted",
+        ]].round(6))
+
+        display(deflated_sharpe[[
+            "Member", "Statistic", "Status", "Value", "Per-period Sharpe",
+            "Declared trials",
+            "Lower-bound deflated probability (illustrative)",
+            "Deflation threshold (annualized)", "Observations",
+            "Selection adjusted",
+        ]].round(6))
+        display(pd.DataFrame({
+            "Reason recorded for every deflated-Sharpe member":
+                deflated_sharpe["Reason"].drop_duplicates().tolist(),
+        }))
+        """
+    ),
+    markdown(
+        """
+        ## 17. Published benchmarks — replicated on the identical panel and ledger
+
+        Section 2 classifies the incumbent's Sharpe against descriptive bands. A
+        band is a classification of a number, not a comparison of a strategy.
+        Four published rules, a leverage-capped companion, three no-timing
+        controls and four volatility-management overlays now run on the
+        identical panel and are pushed through `strategy._simulate_execution`
+        with the same engine and all common execution and cost assumptions, so
+        costs, integer contracts, the participation cap, roll turnover and FX
+        are identical *by construction* rather than by inspection. Rule-specific
+        gross-notional-cap releases are declared in the artifact, and capped MOP
+        is reported separately. `strategy.py` is unmodified, and the seam is
+        proven rather than asserted: replaying the incumbent's own decision
+        frame back through that path reproduces the canonical ledger with a
+        maximum absolute daily net-return deviation of exactly 0.0.
+
+        The comparison makes one thing plain. Moskowitz-Ooi-Pedersen
+        time-series momentum earns *more* CAGR than the incumbent, at about 1.55
+        times the volatility and nearly twice the drawdown. When it is forced
+        under the incumbent's own gross-notional cap, its CAGR falls to 12.73%,
+        below the incumbent's 13.19%, while its volatility remains about 1.50
+        times as high. The incumbent's edge on this history is risk control, not
+        a demonstrated better signal.
+
+        The spanning regression on four published rules plus the long-only
+        equal-risk control leaves an annualized
+        alpha of 4.6405% with a Newey-West t-statistic of 6.0364 at an R-squared
+        of 0.7350. The only significant loading is MOP time-series momentum at
+        0.5092. That 4.64% is an optimistically biased reused-history estimate,
+        not an unbiased estimate of edge: the benchmark rules ran cold and
+        unrefitted on this panel while the incumbent's parameters were chosen
+        with it visible.
+
+        A block sign-permutation null flips the signs of the incumbent's own
+        monthly decisions 1,000 times using the same sizing magnitudes and the
+        same cost, capacity and execution model, with every permuted path
+        re-executed. The incumbent sits at the top of that null. The
+        empirical one-sided p-value is at the resolution floor of 1,000
+        permutations and nothing smaller may be read from it.
+
+        The Moreira-Muir overlay is reported twice on purpose. The expanding,
+        implementable version and the full-sample constant version differ by
+        about +0.011 Sharpe in favour of the non-causal one; that difference is
+        the size of the look-ahead, and only the expanding row is
+        implementable.
+
+        What this does not establish: no licensed external index is used, so
+        this is a replication of published rules rather than the published
+        results. Both sides are gross of management and performance fees and net
+        only of this repository's own cost model, and the whole comparison is
+        the same reused history.
+        """
+    ),
+    code(
+        """
+        benchmark_comparison = pd.read_csv(
+            OUTPUTS / "benchmarks" / "benchmark_comparison.csv"
+        )
+        benchmark_seam = pd.read_csv(
+            OUTPUTS / "benchmarks" / "benchmark_seam_check.csv"
+        )
+        display(benchmark_seam)
+        display(benchmark_comparison[[
+            "benchmark", "family", "leverage_cap_applied", "years", "cagr",
+            "annualized_volatility", "sharpe", "hac_sharpe", "sortino", "calmar",
+            "max_drawdown", "max_drawdown_over_volatility", "annual_cost_drag",
+            "average_gross_notional_multiple", "average_markets_held",
+            "return_correlation_with_incumbent", "run_status",
+        ]].round(6))
+        display(benchmark_comparison[["benchmark", "citation", "construction"]])
+        """
+    ),
+    code(
+        """
+        family_colors = {
+            "incumbent": COLORS["red"],
+            "time-series momentum": COLORS["blue"],
+            "multi-horizon trend": COLORS["teal"],
+            "alternative trend estimator": COLORS["green"],
+            "no-timing control": COLORS["gray"],
+            "volatility-management overlay": COLORS["amber"],
+        }
+        label_offsets = {
+            "moreira_muir_full_sample_constant_on_incumbent": (8, 8),
+            "moreira_muir_expanding_constant_on_incumbent": (8, -14),
+            "mop_tsmom_under_incumbent_leverage_cap": (8, -12),
+            "long_only_equal_notional": (8, -14),
+        }
+        fig, ax = plt.subplots(figsize=(12.5, 6.6))
+        for _, row in benchmark_comparison.iterrows():
+            is_incumbent = row["benchmark"] == "incumbent"
+            ax.scatter(
+                row["annualized_volatility"], row["sharpe"],
+                s=260 if is_incumbent else 80,
+                marker="*" if is_incumbent else "o",
+                color=family_colors.get(row["family"], COLORS["gray"]),
+                edgecolor="white", linewidth=0.6, zorder=3,
+            )
+            ax.annotate(
+                row["benchmark"],
+                (row["annualized_volatility"], row["sharpe"]),
+                fontsize=7.5,
+                xytext=label_offsets.get(row["benchmark"], (8, 4)),
+                textcoords="offset points",
+            )
+        incumbent_row = benchmark_comparison.loc[
+            benchmark_comparison["benchmark"].eq("incumbent")
+        ].iloc[0]
+        mop_row = benchmark_comparison.loc[
+            benchmark_comparison["benchmark"].eq("mop_tsmom")
+        ].iloc[0]
+        ax.set_xlim(0.04, 0.165)
+        ax.xaxis.set_major_formatter(mtick.PercentFormatter(1))
+        ax.set_xlabel("Annualized volatility")
+        ax.set_ylabel("Daily Sharpe (rf=0)")
+        ax.set_title(
+            "Sharpe against volatility — identical panel, ledger and cost model"
+        )
+        handles = [
+            plt.Line2D([0], [0], marker="o", lw=0, color=color, label=label)
+            for label, color in family_colors.items()
+        ]
+        ax.legend(handles=handles, fontsize=8, loc="lower right")
+        fig.text(
+            0.5, 0.01,
+            f"MOP TSMOM earns {mop_row['cagr']:.2%} CAGR against the "
+            f"incumbent's {incumbent_row['cagr']:.2%}, at "
+            f"{mop_row['annualized_volatility'] / incumbent_row['annualized_volatility']:.2f}x "
+            "the volatility and "
+            f"{abs(mop_row['max_drawdown']) / abs(incumbent_row['max_drawdown']):.2f}x "
+            "the drawdown",
+            ha="center", fontsize=9, color=COLORS["gray"],
+        )
+        fig.tight_layout(rect=(0, 0.035, 1, 1))
+        plt.show()
+        """
+    ),
+    code(
+        """
+        benchmark_spanning = pd.read_csv(
+            OUTPUTS / "benchmarks" / "benchmark_spanning.csv"
+        )
+        benchmark_coefficients = pd.read_csv(
+            OUTPUTS / "benchmarks" / "benchmark_spanning_coefficients.csv"
+        )
+        permutation_null = pd.read_csv(
+            OUTPUTS / "benchmarks" / "benchmark_permutation_null.csv"
+        )
+        permutation_draws = pd.read_csv(
+            OUTPUTS / "benchmarks" / "benchmark_permutation_draws.csv"
+        )
+
+        display(benchmark_spanning[[
+            "regression", "method", "sessions", "explanatory_series_count",
+            "explanatory_series", "alpha_annualized",
+            "alpha_hac_standard_error_annualized", "alpha_hac_t_statistic",
+            "r_squared", "adjusted_r_squared", "residual_volatility_annualized",
+            "appraisal_ratio", "hac_lags", "selection_adjusted",
+        ]].round(6))
+        display(benchmark_coefficients.round(6))
+        display(permutation_null[[
+            "null", "permutations", "permutations_completed", "resolution",
+            "incumbent_sharpe", "null_sharpe_mean",
+            "null_sharpe_standard_deviation", "null_sharpe_percentile_50",
+            "null_sharpe_percentile_95", "null_sharpe_percentile_99",
+            "incumbent_percentile_in_null", "empirical_one_sided_p_value",
+            "cost_only_sharpe_reference", "selection_adjusted",
+        ]].round(6))
+
+        block_null = permutation_null.loc[
+            permutation_null["null"].eq("block_sign_flip_on_incumbent_decisions")
+        ].iloc[0]
+        block_draws = permutation_draws.loc[
+            permutation_draws["null"].eq("block_sign_flip_on_incumbent_decisions"),
+            "sharpe",
+        ]
+        fig, ax = plt.subplots(figsize=(12, 5.2))
+        ax.hist(
+            block_draws, bins=45, color=COLORS["blue"], alpha=0.78,
+            label=f"{len(block_draws):,} block sign-flip permutations",
+        )
+        ax.axvline(
+            float(block_null["null_sharpe_percentile_95"]),
+            color=COLORS["amber"], linestyle="--", lw=1.6,
+            label=f"null p95 {block_null['null_sharpe_percentile_95']:.3f}",
+        )
+        ax.axvline(
+            float(block_null["incumbent_sharpe"]),
+            color=COLORS["red"], lw=2.4,
+            label=f"incumbent {block_null['incumbent_sharpe']:.3f}",
+        )
+        ax.set_xlabel("Daily Sharpe (rf=0) of the permuted decision frame")
+        ax.set_ylabel("Permutations")
+        ax.set_title(
+            "Sign-permutation null on the incumbent's own decisions; sizing, "
+            "costs, capacity and execution held fixed"
+        )
+        ax.legend(fontsize=8, loc="upper center")
+        ax.text(
+            0.60, 0.60,
+            "empirical one-sided p = "
+            f"{block_null['empirical_one_sided_p_value']:.6f},\\nthe resolution "
+            f"floor at {int(block_null['permutations']):,} permutations;\\n"
+            "nothing smaller can be read",
+            transform=ax.transAxes, fontsize=9.5, color=COLORS["gray"],
+        )
+        fig.tight_layout()
+        plt.show()
+        """
+    ),
+    markdown(
+        """
+        ## 18. ETF regime allocation and the five-year out-of-sample block
+
+        **This sleeve underperformed every reference on the realized record.** Against a passive
+        60/40 rebalanced monthly it gives up 5.93 percentage points of
+        annualized mean return over the combined ten-year out-of-sample record,
+        with a Newey-West t-statistic of -3.48 and an unadjusted one-sided 95%
+        upper bound of -3.13 percentage points; against 60/40 buy-and-hold it
+        gives up 5.17 points at t = -3.45. On the sealed block it also loses to a declared
+        candidate without the annual walk-forward selector,
+        `faber_trend_inverse_volatility`, at 0.389 Sharpe
+        against 0.588. It is presented here because it was built to answer the
+        five-year forward-data requirement that the futures panel cannot answer,
+        and a negative answer is still the answer.
+
+        The out-of-sample accounting is the auditable part. The futures panel
+        ends 2014-12-31 and cannot supply five years of forward data; the ETF
+        panel ends 2018-12-31. Five years of rolling anchored-expanding
+        walk-forward from 2009-01-02 to 2013-12-31 plus a sealed contiguous
+        block from 2014-01-02 to 2018-12-31 give 2,516 sessions across ten
+        complete calendar years with zero sessions double counted, fold windows
+        pairwise disjoint, and their union equal to the stitched index exactly.
+
+        The sealed block leaves one central question unresolved. It contains no
+        full equity bear market, and the Daniel-Moskowitz bear state used as an
+        external coverage diagnostic is unoccupied across all 1,258 sessions,
+        so `sealed_block_state_coverage` returns `NOT_ESTIMABLE`. That state is
+        not an allocator input: the candidates' own lagged Faber and
+        time-series-momentum gates did operate, and the sealed path held 33.39%
+        mean cash. What is missing is evidence about performance through a full
+        equity bear, not evidence that de-risking ever occurred.
+
+        Two custody claims must not be confused. The sealed block is **not**
+        "sealed before any fitting decision" — that claim was removed. What is
+        proven is narrower and is shown below: the development replay read no
+        sealed row, verified by a byte-identical custody replay with a maximum
+        absolute difference of 0.0 across 1,990 sessions. The annual selector
+        still refits inside the sealed block, so later sealed folds train on
+        earlier sealed sessions.
+
+        All ETF returns are fully funded total returns. Residual "cash" is SHY
+        and carries duration; because the panel has no risk-free or financing
+        series, every displayed Sharpe and HAC Sharpe uses rf = 0 rather than an
+        excess-return convention.
+
+        Survivorship is disclosed rather than solved. All 745 supplied ETF files
+        end 2018-12-31 with positive volume on that session, so no closed or
+        delisted fund is present in the extract at all. The eleven-fund universe
+        was chosen on asset class, inception date and liquidity only, never on
+        return, and the excluded candidates are recorded with their grounds — but
+        a survivors-only extract cannot be repaired by disciplined selection
+        inside it.
+
+        The vendor extract also carries defects that bound what this panel can
+        support, recorded in `docs/etf-regime-allocation-findings.md`: the
+        Dividend column is identically 0.0 in all 745 files, the three
+        `Constituent_` columns are identically 0, Volume is back-adjusted so that
+        Volume × Unadjusted Close is wrong by the adjustment factor, and
+        `first_quoted_date` is D/M/YY and mis-parses silently as M/D/YY on 310 of
+        745 rows.
+
+        What this does not establish: ten years out of sample on one panel, with
+        one regime state unoccupied and a survivors-only universe, is not
+        evidence that the allocator would work on a panel that includes the
+        funds that closed. It is not a futures result and carries nothing over
+        to the incumbent.
+        """
+    ),
+    code(
+        """
+        etf_accounting = pd.read_csv(
+            OUTPUTS / "etf" / "etf_out_of_sample_accounting.csv"
+        )
+        etf_custody = pd.read_csv(OUTPUTS / "etf" / "etf_holdout_custody.csv")
+        etf_walk_forward = pd.read_csv(
+            OUTPUTS / "etf" / "etf_walk_forward_summary.csv"
+        )
+
+        display(etf_accounting[[
+            "Claim", "Basis", "First session", "Last session",
+            "Complete calendar years", "Calendar years touched",
+            "Distinct sessions", "Elapsed years (365.2425)", "Folds",
+            "Sessions double counted", "Selection adjusted",
+        ]].round(6))
+        display(etf_custody[[
+            "Check", "Guard", "Development last session", "Sealed block starts",
+            "Guarded input last session", "Compared sessions",
+            "Maximum absolute difference", "Byte identical on the overlap",
+        ]])
+        display(etf_walk_forward[[
+            "label", "mode", "lineage_id", "anchor", "folds", "candidates",
+            "stitched_start", "stitched_end", "stitched_sessions",
+            "stitched_calendar_years", "stitched_cagr",
+            "stitched_annualized_volatility", "stitched_sharpe",
+            "stitched_hac_sharpe", "stitched_max_drawdown", "stitched_calmar",
+            "selection_switches", "distinct_candidates_selected",
+            "selection_adjusted",
+        ]].round(6))
+        display(pd.DataFrame([{
+            "Conditional statistic": "sealed_block_state_coverage",
+            "Recorded status": etf_manifest["sealed_block_state_coverage_status"],
+            "Recorded reason": etf_manifest["sealed_block_state_coverage_reason"],
+        }]))
+        """
+    ),
+    code(
+        """
+        etf_rolling = pd.read_csv(
+            OUTPUTS / "etf" / "etf_comparison_rolling_out_of_sample.csv"
+        )
+        etf_sealed = pd.read_csv(
+            OUTPUTS / "etf" / "etf_comparison_sealed_block.csv"
+        )
+        etf_comparison_columns = [
+            "Path", "Window", "Basis", "Start", "End", "Sessions",
+            "Complete calendar years", "CAGR", "Annualized volatility",
+            "Sharpe (rf=0)", "HAC Sharpe", "Sortino", "Max drawdown", "Calmar",
+            "Hit rate", "Annual one-way turnover", "Annual cost drag",
+            "Mean risk weight",
+        ]
+        display(etf_rolling[etf_comparison_columns].round(6))
+        display(etf_sealed[etf_comparison_columns].round(6))
+
+        fig, axes = plt.subplots(2, 2, figsize=(13, 8.6))
+        panels = [
+            (etf_rolling, "Rolling out of sample 2009-2018"),
+            (etf_sealed, "Sealed contiguous block 2014-2018"),
+        ]
+        for row_index, (frame, panel_title) in enumerate(panels):
+            ordered = frame.iloc[::-1]
+            bar_colors = [
+                COLORS["red"] if path == "etf_regime_allocation" else COLORS["blue"]
+                for path in ordered["Path"]
+            ]
+            axes[row_index, 0].barh(ordered["Path"], ordered["CAGR"], color=bar_colors)
+            axes[row_index, 0].xaxis.set_major_formatter(mtick.PercentFormatter(1))
+            axes[row_index, 0].set_title(panel_title + " — CAGR")
+            axes[row_index, 1].barh(
+                ordered["Path"], ordered["Sharpe (rf=0)"], color=bar_colors
+            )
+            axes[row_index, 1].set_title(panel_title + " — Sharpe (rf=0)")
+            for axis in axes[row_index]:
+                axis.tick_params(axis="y", labelsize=8)
+                axis.axvline(0, color="black", lw=0.8)
+        fig.suptitle(
+            "The regime allocator (red) loses to passive 60/40 on both spans",
+            y=1.01, weight="bold",
+        )
+        fig.tight_layout()
+        plt.show()
+        """
+    ),
+    code(
+        """
+        etf_paired = pd.read_csv(
+            OUTPUTS / "etf" / "etf_paired_reference_inference.csv"
+        )
+        etf_universe = pd.read_csv(OUTPUTS / "etf" / "etf_universe.csv")
+
+        display(etf_paired[[
+            "Comparison", "Sessions", "Method", "Annualized mean differential",
+            "Standard error (annualized)", "t statistic",
+            "Confidence lower (95% one-sided)",
+            "Confidence upper (95% one-sided)", "Tracking error (annualized)",
+            "Return correlation", "Minimum detectable Sharpe effect",
+            "Selection adjusted",
+        ]].round(6))
+
+        turnover_column = next(
+            column for column in etf_universe.columns
+            if column.startswith("Median daily turnover")
+        )
+        display(etf_universe[[
+            "Ticker", "Exposure", "Asset class", "First quoted",
+            turnover_column, "Selection inputs",
+        ]])
+        display(pd.DataFrame({
+            "Disclosed limitation": [
+                item.strip().replace("_", " ")
+                for item in str(etf_accounting["Limitation"].iloc[0]).split(";")
+                if item.strip()
+            ],
+        }))
+        """
+    ),
+    markdown(
+        """
+        ## 19. What was fixed locally, and what still requires external action
 
         | Original blocker | Repository change | Current state |
         |---|---|---|
@@ -1509,10 +2664,107 @@ cells = [
           `outputs/run_manifest.json`: reproducibility fingerprints and research
           status.
 
-        Reproduce with `delta1-strategy`, rebuild this notebook with `python
-        scripts/build_committee_notebook.py`, run `python -m unittest discover
-        -s tests -v`, then execute it from a clean kernel. The notebook must
-        contain embedded PNG outputs and zero error cells before committee
+        Post-audit study artifacts, all read read-only by sections 13–18:
+
+        - `outputs/attribution/attribution_bound_activity.csv`,
+          `outputs/attribution/attribution_drawdown_anatomy.csv`: which bounds
+          are inert and what the deep drawdowns are made of.
+        - `outputs/attribution/attribution_drawdown_episodes.csv`,
+          `outputs/attribution/attribution_episode_summary.csv`,
+          `outputs/attribution/attribution_episode_market_detail.csv`: episode
+          depths, breadth of loss and per-market attribution inside them.
+        - `outputs/attribution/attribution_uniform_rescale_frontier.csv`: the
+          Sharpe-invariant uniform de-lever frontier.
+        - `outputs/attribution/attribution_conditional_exposure.csv`,
+          `outputs/attribution/attribution_correlation_conditioner.csv`: an
+          in-sample-fitted correlation conditioner retained as a hypothesis
+          only; it is not displayed above and is not promotable.
+        - `outputs/bounds/bound_variants.json`, `outputs/bounds/bound_binding.csv`:
+          the declared bound grid and measured binding frequencies.
+        - `outputs/bounds/bound_match_jitter.csv`,
+          `outputs/bounds/bound_shape.csv`,
+          `outputs/bounds/bound_resolution.csv`: the solver jitter band, the
+          matched shape rows and the resolution floors they are refused against.
+        - `outputs/bounds/bound_drawdown_risk.csv`,
+          `outputs/bounds/bound_paired_differentials.csv`,
+          `outputs/bounds/bound_power.csv`,
+          `outputs/bounds/bound_comparison.csv`,
+          `outputs/bounds/bound_monthly_net_returns.csv`,
+          `outputs/bounds/bound_risk_match.csv`: forward breach probabilities,
+          paired differentials, detectable-effect sizes and the matched paths.
+        - `outputs/validation/validation_run.json`,
+          `outputs/validation/validation_family_manifest.csv`: the declared
+          17-configuration family and run parameters.
+        - `outputs/validation/validation_walk_forward_summary.csv`,
+          `outputs/validation/validation_walk_forward_folds.csv`,
+          `outputs/validation/validation_walk_forward_monthly_path.csv`,
+          `outputs/validation/validation_stability_folds.csv`: anchored
+          expanding walk-forward, selector active and specification frozen.
+        - `outputs/validation/validation_family_wise.csv`,
+          `outputs/validation/validation_family_wise_lever_sweep.csv`: White
+          reality check and Hansen SPA across three block lengths.
+        - `outputs/validation/validation_cscv.csv` (monthly headline),
+          `outputs/validation/validation_cscv_daily_secondary.csv` (labelled
+          secondary), plus their diagnostics, splits and lever-sweep refusals.
+        - `outputs/validation/validation_deflated_sharpe.csv`: `NOT_ESTIMABLE`
+          for every member, with the recorded reason.
+        - `outputs/benchmarks/benchmark_manifest.json`,
+          `outputs/benchmarks/benchmark_seam_check.csv`: declared benchmark set,
+          the incumbent fingerprint they attach to, and the execution-seam proof.
+        - `outputs/benchmarks/benchmark_comparison.csv`,
+          `outputs/benchmarks/benchmark_daily_net_returns.csv`,
+          `outputs/benchmarks/benchmark_monthly_net_returns.csv`,
+          `outputs/benchmarks/benchmark_signal_diagnostics.csv`,
+          `outputs/benchmarks/benchmark_hop_scaling_diagnostics.csv`,
+          `outputs/benchmarks/benchmark_overlay_weights.csv`: replicated
+          published rules and their construction diagnostics.
+        - `outputs/benchmarks/benchmark_spanning.csv`,
+          `outputs/benchmarks/benchmark_spanning_coefficients.csv`,
+          `outputs/benchmarks/benchmark_alpha.csv`: spanning regression and
+          pairwise HAC alphas, all optimistically biased reused-history
+          estimates rather than unbiased edge estimates.
+        - `outputs/benchmarks/benchmark_permutation_null.csv`,
+          `outputs/benchmarks/benchmark_permutation_draws.csv`: the sign-flip
+          null and its 1,000 draws per construction.
+        - `outputs/etf/etf_run_manifest.json`,
+          `outputs/etf/etf_out_of_sample_accounting.csv`,
+          `outputs/etf/etf_holdout_custody.csv`: the ten-year out-of-sample
+          accounting and the custody replay that proves no sealed row was read.
+        - `outputs/etf/etf_comparison_rolling_out_of_sample.csv`,
+          `outputs/etf/etf_comparison_sealed_block.csv`,
+          `outputs/etf/etf_comparison_full_replay.csv`,
+          `outputs/etf/etf_comparison_equity_bear_market.csv`,
+          `outputs/etf/etf_risk_matched_comparison.csv`: the sleeve against its
+          references, including the one bear market that straddles the first
+          boundary and is therefore partly in sample.
+        - `outputs/etf/etf_paired_reference_inference.csv`,
+          `outputs/etf/etf_in_sample_versus_out_of_sample.csv`,
+          `outputs/etf/etf_fold_dispersion.csv`,
+          `outputs/etf/etf_walk_forward_folds.csv`,
+          `outputs/etf/etf_walk_forward_summary.csv`: the paired inference that
+          establishes the loss and the fold record behind it.
+        - `outputs/etf/etf_universe.csv`,
+          `outputs/etf/etf_excluded_candidates.csv`,
+          `outputs/etf/etf_universe_turnover_audit.csv`,
+          `outputs/etf/etf_allocation_candidates.csv`: universe selection
+          grounds, exclusions and the survivorship disclosure carried on every
+          row.
+        - `outputs/etf/etf_cost_model_assumptions.csv`,
+          `outputs/etf/etf_cost_sensitivity.csv`,
+          `outputs/etf/etf_volatility_budget_diagnostic.csv`,
+          `outputs/etf/etf_exposure_shares.csv`,
+          `outputs/etf/etf_stitched_daily.csv`,
+          `outputs/etf/etf_stitched_weights.csv`: assumed costs, exposure shares
+          and the stitched ledger.
+
+        Reproduce the canonical bundle with `delta1-strategy` and the post-audit
+        studies with `python scripts/run_drawdown_attribution.py`, `python
+        scripts/run_bounds_sweep.py`, `python scripts/run_validation_suite.py`,
+        `python scripts/run_benchmark_comparison.py` and `python
+        scripts/run_etf_regime_allocation.py`. Rebuild this notebook with
+        `python scripts/build_committee_notebook.py`, run `python -m unittest
+        discover -s tests -v`, then execute it from a clean kernel. The notebook
+        must contain embedded PNG outputs and zero error cells before committee
         distribution.
         """
     ),

@@ -9,15 +9,32 @@ statuses below.
 
 ## Decision and intended use
 
-**Deployment status: BLOCKED.** The repository is approved for reproducible
-research review, serial-data integration, and a future prospective paper/shadow
-program. It is not approved for live capital.
+**Deployment status: BLOCKED.** Nothing added since the correctness audit
+changes that. The repository is approved for reproducible research review,
+serial-data integration, and a future prospective paper/shadow program. It is
+not approved for live capital.
 
 Intended users are quantitative research, independent model validation,
 execution, risk, operations, compliance, market data, and the investment
-committee. Prohibited uses include routing continuous symbols, using the
-bundled paper broker with capital, treating reused history as a holdout, or
-self-approving missing evidence.
+committee. The benchmark replication, family-wise inference, walk-forward,
+bound-sensitivity and ETF studies exist to be read as constraints on what may be
+claimed, not as support for a claim.
+
+Prohibited uses include routing continuous symbols, using the bundled paper
+broker with capital, treating reused history as a holdout, or self-approving
+missing evidence. Also prohibited, and specific to the evidence added since the
+audit:
+
+- presenting the stitched 1995–2014 walk-forward, the 2015–2016 twelve-root
+  subset, or the ETF sealed block as a prospective track record, or as
+  satisfying `independent_holdout` or `forward_paper_trading`;
+- quoting the daily-matrix PBO of 0.073 as the headline figure — the monthly
+  paths the methodology permits give **0.42**, and that is the number;
+- quoting the spanning alpha of 4.64% as an unbiased estimate of edge rather
+  than an optimistically biased reused-history estimate;
+- quoting the sign-permutation *p*-value as smaller than 0.000999, which is the
+  resolution floor at 1,000 permutations; and
+- citing the position-magnitude bounds as drawdown controls.
 
 ## Frozen research specification
 
@@ -39,6 +56,14 @@ self-approving missing evidence.
 
 The current catalogue margin snapshot does not resize historical positions.
 Its historical series is an informational proxy only.
+
+The position-magnitude bounds listed above are not risk controls on the
+evidence. `max_risk_scalar` (2.00) and `min_risk_scalar` (0.25) bind on 0 of 300
+monthly decisions over 1990–2014; the realized multiplier stays inside
+`[0.294, 1.846]`. `max_gross_notional_multiple` binds on 24 of 6,523 sessions.
+They are retained as compliance ceilings, and lowering them is an allocation
+decision rather than a drawdown decision. See
+[`drawdown-attribution-findings.md`](drawdown-attribution-findings.md).
 
 ## Historical evidence
 
@@ -62,6 +87,76 @@ robust joint improvement. A 9.3% volatility-target sensitivity was rejected
 because it bought exposure rather than alpha, failed to establish the joint
 aspiration on full and later reused history, and left inadequate drawdown
 headroom. Further 1990–2014 tuning is prohibited.
+
+### External reference points and multiple-testing results
+
+The descriptive bands are a classification of a number, not a comparison of a
+strategy. Published rules replicated on the identical panel through the same
+engine and all common execution and cost assumptions supply the comparison;
+rule-specific gross-cap departures are declared and capped MOP is reported
+separately. Family-wise inference supplies the multiple-testing correction. Both are computed by
+`delta1_strategy.research.benchmarks` and
+`delta1_strategy.research.validation`; artifacts are in `outputs/benchmarks/`
+and `outputs/validation/`, and
+[`benchmark-and-validation-findings.md`](benchmark-and-validation-findings.md)
+carries the detail.
+
+| Result | Value | What it does not establish |
+|---|---|---|
+| Sharpe against published trend rules | incumbent highest of the replicated set | Moskowitz-Ooi-Pedersen TSMOM earns *more* CAGR at 1.55x the volatility, so the advantage is risk control, not signal |
+| Spanning alpha, Newey-West 21 lags | 4.64%/yr, HAC *t* = 6.04, R² 0.735 | an optimistically biased reused-history estimate: the benchmark rules ran cold and unrefitted while the incumbent's parameters were chosen with this panel visible, and the size of that selection bias is unmeasurable here |
+| White Reality Check / Hansen SPA on Sharpe, 17 declared configurations | no rejection at any block length (RC 0.642–0.660, SPA consistent 0.277–0.321) | Hansen SPA rejects on annualized mean at the resolution floor because a member raises the volatility target 7%→8%, lifting the annualized arithmetic mean 1.89 percentage points on a path correlated 0.994; White RC does not (0.087–0.106) — leverage, not skill |
+| CSCV/PBO, monthly paths | **0.42** | near the 0.5 signature of pure overfitting; the daily-matrix 0.073 is a labelled secondary estimate and is not the headline |
+| `family_deflated_sharpe` | `NOT_ESTIMABLE` for every member | a family declared today is a lower bound on this lineage's search, not its trial count |
+| Sign-permutation null, 1,000 block flips | incumbent at the 100th percentile, *p* = 0.000999 | resolution floor at B = 1,000; a rejection of pure sign noise, not evidence of a persistent edge |
+
+## Evaluation data and out-of-sample record
+
+Three records exist and none of them is a forward track record. They are listed
+together because reading any one alone overstates it.
+
+| Record | Artifacts | Span | Result | Limitation carried inline |
+|---|---|---|---|---|
+| 2015–2016 futures subset | `outputs/holdout/` | 522 sessions, 12 of 59 roots | annualized return +3.71%, Sharpe +0.56, max DD −8.02% | trend sleeve only; the vendor supplies no unadjusted post-2014 series so basis momentum cannot be reconstructed; no equity, FX, energy or agricultural exposure; ~500 sessions cannot resolve a Sharpe difference of the size the gates require; the append-only ledger refuses a second look |
+| Stitched futures walk-forward | `outputs/validation/` | 1995-01-02 → 2014-12-31, 5,218 sessions (20.7 252-session-equivalent years; 20.0 elapsed calendar years), 20 folds, pairwise disjoint | selector active: CAGR 11.59%, Sharpe 1.418, HAC 1.321, max DD −18.19%, efficiency 0.896. Frozen specification: CAGR 12.93%, Sharpe 1.583, HAC 1.476, max DD −11.85% | out of sample with respect to the **selector only**; the replayed specification was written with this window already read. Selection cost 0.165 Sharpe and pushed maximum drawdown through the 15% policy. Only 1995 selects a non-baseline variant; continuous state carry means the full gap is not a fold-local attribution |
+| ETF regime-allocation sleeve | `outputs/etf/` | rolling 2009-01-02 → 2018-12-31, 2,516 sessions, 10 complete calendar years, of which 2014-01-02 → 2018-12-31 is a contiguous sealed block of 1,258 sessions; zero sessions double counted | rolling: CAGR 3.32%, Sharpe 0.661, HAC 0.744, max DD −7.47%. Sealed block: CAGR 1.59%, Sharpe 0.389, HAC 0.424, max DD −7.47% | **it loses.** −5.93%/yr against a monthly-rebalanced 60/40 (*t* = −3.48, unadjusted 95% one-sided upper bound −3.13%) and −5.17%/yr against buy-and-hold (*t* = −3.45); it also loses to a declared candidate without the annual walk-forward selector. See the survivorship and state-coverage disclosures below |
+
+Two disclosures apply to the ETF record specifically and must travel with any
+citation of it.
+
+**Survivorship.** All 745 supplied ETF files end 2018-12-31 with positive volume
+on that exact session. The distribution of "last session with positive volume"
+is 745 on that date and zero on every other. No closed or delisted fund is
+present in the extract. It is a survivors-only panel. The sleeve therefore performs no cross-sectional
+selection: the universe is eleven large broad index trackers (SPY, IWM, EFA,
+EEM, IYR, SHY, IEF, TLT, LQD, GLD, DBC) chosen on asset-class coverage,
+inception date and liquidity only, never on return. That reduces exposure to the
+defect without removing it, and choosing those eleven remains a judgement made
+by someone who had seen the panel.
+
+**Full-bear conditional performance is not estimable.** The sealed block
+contains no full equity bear market. The Daniel-Moskowitz bear state, used as an
+external coverage diagnostic rather than an allocator input, is unoccupied
+across all 1,258 sessions and `sealed_block_state_coverage` returns
+`NOT_ESTIMABLE`. The candidates' own lagged Faber and time-series-momentum gates
+did operate and the sealed path held 33.39% mean cash. The sleeve is not shown
+to be worthless; it is also not rescued from its observed underperformance by
+the absence of a full-bear test.
+
+The sealed block is **not** sealed before every fitting decision. What is proven
+is narrower and is proven by execution: the development replay read no sealed
+row, verified by a byte-identical custody replay over 1,990 sessions with
+maximum absolute difference exactly 0.0. The universe rule, candidate set, cost
+model, risk budget, boundary schedule and purge/embargo lengths were all written
+by someone who had read the whole panel. The annual selector also refits inside
+the sealed block, so later sealed folds train on earlier sealed sessions.
+
+The vendor panel also carries four defects the loader corrects rather than
+inherits: the `Dividend` column is identically 0.0 in all 745 files, the three
+`Constituent_` columns are identically 0, `Volume` is back-adjusted so
+`Volume × Unadjusted Close` is wrong by the adjustment factor, and
+`first_quoted_date` is D/M/YY and silently mis-parses as M/D/YY on 310 of 745
+rows.
 
 ## Monte Carlo scope
 
@@ -99,9 +194,30 @@ proxies, not calibrated live risk of ruin. Monte Carlo cannot create alpha.
 5. Costs are transparent assumptions and stresses, not representative live
    calibration.
 6. Source hashes prove byte identity, not point-in-time membership,
-   survivorship freedom, vendor correctness, or live tradability.
-7. Every return period has been inspected/reused. No untouched holdout or
-   forward track record exists.
+   survivorship freedom, vendor correctness, or live tradability. The ETF panel
+   is demonstrably survivors-only, and a hash cannot detect that.
+7. Every 1990–2014 futures return period has been inspected and reused. **No
+   prospective forward track record exists**, and no record here is post-freeze
+   or independently custodied. The three out-of-sample records tabulated above
+   are replays on vendor panels already in hand: two years on a twelve-root
+   subset, twenty years out of sample with respect to a selector only, and ten
+   years on a separate survivors-only ETF panel whose sealed five-year block
+   contains no full equity bear, so bear-conditional performance is not
+   estimable. None of them is the
+   `independent_holdout` gate and none is the `forward_paper_trading` gate.
+8. The strategy's edge is not established. No family-wise procedure rejects on
+   Sharpe over seventeen declared configurations, CSCV/PBO on the permitted
+   monthly paths is 0.42, and the 4.64% spanning alpha is an optimistically
+   biased reused-history estimate with unmeasurable selection bias. What is defensible is that
+   the incumbent achieves comparable return to published trend rules at
+   materially lower risk on this panel.
+9. The position-magnitude bounds do not manage drawdown. Neither named scalar
+   bound binds; realized volatility inside drawdowns deeper than 5% is 96.9% of
+   the unconditional level while the book is 21.5% smaller; the daily hit rate
+   falls from 55.48% to 46.56%; and 59%–86% of the traded book loses in every
+   episode. The failure mode is forecast accuracy across many correlated
+   markets, which no size ceiling reaches. Uniform de-levering leaves Sharpe
+   invariant at 1.5895 and makes Calmar slightly worse.
 
 ## Production controls
 
@@ -132,6 +248,30 @@ approval. In particular, the repository does not supply the independent intent
 signer, approved compliance-policy artifact/provider, certified production
 adapter or broker-identity evidence required by those interfaces.
 
+## Research estimators the methodology names, now in code
+
+Gates that existed only as prose are executable, which means a future review can
+run them rather than assert them. Existence is not a result: three of the four
+returned refusals or unfavourable answers on this data.
+
+- `delta1_strategy.research.validation`: `anchored_walk_forward`,
+  `reality_check`/`hansen_spa`/`family_wise_report`, `cscv_pbo` with a mandatory
+  `NOT_ESTIMABLE` refusal path, and `family_deflated_sharpe`. `assemble_family`
+  validates that every member's path is synchronized on one common index before
+  any statistic is computed.
+- `delta1_strategy.research.benchmarks`: published-rule replication driven
+  through `strategy._simulate_execution` with the incumbent's own
+  `StrategyConfig`, so costs, integer contracts, participation caps, roll
+  turnover and FX are identical by construction. A seam check reproduces the
+  canonical ledger from the incumbent's own decision frame with maximum absolute
+  daily deviation exactly 0.0. `strategy.py` is unmodified.
+- `delta1_strategy.research.attribution` and `delta1_strategy.research.bounds`:
+  bound-activity measurement before a sweep is run, then a magnitude sweep at
+  matched realized volatility with a published resolution floor.
+- `delta1_strategy.marketdata.etfs`, `delta1_strategy.research.regimes` and
+  `delta1_strategy.research.allocation`: the ETF sleeve, its pre-declared
+  universe and its custody replay.
+
 ## Minimum path to another launch review
 
 1. Freeze v3.2.1, dependencies, data and acceptance criteria.
@@ -139,7 +279,10 @@ adapter or broker-identity evidence required by those interfaces.
    valuation/specification/margin/fee schedules.
 3. Calibrate execution with representative quotes and fills.
 4. Add collateral, variation margin, funding and forced-liquidation controls.
-5. Evaluate genuinely post-freeze data without model changes.
+5. Evaluate genuinely post-freeze data without model changes. The estimators
+   for that evaluation exist — `research.validation.anchored_walk_forward` for
+   the replay and `family_wise_report` for the multiplicity correction — so what
+   is missing is the data and the custody, not the method.
 6. Complete predeclared paper/shadow acceptance across rebalance and roll
    cycles.
 7. Deploy and certify the selected broker adapter and identity, separately
@@ -151,4 +294,9 @@ adapter or broker-identity evidence required by those interfaces.
 
 Until every critical record is verified, `overall_readiness_status` remains
 `BLOCKED`. See the [deployment runbook](runbooks/deployment.md) and
-[evidence-registry guide](controls/evidence-registry.md).
+[evidence-registry guide](controls/evidence-registry.md). The measurements
+summarized above are recorded in
+[drawdown attribution](drawdown-attribution-findings.md),
+[benchmarks and validation](benchmark-and-validation-findings.md),
+[the ETF regime-allocation sleeve](etf-regime-allocation-findings.md) and
+[the lever program](lever-program-findings.md).

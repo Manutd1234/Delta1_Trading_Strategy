@@ -229,3 +229,8 @@ __marimo__/
 
 # Generated fixture data; the generator is committed instead.
 examples/data/synthetic/
+
+# A separate application checked out inside this repository root. It carries its
+# own .git directory, so `git add -A` would otherwise either nest a repository
+# or commit its node_modules tree into this history.
+alphaengine-developer/

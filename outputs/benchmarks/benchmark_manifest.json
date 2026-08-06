@@ -1,0 +1,56 @@
+{
+  "benchmarks_completed": [
+    "baltas_kosowski_tstatistic",
+    "barroso_santa_clara_on_incumbent",
+    "barroso_santa_clara_on_mop_tsmom",
+    "baz_macd_ewmac",
+    "hop_trend_blend",
+    "incumbent",
+    "long_only_equal_notional",
+    "long_only_equal_risk",
+    "long_only_equal_risk_volatility_matched",
+    "mop_tsmom",
+    "mop_tsmom_under_incumbent_leverage_cap",
+    "moreira_muir_expanding_constant_on_incumbent",
+    "moreira_muir_full_sample_constant_on_incumbent"
+  ],
+  "benchmarks_declared": [
+    "mop_tsmom",
+    "mop_tsmom_under_incumbent_leverage_cap",
+    "hop_trend_blend",
+    "baltas_kosowski_tstatistic",
+    "baz_macd_ewmac",
+    "long_only_equal_risk",
+    "long_only_equal_notional",
+    "long_only_equal_risk_volatility_matched",
+    "barroso_santa_clara_on_mop_tsmom",
+    "barroso_santa_clara_on_incumbent",
+    "moreira_muir_expanding_constant_on_incumbent",
+    "moreira_muir_full_sample_constant_on_incumbent"
+  ],
+  "benchmarks_errored": {},
+  "disclosed_gaps": [
+    "no licensed external index (SG Trend, BTOP50) is used; a published index carries a different universe, cost base and fee load",
+    "the benchmarks are run cold on this panel while the incumbent's parameters were chosen with this panel visible, so any alpha against them is an upper bound rather than an estimate",
+    "results are gross of management and performance fees on both sides and net only of this repository's own cost model"
+  ],
+  "execution_seam_max_abs_net_return_deviation": 0.0,
+  "incumbent_daily_fingerprint_sha256": "8a4f63aaacfe32671c3aa8f120198fd9e256bb839d8ca2ff71ddec42466a4ac8",
+  "permitted_use": "descriptive replication of published rules on reused history; no row supports promoting or demoting a configuration",
+  "permutation_seed": 20260805,
+  "permutations": 1000,
+  "selection_adjusted": false,
+  "spanning_alpha_annualized": 0.04640463495131086,
+  "spanning_alpha_hac_t_statistic": 6.0364396947110475,
+  "spanning_family": [
+    "mop_tsmom",
+    "hop_trend_blend",
+    "baltas_kosowski_tstatistic",
+    "baz_macd_ewmac",
+    "long_only_equal_risk"
+  ],
+  "window": {
+    "end": "2014-12-31",
+    "start": "1990-01-01"
+  }
+}

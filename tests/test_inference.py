@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import math
 import unittest
+from statistics import NormalDist
 
 import numpy as np
 import pandas as pd
@@ -149,6 +151,12 @@ class TestHac(unittest.TestCase):
             incumbent, incumbent + 0.01 / 252, comparison="known"
         )
         self.assertAlmostEqual(float(report["Point estimate"]), 0.01, places=6)
+        self.assertAlmostEqual(
+            float(report["Confidence upper"]),
+            float(report["Point estimate"])
+            + 1.645 * float(report["Standard error (annualized)"]),
+            places=12,
+        )
 
 
 class TestDeflatedSharpe(unittest.TestCase):
@@ -175,6 +183,49 @@ class TestDeflatedSharpe(unittest.TestCase):
         )
         self.assertEqual(result.status, ESTIMATED)
         self.assertTrue(0.0 <= float(result.value) <= 1.0)
+
+    def test_the_gaussian_denominator_matches_the_published_form(self) -> None:
+        # Bailey and Lopez de Prado write the higher-moment term as
+        # (gamma_4 - 1)/4 on NON-excess kurtosis.  For a Gaussian series
+        # gamma_4 = 3, so the coefficient is 0.5 and the denominator is
+        # sqrt(1 + SR^2 / 2) -- it does NOT collapse to 1.  Dividing the excess
+        # figure straight by four drops that term entirely and inflates the
+        # statistic, which is the defect this pins.
+        sessions = 6_523
+        for sharpe in (0.05, 0.10, 0.50, 1.00):
+            with self.subTest(sharpe=sharpe):
+                result = deflated_sharpe_ratio(
+                    sharpe,
+                    trial_count=1,
+                    trial_sharpe_variance=1.0,
+                    sessions=sessions,
+                    skewness=0.0,
+                    excess_kurtosis=0.0,
+                )
+                expected = NormalDist().cdf(
+                    sharpe
+                    * math.sqrt(sessions - 1.0)
+                    / math.sqrt(1.0 + 0.5 * sharpe**2)
+                )
+                self.assertAlmostEqual(float(result.value), expected, places=12)
+
+    def test_excess_kurtosis_enters_as_the_published_coefficient(self) -> None:
+        # A fat-tailed series must widen the denominator by (gamma_4 - 1)/4,
+        # i.e. (excess + 2)/4, not excess/4.
+        sharpe, sessions, excess = 0.40, 4_000, 6.0
+        result = deflated_sharpe_ratio(
+            sharpe,
+            trial_count=1,
+            trial_sharpe_variance=1.0,
+            sessions=sessions,
+            skewness=-0.3,
+            excess_kurtosis=excess,
+        )
+        denominator = 1.0 - (-0.3) * sharpe + ((excess + 2.0) / 4.0) * sharpe**2
+        expected = NormalDist().cdf(
+            sharpe * math.sqrt(sessions - 1.0) / math.sqrt(denominator)
+        )
+        self.assertAlmostEqual(float(result.value), expected, places=12)
 
     def test_more_trials_never_increase_the_deflated_probability(self) -> None:
         def probability(trials: int) -> float:

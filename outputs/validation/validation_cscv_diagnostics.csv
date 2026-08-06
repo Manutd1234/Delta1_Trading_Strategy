@@ -1,0 +1,13 @@
+field,value
+family,delta1_configuration_family_1990_2014_monthly
+frequency,monthly
+submatrices,16
+combinations,12870
+rows_per_submatrix,18
+minimum_rows_per_submatrix,12
+rows_dropped,12
+configurations,17
+observations,300
+family_completeness,complete
+selection_ties,0
+provenance,monthly compounding of the declared configuration manifest

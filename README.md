@@ -16,12 +16,23 @@ not a claim of universal optimality, independent validation, or live approval.
 > but the supplied history is continuous futures ending on 2014-12-31. Current
 > serial contracts, representative quotes/fills, a prospective paper record, a
 > certified broker deployment, and independent approvals are not present.
+>
+> Out-of-sample records now exist inside the repository — a 2015–2016 futures
+> subset, a 20.7-year stitched futures walk-forward, and a ten-year ETF record
+> containing a contiguous five-year sealed block. Each is a replay on a vendor
+> panel already in hand, not a prospective track record. None satisfies
+> `independent_holdout` or `forward_paper_trading`, and none changes the status
+> above.
 
 See the [model card](docs/model-card.md) for intended use and limitations and
 the [deployment runbook](docs/runbooks/deployment.md) for the operating sequence.
 The [research methodology](docs/research-methodology.md) defines future alpha
 promotion and multiple-testing rules; [architecture](docs/architecture.md)
-documents the consolidated package layout.
+documents the consolidated package layout. Three findings documents carry the
+measurements this README summarizes:
+[drawdown attribution](docs/drawdown-attribution-findings.md),
+[benchmarks and validation](docs/benchmark-and-validation-findings.md), and
+[the ETF regime-allocation sleeve](docs/etf-regime-allocation-findings.md).
 
 ## Canonical result after the correctness audit
 
@@ -90,12 +101,132 @@ Sharpe under a clearly labeled lognormal approximation. Leverage cannot create
 the missing risk-adjusted edge.
 
 The defensible conclusion is **institutional historical risk-adjusted
-characteristics with conservative CAGR**, not “high alpha.” New alpha must be
-frozen before evaluation on new serial-contract data and prospective paper
-trading. Useful methodological references include
+characteristics with conservative CAGR**, not “high alpha” — and the two
+sections below narrow even that. Against published rules replicated on the
+identical panel the incumbent's advantage is risk control rather than signal;
+the 4.64% spanning alpha is an optimistically biased reused-history estimate,
+not an unbiased estimate of edge; no
+family-wise procedure rejects on Sharpe across seventeen declared
+configurations; and CSCV on the monthly paths the methodology permits returns a
+probability of backtest overfitting of **0.42**, near the 0.5 signature of pure
+overfitting. New alpha must be frozen before evaluation on data the pipeline
+has never read. Useful methodological references include
 [Basis-Momentum](https://doi.org/10.1111/jofi.12738),
 [White’s Reality Check](https://doi.org/10.1111/1468-0262.00152), and
 [the Stationary Bootstrap](https://doi.org/10.1080/01621459.1994.10476870).
+
+## Drawdown levers are checked for activity before they are swept
+
+`delta1_strategy.research.attribution` asks whether a proposed risk control is
+an active constraint at all, and whether the loss it targets is the kind of loss
+this strategy suffers, before a sweep spends compute measuring its effect.
+
+For the position-magnitude family the answer is that it is not.
+`max_risk_scalar` (2.00) and `min_risk_scalar` (0.25) never bind: over
+1990–2014 the portfolio volatility-target multiplier stays inside
+`[0.294, 1.846]`, so lowering either changes nothing. Realized volatility inside
+drawdowns is 96.9% of the unconditional level while the book is 21.5% *smaller*
+and the daily hit rate falls 8.9 percentage points — an accuracy failure, not a
+size failure — and the losses are broad, with 59%–86% of the traded book losing
+in every episode deeper than 5%. `signal_cap` is not a ceiling at all;
+`basis_momentum` divides by it, so lowering it raises exposure.
+
+[`docs/drawdown-attribution-findings.md`](docs/drawdown-attribution-findings.md)
+records the measurements, the uniform-de-lever frontier that any magnitude lever
+has to beat, and the two configurations that change the shape of the loss
+distribution rather than its scale — trend-speed diversification, which pays for
+the shape in return, and conditioning exposure on cross-market agreement, which
+is the only one measured that improves every axis at once. Both were found by
+looking at this history, so both are pre-registration candidates rather than
+results. The conditioner's +0.054 Sharpe is not selection adjusted, and paired
+resampling of that exact risk-matched path leaves its lower confidence bound
+below zero.
+
+`delta1_strategy.research.bounds` then sweeps the whole magnitude family at
+*matched* realized volatility, so a variant's effect on the shape of the loss
+distribution is separated from the de-levering any uniform rescale also buys.
+Its most useful output is a refusal. Re-running the **unchanged** incumbent at
+five different volatility budgets that all satisfy the match tolerance moves
+drawdown-per-unit-volatility across a band of 0.0588 — wider than any delta the
+sweep measures. Forty-nine of fifty shape rows therefore publish
+`not_estimable` with that floor printed beside them: **no bound setting on any
+swept axis changes the shape of the loss distribution by more than the
+measurement can resolve.**
+
+What does resolve is Sharpe, and it is not a drawdown result: `shock_floor`
+0.75 → 0.25 gives +0.0225 with a 90% interval of [0.0034, 0.0416], an order of
+magnitude below the +0.10 promotion gate. Forward breach risk moves the wrong
+way — tightening `max_risk_scalar` to 1.00 at matched risk *raises*
+P(drawdown > 15%) from 4.90% to 5.95%.
+
+## The strategy is now measured against published rules and a declared family
+
+Two things the repository previously asserted rather than demonstrated are now
+executable, and both produce uncomfortable numbers.
+
+`delta1_strategy.research.benchmarks` replicates Moskowitz-Ooi-Pedersen (2012),
+Hurst-Ooi-Pedersen (2017), Baltas-Kosowski, a MACD/EWMAC crossover,
+Barroso-Santa-Clara and Moreira-Muir volatility scaling, and long-only
+references, on the identical panel through the same engine and all common
+execution and cost assumptions. Rule-specific gross-cap departures are
+declared, and capped MOP is reported separately.
+The incumbent beats every one of them on Sharpe — but MOP TSMOM earns *more*
+CAGR at 1.55x the volatility, so the incumbent's advantage is risk control
+rather than signal. A joint spanning regression leaves **4.64% annualized alpha
+at HAC t = 6.04**, with the only significant loading on MOP TSMOM at 0.509. That
+figure is optimistically biased in the incumbent's favour: the benchmark rules
+ran cold and unrefitted while the incumbent's parameters were chosen with this
+panel visible.
+
+`delta1_strategy.research.validation` implements the three estimators
+[`research-methodology.md`](docs/research-methodology.md) names as required and
+which previously existed only in prose — anchored expanding walk-forward,
+White's Reality Check with Hansen's SPA, and CSCV/PBO with a mandatory
+`NOT_ESTIMABLE` refusal path. Across seventeen declared configurations **no
+procedure rejects on Sharpe at any block length** (White RC 0.642–0.660,
+Hansen SPA consistent 0.277–0.321): the best in-sample member sits +0.088 above
+the incumbent and is indistinguishable from it once the search is priced. On the
+monthly paths the methodology permits, **PBO is 0.42**. The daily matrix gives
+0.073 and is emitted only as a labelled secondary estimate; 0.42 is the number
+to quote. `family_deflated_sharpe` returns `NOT_ESTIMABLE` for every member,
+because a family declared today is a lower bound on this lineage's search rather
+than its trial count.
+
+[`docs/benchmark-and-validation-findings.md`](docs/benchmark-and-validation-findings.md)
+carries both, including the selector path's 0.165 Sharpe shortfall. Only the
+1995 fold selected a non-baseline variant, but continuous state carry prevents
+assigning the full gap to that fold alone.
+
+## What out-of-sample evidence exists, and what each piece is worth
+
+The repository previously had one narrow forward record. It now has three, and
+listing them together is the only way to keep any of them from being read as
+more than it is. Each carries its limitation inline because the limitation is
+the point.
+
+| Record | Span | What it is out of sample with respect to | What it is not |
+|---|---|---|---|
+| 2015–2016 futures subset (`outputs/holdout/`) | 522 sessions, 12 of 59 roots | data the canonical source manifest proves the pipeline never read | trend-sleeve only, no basis sleeve, no equity/FX/energy/ags exposure; a subset consistency diagnostic, and the ledger refuses a second look |
+| Stitched futures walk-forward (`outputs/validation/`) | 1995-01-02 → 2014-12-31, 5,218 sessions (20.7 252-session-equivalent years; 20.0 elapsed calendar years) | the **selector only** | the replayed specification was written with this window already read, so the segments are not out of sample with respect to specification choices |
+| ETF regime-allocation sleeve (`outputs/etf/`) | 2009-01-02 → 2018-12-31, 2,516 sessions, of which 2014–2018 is a contiguous sealed block | the selector throughout, and the development replay's custody over the sealed block; later sealed folds fit on earlier sealed sessions | a survivors-only panel; the sealed block holds no full equity bear market, so full-bear conditional performance is not estimable, although the candidates' own defensive gates did operate; the universe rule and cost model were written by someone who had read the whole panel |
+
+Two results have to be read next to each other. Letting the trend lookback be
+chosen out of sample cost 0.165 Sharpe and deepened maximum drawdown from
+−11.85% to −18.19% — **through the 15% drawdown policy**. The only
+selected-variant difference is the 1995 fold; the splice-once replay carries
+that fold's book and NAV state forward, so the full metric gap is not a
+fold-local attribution. And the
+ETF sleeve, the only contiguous five-year forward block available anywhere in
+this repository, **loses**: −5.93% annualized against a monthly-rebalanced
+60/40 at *t* = −3.48, and it also loses to a declared candidate without the
+annual walk-forward selector. It is
+reported because it is the answer, not despite it.
+
+The honest reading is that the validation machinery works and returns
+unflattering answers. It is not that a forward record now exists. See
+[`docs/etf-regime-allocation-findings.md`](docs/etf-regime-allocation-findings.md)
+for the audited session accounting, the survivorship disclosure and the four
+vendor defects the panel carries.
 
 ## What the hardened v3.2.1 strategy corrected
 
@@ -135,6 +266,12 @@ trading. Useful methodological references include
   against the parent roll, so no uncosted transfer and no split discount.
 - Corrected the optional equal-asset-class allocator so excluded or subset
   contracts cannot be reintroduced through catalogue indexing.
+- Corrected the higher-moment term in `research.inference.deflated_sharpe_ratio`.
+  It divided excess kurtosis by four; Bailey and Lopez de Prado specify
+  `(gamma_4 - 1) / 4` on non-excess kurtosis, so the constant was dropped and
+  with it the whole `+0.5 * SR^2` term a Gaussian series carries. The statistic
+  was understating its own variance adjustment. Regression tests now pin the
+  Gaussian identity `sqrt(1 + SR^2 / 2)`.
 - Required fill-time USD point values in cost calibration and aligned the
   drawdown-overlay CAGR/MDD convention with the canonical ledger.
 - Consolidated the implementation into the installable `delta1_strategy`
@@ -159,8 +296,13 @@ create the external facts required for deployment.
   volume and exact close execution are not a live execution proof.
 - Integer contracts and a self-financing USD NAV ledger. Back-adjusted series
   drive research P&L; unadjusted active prices approximate economic exposure.
-- No optimized stop-loss/take-profit. Diversification, volatility sizing,
-  exposure limits, and the separate latched runtime halt manage risk.
+- No optimized stop-loss/take-profit. Risk is managed by diversification,
+  causal volatility sizing and the separate latched runtime halt. The named
+  position-magnitude bounds are not part of that list on the evidence:
+  `max_risk_scalar` and `min_risk_scalar` bind on 0 of 300 monthly decisions,
+  `max_gross_notional_multiple` on 24 of 6,523 sessions, and the measured
+  drawdown failure mode is forecast accuracy rather than position size. A
+  magnitude limit is a compliance ceiling here, not a drawdown control.
 
 The supplied continuous data cannot reconcile old/new serial roll prices,
 volumes, FND/LTD, contract vintages, or auction/VWAP fills. The generated roll
@@ -185,8 +327,8 @@ Monte Carlo cannot manufacture a higher expected return or Sharpe.
 
 | Module | Responsibility | Remaining external dependency |
 |---|---|---|
-| `delta1_strategy.research` | Causal signals, integer research ledger, metrics and robustness diagnostics | Serial execution and post-2014 data |
-| `delta1_strategy.marketdata` | Fresh serial schema, USD risk values, expiry and roll controls | Licensed point-in-time feed/specifications |
+| `delta1_strategy.research` | Causal signals, integer research ledger, metrics, robustness diagnostics, published-rule replication and the family-wise/walk-forward/CSCV estimators | Serial execution and post-2014 futures data |
+| `delta1_strategy.marketdata` | Fresh serial schema, USD risk values, expiry and roll controls, and the survivors-only ETF panel loader | Licensed point-in-time feed/specifications; a delisting-complete fund universe |
 | `delta1_strategy.execution` | Fill calibration, authenticated intents, route-time risk and broker operations | Representative fills and certified broker services |
 | `delta1_strategy.controls` | Runtime health, evidence, treasury validation and conjunctive readiness | Broker/clearing records, authenticated approvals and deployed control owners |
 
@@ -231,7 +373,9 @@ Every critical gate is conjunctive. Required external evidence includes:
 5. a point-in-time universe/security master;
 6. cash, variation margin, collateral, funding and forced-liquidation controls;
 7. a frozen model and authenticated change control;
-8. a genuinely post-freeze independent holdout;
+8. a genuinely post-freeze independent holdout — the 2015–2016 subset, the
+   stitched walk-forward and the ETF sealed block are replays on panels already
+   in hand and satisfy none of it;
 9. prospective paper/shadow acceptance;
 10. a certified selected-broker adapter, deployment-identity evidence,
     separately controlled intent signer, approved compliance-policy provider
@@ -300,5 +444,51 @@ embedded committee charts. Important artifacts include
 `outputs/strategy_trade_sequence_monte_carlo.csv`,
 `outputs/production_readiness.csv`, `outputs/strategy_config.json`, and
 `outputs/run_manifest.json`.
+
+### The studies
+
+Each study is a separate runner writing to its own subdirectory, and none of
+them modifies the canonical bundle. Every runner that measures the incumbent on
+the futures panel first reconciles its baseline replay against the frozen run
+manifest's daily fingerprint, so a wiring mistake fails before a number is
+published. The ETF runner reads a different panel and has no incumbent baseline
+to reconcile.
+
+```bash
+DATA="Round1AllData/Quant Researcher/Delta1"
+
+python scripts/run_lever_sweep.py            --data-dir "$DATA" --output-dir outputs/levers
+python scripts/run_drawdown_attribution.py   --data-dir "$DATA" --output-dir outputs/attribution
+python scripts/run_bounds_sweep.py           --data-dir "$DATA" --output-dir outputs/bounds
+python scripts/run_benchmark_comparison.py   --data-dir "$DATA" --output-dir outputs/benchmarks
+python scripts/run_validation_suite.py       --data-dir "$DATA" --output-dir outputs/validation
+python scripts/run_etf_regime_allocation.py  --data-dir "$DATA" --output-dir outputs/etf
+```
+
+`run_validation_suite.py` also reads `outputs/levers`, so run the lever sweep
+first if the CSCV refusal on that four-variant family is wanted. The 2015–2016
+subset holdout is deliberately harder to run twice: it needs the continuation
+and FX extracts and an explicit `--as-of` stamp, and its append-only ledger
+refuses a second scoring of the same dataset.
+
+```bash
+python scripts/run_holdout_evaluation.py \
+  --data-dir "$DATA" \
+  --extension-dir "Round1AllData/Quant Researcher/FXFI/Futures Data" \
+  --forex-dir "Round1AllData/Quant Researcher/FXFI/Forex Data" \
+  --output-dir outputs/holdout \
+  --as-of 2026-08-06T00:00:00Z
+```
+
+| Directory | Study | Findings document |
+|---|---|---|
+| `outputs/` | canonical v3.2.1 research bundle and manifests | this README |
+| `outputs/levers/` | CAGR/Sharpe levers under a drawdown-risk constraint | [lever program](docs/lever-program-findings.md) |
+| `outputs/attribution/` | bound activity, drawdown anatomy, de-lever frontier | [drawdown attribution](docs/drawdown-attribution-findings.md) |
+| `outputs/bounds/` | position-magnitude sweep at matched realized volatility | [drawdown attribution](docs/drawdown-attribution-findings.md) |
+| `outputs/benchmarks/` | published-rule replication, spanning regression, sign-flip null | [benchmarks and validation](docs/benchmark-and-validation-findings.md) |
+| `outputs/validation/` | walk-forward, family-wise inference, CSCV/PBO | [benchmarks and validation](docs/benchmark-and-validation-findings.md) |
+| `outputs/etf/` | ETF regime-allocation sleeve and its out-of-sample accounting | [ETF regime allocation](docs/etf-regime-allocation-findings.md) |
+| `outputs/holdout/` | 2015–2016 twelve-root subset ledger | [lever program](docs/lever-program-findings.md) |
 
 None of these artifacts alone authorizes trading. See [LICENSE](LICENSE).

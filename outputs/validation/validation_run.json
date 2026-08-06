@@ -1,0 +1,181 @@
+{
+  "block_lengths": [
+    21,
+    63,
+    126
+  ],
+  "bootstrap_samples": 10000,
+  "cscv_primary_frequency": "monthly",
+  "cscv_primary_reason": "research-methodology.md permits CSCV/PBO only on the complete matrix of synchronized monthly paths; the daily estimate is emitted as a labelled secondary because the two disagree",
+  "declared_family": [
+    {
+      "assumption": "Canonical v3.2.1 configuration at a 7% risk budget.",
+      "name": "baseline",
+      "overrides": {}
+    },
+    {
+      "assumption": "Six-month trend lookback.",
+      "name": "trend_126",
+      "overrides": {
+        "trend_lookback": 126
+      }
+    },
+    {
+      "assumption": "Nine-month trend lookback.",
+      "name": "trend_189",
+      "overrides": {
+        "trend_lookback": 189
+      }
+    },
+    {
+      "assumption": "Fifteen-month trend lookback.",
+      "name": "trend_315",
+      "overrides": {
+        "trend_lookback": 315
+      }
+    },
+    {
+      "assumption": "Basis sleeve weighted 30%.",
+      "name": "basis_030",
+      "overrides": {
+        "basis_weight": 0.3
+      }
+    },
+    {
+      "assumption": "Basis sleeve weighted 40%.",
+      "name": "basis_040",
+      "overrides": {
+        "basis_weight": 0.4
+      }
+    },
+    {
+      "assumption": "Basis sleeve weighted 60%.",
+      "name": "basis_060",
+      "overrides": {
+        "basis_weight": 0.6
+      }
+    },
+    {
+      "assumption": "Basis sleeve weighted 70%.",
+      "name": "basis_070",
+      "overrides": {
+        "basis_weight": 0.7
+      }
+    },
+    {
+      "assumption": "No-trade band narrowed to 15%.",
+      "name": "buffer_015",
+      "overrides": {
+        "no_trade_buffer": 0.15
+      }
+    },
+    {
+      "assumption": "No-trade band narrowed to 20%.",
+      "name": "buffer_020",
+      "overrides": {
+        "no_trade_buffer": 0.2
+      }
+    },
+    {
+      "assumption": "No-trade band widened to 30%.",
+      "name": "buffer_030",
+      "overrides": {
+        "no_trade_buffer": 0.3
+      }
+    },
+    {
+      "assumption": "Portfolio risk budget at 6.0%.",
+      "name": "risk_060",
+      "overrides": {
+        "target_vol": 0.06
+      }
+    },
+    {
+      "assumption": "Portfolio risk budget at 6.5%.",
+      "name": "risk_065",
+      "overrides": {
+        "target_vol": 0.065
+      }
+    },
+    {
+      "assumption": "Portfolio risk budget at 7.5%.",
+      "name": "risk_075",
+      "overrides": {
+        "target_vol": 0.075
+      }
+    },
+    {
+      "assumption": "Portfolio risk budget at 8.0%.",
+      "name": "risk_080",
+      "overrides": {
+        "target_vol": 0.08
+      }
+    },
+    {
+      "assumption": "Faster 40-session sizing volatility.",
+      "name": "volspan_040",
+      "overrides": {
+        "vol_span": 40
+      }
+    },
+    {
+      "assumption": "Slower 90-session sizing volatility.",
+      "name": "volspan_090",
+      "overrides": {
+        "vol_span": 90
+      }
+    }
+  ],
+  "elapsed_seconds": 407.3,
+  "family_completeness": "complete",
+  "family_size": 17,
+  "limitations": [
+    "every path is the reused 1990-2014 history; nothing here is out of sample",
+    "the multiplicity correction covers the declared family only",
+    "the walk-forward selector is naive by design and is not a proposal",
+    "the annualized-mean differential is not risk matched: a configuration that simply takes more risk raises it mechanically, so the Sharpe differential is the statistic to read for an improvement claim",
+    "the deflated Sharpe is NOT ESTIMABLE for this lineage and is reported as such: the declared family of 17 is a lower bound on the search, not the unrecoverable trial count, so the probability computed from it cannot support the promotion gate.  The illustrative lower bound is emitted beside the Gumbel threshold it deflates by, which is far below every member, so it does not discriminate inside the family either",
+    "PBO is reported primarily on the monthly matrix because that is the only input research-methodology.md permits; the daily estimate is a labelled secondary and the two disagree"
+  ],
+  "monthly_observations": 300,
+  "observations": 6523,
+  "p_value_resolution": 9.999000099990002e-05,
+  "seed": 20260805,
+  "selection_adjusted_reports": [
+    "validation_family_wise.csv",
+    "validation_cscv.csv"
+  ],
+  "submatrices": 16,
+  "walk_forward_boundaries": [
+    "1995-01-01",
+    "1996-01-01",
+    "1997-01-01",
+    "1998-01-01",
+    "1999-01-01",
+    "2000-01-01",
+    "2001-01-01",
+    "2002-01-01",
+    "2003-01-01",
+    "2004-01-01",
+    "2005-01-01",
+    "2006-01-01",
+    "2007-01-01",
+    "2008-01-01",
+    "2009-01-01",
+    "2010-01-01",
+    "2011-01-01",
+    "2012-01-01",
+    "2013-01-01",
+    "2014-01-01"
+  ],
+  "walk_forward_candidates": [
+    "baseline",
+    "trend_126",
+    "trend_189",
+    "trend_315"
+  ],
+  "window": [
+    "1990-01-01",
+    "2014-12-31"
+  ]
+}

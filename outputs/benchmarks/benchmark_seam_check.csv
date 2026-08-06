@@ -1,0 +1,2 @@
+check,statistic,observed,required,method
+incumbent_decision_frame_replayed_through_the_seam,maximum absolute daily net-return deviation,0.0,0.0,the incumbent's own monthly decision frame fed back through simulate_monthly_targets' execution call
