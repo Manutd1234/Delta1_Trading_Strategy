@@ -87,26 +87,69 @@ print(f"\\nFull-period Sharpe {measured:.10f} {status} the published {expected:.
 '''
 
 
-def start_here(files: dict[str, str]) -> str:
+def headline_numbers() -> dict:
+    """Read the headline figures from the artifacts, never from memory.
+
+    An earlier revision hard-coded the gross column here and every one of its
+    four values was wrong. Numbers in an index that a reviewer cross-checks
+    against the CSVs beside it must come from those CSVs.
+    """
+    summary = pd.read_csv(SUBMISSION / "gross_vs_net_summary.csv")
+    row = summary.loc[summary["Window"] == "1990-2014 full"].iloc[0]
+    values = {
+        "gross_cagr": float(row["Gross annualised return"]),
+        "net_cagr": float(row["Net annualised return"]),
+        "gross_sharpe": float(row["Gross Sharpe"]),
+        "net_sharpe": float(row["Net Sharpe"]),
+        "gross_mdd": float(row["Gross max drawdown"]),
+        "net_mdd": float(row["Net max drawdown"]),
+        "sessions": int(row["Sessions"]),
+    }
+    volatility = pd.read_csv(SUBMISSION / "required_results.csv")
+    volatility = volatility.loc[
+        volatility["Metric"].str.startswith("Annualised volatility")
+    ].iloc[0]
+    values["gross_vol"] = float(volatility["1990-2014 full (gross)"])
+    values["net_vol"] = float(volatility["1990-2014 full (net)"])
+    values["gross_rtd"] = values["gross_cagr"] / abs(values["gross_mdd"])
+    values["net_rtd"] = values["net_cagr"] / abs(values["net_mdd"])
+
+    fill = pd.read_csv(SUBMISSION / "robustness_no_fill.csv")
+    fill = fill.loc[fill["window"] == "1990-2014 full"].iloc[0]
+    values["fill_delta"] = float(fill["delta_Sharpe (rf=0)"])
+    values["fill_strict_sharpe"] = float(fill["observed_only_Sharpe (rf=0)"])
+    return values
+
+
+def start_here(files: str) -> str:
+    v = headline_numbers()
     return f"""# Delta1 — Submission
 
 **Diversified global futures: 12-month time-series momentum blended with roll-yield
 momentum across 59 markets, volatility-targeted at 7%, rebalanced monthly, net of
 modeled spread, slippage, commission, exchange fees, market impact and roll costs.**
 
-Evaluation window 1990-01-01 to 2014-12-31 (6,523 sessions, 25 years).
+Evaluation window 1990-01-01 to 2014-12-31 ({v['sessions']:,} sessions, 25 years).
 
 | | Net | Gross |
 |---|---|---|
-| Annualised return | **13.19%** | 15.65% |
-| Volatility | **7.72%** | 7.72% |
-| Sharpe | **1.59** | 1.88 |
-| Maximum drawdown | **−11.85%** | −10.66% |
-| Return-to-drawdown | **1.11** | 1.47 |
+| Annualised return | **{v['net_cagr']:.2%}** | {v['gross_cagr']:.2%} |
+| Volatility | **{v['net_vol']:.2%}** | {v['gross_vol']:.2%} |
+| Sharpe | **{v['net_sharpe']:.2f}** | {v['gross_sharpe']:.2f} |
+| Maximum drawdown | **{v['net_mdd']:.2%}** | {v['gross_mdd']:.2%} |
+| Return-to-drawdown | **{v['net_rtd']:.2f}** | {v['gross_rtd']:.2f} |
 
 **Verdict: paper trade.** Not capital — there is no forward record, and the panel
 ends 2014-12-31. Not rejection — the evidence is strong and the mechanism is
 documented. See the executive conclusion at the top of `report.html`.
+
+**Read the headline with one qualification.** The panel is forward-filled across
+holidays, which the brief discourages. Rebuilding every signal from observed
+prices only — the strictest reading of that rule — costs **{abs(v['fill_delta']):.3f} Sharpe**
+({v['net_sharpe']:.2f} → {v['fill_strict_sharpe']:.2f}), and more over 2005-2014. The conclusion
+holds, because {v['fill_strict_sharpe']:.2f} still exceeds every independent
+benchmark replicated here, but the sensitivity is real
+and is reported rather than buried: `results/robustness_no_fill.csv`.
 
 ---
 
@@ -148,6 +191,7 @@ python strategy/delta1_reference.py --data-dir "<path to>/Quant Researcher/Delta
 | Why adjusted or unadjusted prices | `report.html` § Data discipline; `results/data_quality_checks.csv` |
 | Duplicates, missing observations, non-trading days, units, currency, stale prices | `results/data_quality_checks.csv`, `results/data_quality_by_market.csv` |
 | Forward-fill policy, stated and quantified | `results/data_quality_checks.csv` — including whether a filled cell can reach a trade |
+| **What the fill is worth** — every signal rebuilt on observed sessions only | `results/robustness_no_fill.csv`; declared in `report.html` § Data discipline and in the executive conclusion |
 | One-way cost, applied whenever the position changes | `results/cost_assumptions.csv` |
 | Cost in basis points, per asset class, against the suggested bands | `results/cost_realized_by_class.csv` |
 | Gross versus net | `results/gross_vs_net_summary.csv`; diagnostic chart in `report.html` |

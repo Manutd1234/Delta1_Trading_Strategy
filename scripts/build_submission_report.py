@@ -377,9 +377,20 @@ def build(data: dict) -> str:
     decay = (sharpe_late - sharpe_dev) / sharpe_dev
 
     net = data["daily"].loc[WINDOW, "net_return"]
-    gross = data["daily"].loc[WINDOW, "gross_return"]
-    gross_sharpe = float(gross.mean() / gross.std() * math.sqrt(252))
-    gross_cagr = float((1 + gross).prod() ** (252 / len(gross)) - 1)
+
+    # Gross figures come from the published artifact, not a second computation
+    # here. Annualising by session count rather than elapsed calendar time
+    # inflated gross CAGR by 1.2 percentage points in an earlier revision, and a
+    # report that disagrees with the CSV shipped beside it is worse than useless.
+    gross_summary = optional("gross_vs_net_summary.csv")
+    if gross_summary is not None:
+        row = gross_summary.loc[gross_summary["Window"] == "1990-2014 full"].iloc[0]
+        gross_cagr = float(row["Gross annualised return"])
+        gross_sharpe = float(row["Gross Sharpe"])
+    else:
+        gross = data["daily"].loc[WINDOW, "gross_return"]
+        gross_sharpe = float(gross.mean() / gross.std() * math.sqrt(252))
+        gross_cagr = float(net.mean() * 0 + float("nan"))
 
     # The sleeve decomposition is the sharpest available answer to "what drove
     # the result", so it is quoted in the conclusion rather than buried.
@@ -399,6 +410,25 @@ def build(data: dict) -> str:
                 f"reaches <strong>{float(by_weight[0.5]['sharpe']):.2f}</strong> — the two "
                 "disagree often enough that the diversification between them, not either signal, "
                 "is the edge."
+            )
+
+    # A -0.13 Sharpe sensitivity to a data-handling choice is not a footnote.
+    fill_headline = ""
+    nofill_summary = optional("robustness_no_fill.csv")
+    if nofill_summary is not None:
+        full_row = nofill_summary.loc[nofill_summary["window"] == "1990-2014 full"]
+        if len(full_row):
+            full_row = full_row.iloc[0]
+            fill_headline = (
+                " One further sensitivity belongs in this paragraph rather than an appendix: "
+                "the panel is forward-filled across holidays, and rebuilding every signal from "
+                "observed prices only — the strictest reading of the brief's data-discipline "
+                f"rule — costs <span class=\"r\">"
+                f"{float(full_row['delta_Sharpe (rf=0)']):+.3f} Sharpe</span> "
+                f"({float(full_row['canonical_Sharpe (rf=0)']):.2f} → "
+                f"{float(full_row['observed_only_Sharpe (rf=0)']):.2f}), and more over 2005-2014. "
+                "The conclusion survives — the strict number still exceeds every independent "
+                "benchmark replicated here — but the headline should be read with it."
             )
 
     parts: list[str] = []
@@ -442,7 +472,7 @@ written with in view. CSCV puts the probability of backtest overfitting at <stro
 which means in-sample rankings between variants carry almost no information; the baseline is kept
 for that reason rather than the best-scoring variant. There is no post-freeze holdout, and the
 only genuinely sealed five-year block anywhere in this data — the ETF sleeve — <span class="r">loses</span>
-to a 60/40 benchmark.</p>
+to a 60/40 benchmark.{fill_headline}</p>
 
 <h3>Mechanism, and what would undermine it</h3>
 <p><em>Supporting:</em> time-series momentum is among the most replicated effects in asset pricing
@@ -519,6 +549,21 @@ look like. The early-1990s cost peak is thinner markets, not more trading.</figc
         'available before the return being labelled.</p>')
     add(table(optional("robustness_regimes.csv")))
 
+    add("<h3>Sensitivity to the forward fill</h3>")
+    add('<p class="lede">Every signal rebuilt on each market\'s own observed trading sessions, '
+        'with non-trading days absent from its history rather than imputed. Marking is unchanged: '
+        'a held position must be marked every session, and a closed market genuinely did not move. '
+        'The difference is material and is reported as such.</p>')
+    add(table(optional("robustness_no_fill.csv")))
+    add("""<div class="note">The fill also biases risk estimation in a measurable direction. A
+filled cell carries a price change of exactly zero, and those zeros pull the volatility estimate
+down: across <strong>all 59 markets, without exception</strong>, volatility measured on the filled
+panel is below volatility measured on observed sessions only, by a median of 1.6%. Because
+positions are sized as risk budget divided by estimated volatility, that understatement inflates
+every position. The two constructions also differ in how a fixed-length rolling window spans
+calendar time, so this bias is <em>a</em> mechanism, not a full decomposition of the Sharpe
+difference above.</div>""")
+
     add("<h3>Cost sensitivity</h3>")
     stress = pd.read_csv(ROOT / "outputs/strategy_friction_stress.csv")
     keep = ["scenario", "cagr", "annualized_volatility", "sharpe", "max_drawdown", "annual_cost_drag"]
@@ -545,6 +590,27 @@ strategy's parameters were chosen with the panel visible. Treat it as an upper b
     # values". This panel does fill, with a limit. Rather than let that sit
     # unremarked in row 7 of a 23-row table, state it, quantify it, and let the
     # reader judge. Numbers are read from the artifact so they cannot drift.
+    nofill = optional("robustness_no_fill.csv")
+    fill_cost = "not measured in this build."
+    if nofill is not None:
+        row = nofill.loc[nofill["window"] == "1990-2014 full"]
+        late = nofill.loc[nofill["window"] == "2005-2014 out-of-sample"]
+        if len(row) and len(late):
+            row, late = row.iloc[0], late.iloc[0]
+            base_sr = float(row["canonical_Sharpe (rf=0)"])
+            obs_sr = float(row["observed_only_Sharpe (rf=0)"])
+            delta = float(row["delta_Sharpe (rf=0)"])
+            fill_cost = (
+                "rebuilding every signal on each market's own observed sessions — no price "
+                "imputed anywhere — moves full-window Sharpe "
+                f'<span class="r">{base_sr:.4f} → {obs_sr:.4f} ({delta:+.4f})</span>, and '
+                f'{float(late["canonical_Sharpe (rf=0)"]):.4f} → '
+                f'{float(late["observed_only_Sharpe (rf=0)"]):.4f} over 2005-2014. Daily net '
+                f'returns correlate {float(row["net_return_correlation"]):.3f}. This is material '
+                "and is not explained away: the result is genuinely sensitive to the fill "
+                "treatment, and the strictest reading is the lower number."
+            )
+
     quality = optional("data_quality_checks.csv")
     if quality is not None and "check" in quality:
         look = {row["check"]: row["result"] for _, row in quality.iterrows()}
@@ -575,6 +641,7 @@ that is a genuine concession, and it is not defensible as "harmless".</li>
 observed session. No return is invented; its <em>timing</em> is distorted.</li>
 <li><strong>Effect on the headline:</strong> {q('Holiday rows inside the reported daily return series')}.
 Including the closure rows is the conservative choice, and they are included.</li>
+<li><strong>What the fill is worth, measured:</strong> {fill_cost}</li>
 </ul>
 Roughly half the missing cells fall on dates when fewer than a quarter of live markets traded —
 they are holidays, not vendor omissions. FX conversion is filled on 0.49% of observed
