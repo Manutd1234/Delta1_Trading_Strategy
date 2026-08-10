@@ -1,0 +1,49 @@
+{
+  "generated_utc": "2026-08-10T03:16:00+00:00",
+  "git_head": "e857266",
+  "futures_files": 188,
+  "futures_roots": 94,
+  "futures_span": [
+    "1977-11-21",
+    "2014-12-31"
+  ],
+  "futures_duplicate_date_files": 0,
+  "etf_files": 745,
+  "etf_selected": [
+    "SPY",
+    "IWM",
+    "IYR",
+    "EFA",
+    "EEM",
+    "SHY",
+    "IEF",
+    "TLT",
+    "LQD",
+    "GLD",
+    "DBC"
+  ],
+  "etf_span": [
+    "1993-01-29",
+    "2018-12-31"
+  ],
+  "etf_distinct_terminal_dates": 1,
+  "fxfi_futures_span": [
+    "1978-03-10",
+    "2016-12-30"
+  ],
+  "fxfi_forex_span": [
+    "1971-01-04",
+    "2016-12-30"
+  ],
+  "cftc_rows": 30757,
+  "cftc_event_span": [
+    "2021-10-19",
+    "2024-04-08"
+  ],
+  "fx_gating_non_usd_checked": 16,
+  "fx_gating_violations": 0,
+  "network_files_searched": 49,
+  "network_hits": 0,
+  "source_rows": 9,
+  "reproduction_rows": 12
+}

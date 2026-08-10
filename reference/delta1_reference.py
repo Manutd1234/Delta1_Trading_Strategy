@@ -559,9 +559,18 @@ def simulate(
 # 5.  The strategy, end to end
 # --------------------------------------------------------------------------
 
-def run(data_dir: str | Path) -> pd.DataFrame:
-    """Load, forecast, size, trade, and return the daily ledger."""
-    data = load_market_data(Path(data_dir))
+def run(data_dir: str | Path | None = None, *, data: dict | None = None) -> pd.DataFrame:
+    """Load, forecast, size, trade, and return the daily ledger.
+
+    Pass `data` to run against an already-loaded panel -- the same dict
+    `load_market_data` returns.  That is what lets the submission bundle
+    reproduce these results offline from the cleaned parquet panel, with no
+    access to the licensed vendor CSVs.
+    """
+    if (data is None) == (data_dir is None):
+        raise ValueError("pass exactly one of data_dir or data")
+    if data is None:
+        data = load_market_data(Path(data_dir))
     prices, pv = data["prices"], data["point_values"]
 
     one_way_cost = (

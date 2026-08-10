@@ -1,0 +1,285 @@
+"""Assemble the submission bundle and zip it.
+
+    python scripts/build_submission_bundle.py
+
+Produces `dist/delta1_submission_<date>.zip` containing everything the brief's
+Deliverables section asks for, laid out so a reviewer can start at one file.
+
+The bundle is self-sufficient. It carries the cleaned input panel as parquet,
+so `python reproduce.py` inside the unzipped folder regenerates the headline
+figures with no network access and without the licensed vendor CSVs -- which
+are not redistributable and are therefore not included.
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import hashlib
+import importlib.util
+import shutil
+import zipfile
+from pathlib import Path
+
+import pandas as pd
+
+ROOT = Path(__file__).resolve().parents[1]
+SUBMISSION = ROOT / "outputs" / "submission"
+DATA_DIR = ROOT / "Round1AllData" / "Quant Researcher" / "Delta1"
+
+
+def load_reference():
+    spec = importlib.util.spec_from_file_location(
+        "delta1_reference", ROOT / "reference" / "delta1_reference.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+REPRODUCE = '''"""Reproduce the headline results offline.
+
+    python reproduce.py
+
+Reads the cleaned panel bundled under data/panel/ -- no network access, and no
+licensed vendor CSVs required. Prints the same table the report quotes.
+"""
+
+from __future__ import annotations
+
+import importlib.util
+from pathlib import Path
+
+import pandas as pd
+
+HERE = Path(__file__).resolve().parent
+
+spec = importlib.util.spec_from_file_location(
+    "delta1_reference", HERE / "strategy" / "delta1_reference.py"
+)
+d1 = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(d1)
+
+panel = {}
+for path in sorted((HERE / "data" / "panel").glob("*.parquet")):
+    frame = pd.read_parquet(path)
+    # tick_size is the one Series in the panel; everything else is a frame.
+    panel[path.stem] = frame.iloc[:, 0] if path.stem == "tick_size" else frame
+
+daily = d1.run(data=panel)
+table = pd.DataFrame({
+    name: d1.metrics(daily, start, end)
+    for name, (start, end) in {
+        "1990-2004 development": ("1990-01-01", "2004-12-31"),
+        "2005-2014 out-of-sample": ("2005-01-01", "2014-12-31"),
+        "1990-2014 full": ("1990-01-01", "2014-12-31"),
+    }.items()
+})
+
+pd.set_option("display.width", 150)
+print(f"\\nDelta1 — reproduced offline from the bundled panel ({len(d1.SYMBOLS)} markets)\\n")
+print(table.to_string(float_format=lambda v: f"{v:,.4f}"))
+
+expected = 1.5895266624546427
+measured = float(d1.metrics(daily, "1990-01-01", "2014-12-31")["Sharpe (rf=0)"])
+status = "MATCHES" if abs(measured - expected) < 1e-12 else "DIFFERS FROM"
+print(f"\\nFull-period Sharpe {measured:.10f} {status} the published {expected:.10f}")
+'''
+
+
+def start_here(files: dict[str, str]) -> str:
+    return f"""# Delta1 — Submission
+
+**Diversified global futures: 12-month time-series momentum blended with roll-yield
+momentum across 59 markets, volatility-targeted at 7%, rebalanced monthly, net of
+modeled spread, slippage, commission, exchange fees, market impact and roll costs.**
+
+Evaluation window 1990-01-01 to 2014-12-31 (6,523 sessions, 25 years).
+
+| | Net | Gross |
+|---|---|---|
+| Annualised return | **13.19%** | 15.65% |
+| Volatility | **7.72%** | 7.72% |
+| Sharpe | **1.59** | 1.88 |
+| Maximum drawdown | **−11.85%** | −10.66% |
+| Return-to-drawdown | **1.11** | 1.47 |
+
+**Verdict: paper trade.** Not capital — there is no forward record, and the panel
+ends 2014-12-31. Not rejection — the evidence is strong and the mechanism is
+documented. See the executive conclusion at the top of `report.html`.
+
+---
+
+## Start here
+
+1. **`report.html`** — the report. Executive conclusion first, then performance,
+   drawdown, rolling Sharpe, position, and a diagnostic chart, followed by the
+   required results and every robustness check. Self-contained: open it in any
+   browser, offline.
+2. **`strategy/delta1_reference.py`** — the entire strategy in one file. No
+   imports from any project package. Read it top to bottom and you have the
+   complete specification.
+3. **`notebook/delta1_case_research.ipynb`** — the research narrative, executed.
+
+## Reproducing, with no internet access
+
+```bash
+pip install numpy pandas pyarrow
+python reproduce.py
+```
+
+Runs in about three seconds against the cleaned panel bundled under
+`data/panel/`, and prints the same figures the report quotes. **No network
+access is required and no licensed vendor CSV is needed** — the parquet panel is
+the cleaned, aligned input the strategy actually consumes.
+
+To re-run against the original vendor CSVs instead:
+
+```bash
+python strategy/delta1_reference.py --data-dir "<path to>/Quant Researcher/Delta1"
+```
+
+## Where each requirement is answered
+
+### D. Data discipline and cost assumptions
+
+| Requirement | Where |
+|---|---|
+| Why adjusted or unadjusted prices | `report.html` § Data discipline; `results/data_quality_checks.csv` |
+| Duplicates, missing observations, non-trading days, units, currency, stale prices | `results/data_quality_checks.csv`, `results/data_quality_by_market.csv` |
+| Forward-fill policy, stated and quantified | `results/data_quality_checks.csv` — including whether a filled cell can reach a trade |
+| One-way cost, applied whenever the position changes | `results/cost_assumptions.csv` |
+| Cost in basis points, per asset class, against the suggested bands | `results/cost_realized_by_class.csv` |
+| Gross versus net | `results/gross_vs_net_summary.csv`; diagnostic chart in `report.html` |
+| Roll costs | `results/cost_assumptions.csv` — charged as two contracts of turnover per delivery transfer |
+
+### E. Required results and robustness
+
+| Requirement | Where |
+|---|---|
+| Annualised return, volatility, Sharpe, maximum drawdown, return-to-drawdown | `results/required_results.csv` |
+| Hit rate, number of trades, average holding period, turnover, total costs, average exposure | `results/required_results.csv` |
+| Performance versus benchmark, and what drove the result | `results/benchmark_comparison.csv`, `results/return_attribution.csv` |
+| Parameter sensitivity — a small set of nearby values, not a search | `results/robustness_parameter_sensitivity.csv` |
+| Chronological out-of-sample — develop early, assess unchanged rules later | `results/robustness_chronological_oos.csv` |
+| Cost sensitivity | `results/cost_sensitivity.csv` |
+| Performance across at least two regimes | `results/robustness_regimes.csv` — two independent regime axes |
+
+### F. Deliverables
+
+| Requirement | Where |
+|---|---|
+| Jupyter notebook, runnable end to end | `notebook/delta1_case_research.ipynb` |
+| CSV / Parquet data; reproduces without internet | `data/panel/*.parquet` + `reproduce.py` |
+| Self-contained HTML report | `report.html` |
+| Source note | `data/source_note.csv` |
+| Conclusion: pursue / monitor / paper trade / reject | `report.html`, first section |
+
+## Contents
+
+{files}
+
+## Caveats a reviewer should hold
+
+- **The panel ends 2014-12-31.** Nothing here observes the last decade. This is the
+  binding limitation on every figure in the bundle.
+- **Returns are futures excess returns.** Cash collateral earns zero; the research
+  ledger excludes collateral yield and variation-margin funding.
+- **No external data is used anywhere.** That is a deliberate scope choice, and the
+  reason is stated in the notebook's Limitation 1 rather than left implied.
+- **The raw vendor panel is not redistributed.** It was supplied with the case and is
+  licensed; the cleaned derived panel is included instead so results still reproduce.
+"""
+
+
+def build(output_dir: Path, stage: Path) -> Path:
+    d1 = load_reference()
+
+    if stage.exists():
+        shutil.rmtree(stage)
+    for sub in ("strategy", "notebook", "data/panel", "results"):
+        (stage / sub).mkdir(parents=True, exist_ok=True)
+
+    # --- the model, and its equivalence proof -------------------------
+    shutil.copy2(ROOT / "reference/delta1_reference.py", stage / "strategy/delta1_reference.py")
+    shutil.copy2(ROOT / "tests/test_reference.py", stage / "strategy/test_reference.py")
+
+    # --- the notebook --------------------------------------------------
+    shutil.copy2(
+        ROOT / "notebooks/delta1_case_research.ipynb",
+        stage / "notebook/delta1_case_research.ipynb",
+    )
+
+    # --- the report ----------------------------------------------------
+    shutil.copy2(SUBMISSION / "report.html", stage / "report.html")
+
+    # --- cleaned inputs, so the bundle reproduces offline --------------
+    panel = d1.load_market_data(DATA_DIR)
+    for name, value in panel.items():
+        frame = value.to_frame() if isinstance(value, pd.Series) else value
+        frame.to_parquet(stage / "data/panel" / f"{name}.parquet", compression="zstd")
+
+    # --- results -------------------------------------------------------
+    for name in sorted(p.name for p in SUBMISSION.glob("*.csv")):
+        shutil.copy2(SUBMISSION / name, stage / "results" / name)
+    # Cost sensitivity already exists canonically; give it its spec name.
+    stress = pd.read_csv(ROOT / "outputs/strategy_friction_stress.csv")
+    stress.to_csv(stage / "results/cost_sensitivity.csv", index=False)
+    # The daily ledger, so any figure in the report can be re-derived.
+    shutil.copy2(ROOT / "outputs/strategy_daily.csv", stage / "results/strategy_daily.csv")
+    shutil.copy2(ROOT / "outputs/strategy_metrics.csv", stage / "results/strategy_metrics.csv")
+    shutil.copy2(
+        ROOT / "outputs/universe/universe_audit.csv", stage / "results/universe_audit.csv"
+    )
+    source_note = SUBMISSION / "source_note.csv"
+    if source_note.is_file():
+        shutil.move(str(stage / "results/source_note.csv"), str(stage / "data/source_note.csv"))
+
+    (stage / "reproduce.py").write_text(REPRODUCE, encoding="utf-8")
+
+    # --- manifest, then the index that references it -------------------
+    rows = []
+    for path in sorted(stage.rglob("*")):
+        if path.is_file():
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            rows.append(
+                {
+                    "path": path.relative_to(stage).as_posix(),
+                    "bytes": path.stat().st_size,
+                    "sha256": digest,
+                }
+            )
+    manifest = pd.DataFrame(rows)
+    manifest.to_csv(stage / "MANIFEST.csv", index=False)
+
+    listing = "\n".join(
+        f"- `{r['path']}` — {r['bytes'] / 1024:,.0f} KB" for _, r in manifest.iterrows()
+    )
+    (stage / "00_START_HERE.md").write_text(start_here(listing), encoding="utf-8")
+
+    # --- zip -----------------------------------------------------------
+    output_dir.mkdir(parents=True, exist_ok=True)
+    archive = output_dir / f"delta1_submission_{dt.date.today().isoformat()}.zip"
+    with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as bundle:
+        for path in sorted(stage.rglob("*")):
+            if path.is_file():
+                bundle.write(path, Path(stage.name) / path.relative_to(stage))
+    return archive
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--output-dir", default=str(ROOT / "dist"))
+    parser.add_argument("--stage", default=str(ROOT / "dist" / "delta1_submission"))
+    args = parser.parse_args()
+
+    archive = build(Path(args.output_dir), Path(args.stage))
+    size = archive.stat().st_size / 1e6
+    with zipfile.ZipFile(archive) as bundle:
+        count = len(bundle.namelist())
+    print(f"\n{archive}")
+    print(f"{count} files, {size:.1f} MB compressed")
+
+
+if __name__ == "__main__":
+    main()
