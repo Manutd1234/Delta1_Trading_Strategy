@@ -49,6 +49,14 @@ jobs:
         run: |
           python -m unittest \
             tests.test_strategy.TestSuppliedDataIntegration -v
+      # The readable reference file is only worth reading if it is the same
+      # strategy the package runs, so the equivalence is a gate, not a claim.
+      - name: Reference implementation matches the package
+        env:
+          DELTA1_SYNTHETIC_DIR: /tmp/synthetic
+        run: |
+          python -m unittest tests.test_reference -v
+          python reference/delta1_reference.py --data-dir /tmp/synthetic
       - name: Canonical run end to end
         run: |
           python -m delta1_strategy.cli --help >/dev/null || true

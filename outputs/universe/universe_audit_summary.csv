@@ -1,0 +1,8 @@
+decision,ground,roots,examples
+excluded,available,10,"DX, EUA, GWM, LCC, LRC, LSU"
+excluded,duplicate_underlying,6,"FDAX9, FESX9, NIY, WBS, YAP10, YAP4"
+excluded,no_usd_conversion,4,"HSI, KOS, MHI, SSG"
+excluded,rate_index_quoted,5,"BAX, LEU, YIB, YIR, ZQ"
+excluded,volume_gate,8,"AFB, AWM, DC, FTDX, GD, LBS"
+excluded,yield_quoted,2,"YXT, YYT"
+included,traded,59,"6A, 6B, 6C, 6E, 6J, 6M"

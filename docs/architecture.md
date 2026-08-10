@@ -1,6 +1,7 @@
 # Repository architecture
 
 ```text
+reference/       the whole strategy in one readable file, no project imports
 src/delta1_strategy/
   cli.py
   research/      causal strategy, diagnostics, Monte Carlo, trial registry,
@@ -10,12 +11,30 @@ src/delta1_strategy/
   controls/      readiness, runtime risk, evidence and treasury validation
   execution/     cost calibration, order routing and operational controls
 docs/            model, methodology, architecture, findings and runbooks
-notebooks/       executed committee review
-scripts/         reproducible notebook builder and research runners
+notebooks/       case research narrative and executed committee review
+scripts/         reproducible notebook builders and research runners
 examples/        fail-closed evidence examples
 outputs/         canonical generated research bundle and per-study subdirectories
 tests/           unit, integration and artifact tests
 ```
+
+## Two implementations, one specification
+
+`reference/delta1_reference.py` is the strategy as a reader needs it: data
+loading, both signals, risk sizing, execution and the NAV ledger in a single
+file with a hard dependency floor of numpy and pandas. It is not a
+simplification, a sketch, or a teaching version — `tests/test_reference.py`
+asserts that it reproduces `src/delta1_strategy/research/strategy.py`'s daily
+ledger with **array equality**, not a tolerance, on both the supplied 25-year
+history and generated data.
+
+That equality is the point of the split. The package carries the execution
+controls, capacity accounting, evidence gates and study modules that a strategy
+would need to be traded; the reference file carries the specification alone. A
+reviewer who wants to check the model reads one file. A reviewer who wants to
+check that the model is *correctly implemented* reads the package. Neither has
+to read the other's concerns, and neither can drift from the other without the
+test suite failing.
 
 The `research` package separates the frozen strategy from the studies that
 measure it. `strategy` is the engine; `levers`, `friction`, `diagnostics`,

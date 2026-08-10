@@ -1,0 +1,95 @@
+root,security_name,currency,asset_class,sessions,volume_gate_pass_share,decision,ground,detail
+DX,US Dollar Index,USD,Currency,7424,0.8743,excluded,available,"convertible, liquid and distinct; not included in the traded universe"
+EUA,EUA,EUR,Other,2477,0.8236,excluded,available,"convertible, liquid and distinct; not included in the traded universe"
+GWM,UK Natural Gas,GBP,Energy,4527,0.8878,excluded,available,"convertible, liquid and distinct; not included in the traded universe"
+LCC,London Cocoa,GBP,Agriculture & Livestock,8397,0.9681,excluded,available,"convertible, liquid and distinct; not included in the traded universe"
+LRC,Robusta Coffee 10 Tonne,USD,Agriculture & Livestock,8354,0.9759,excluded,available,"convertible, liquid and distinct; not included in the traded universe"
+LSU,White Sugar,USD,Agriculture & Livestock,6644,0.9055,excluded,available,"convertible, liquid and distinct; not included in the traded universe"
+MWE,Hard Red Spring Wheat,USD,Agriculture & Livestock,9009,0.9353,excluded,available,"convertible, liquid and distinct; not included in the traded universe"
+OJ,Frozen Concentrated Orange Juice Grade A,USD,Agriculture & Livestock,9127,0.7518,excluded,available,"convertible, liquid and distinct; not included in the traded universe"
+VX,CBOE Volatility Index,USD,Stock Index,2711,0.7765,excluded,available,"convertible, liquid and distinct; not included in the traded universe"
+ZO,Oats,USD,Agriculture & Livestock,9246,0.684,excluded,available,"convertible, liquid and distinct; not included in the traded universe"
+FDAX9,DAX (L),EUR,Stock Index,2489,0.9474,excluded,duplicate_underlying,"second listing of FDAX, which is carried"
+FESX9,EURO STOXX 50 (L),EUR,Stock Index,2490,0.9663,excluded,duplicate_underlying,"second listing of FESX, which is carried"
+NIY,Nikkei 225 Yen,JPY,Stock Index,2739,0.9419,excluded,duplicate_underlying,"second listing of NKD, which is carried"
+WBS,WTI Crude Oil,USD,Energy,2298,0.9743,excluded,duplicate_underlying,"second listing of CL, which is carried"
+YAP10,ASX SPI 200 (N) (L),AUD,Stock Index,5857,0.488,excluded,duplicate_underlying,"second listing of YAP, which is carried"
+YAP4,ASX SPI 200 (D),AUD,Stock Index,8099,0.9927,excluded,duplicate_underlying,"second listing of YAP, which is carried"
+HSI,Hang Seng Index,HKD,Stock Index,4628,0.9873,excluded,no_usd_conversion,HKD has no conversion source in the supplied panel
+KOS,KOSPI 200,KRW,Stock Index,3477,0.983,excluded,no_usd_conversion,KRW has no conversion source in the supplied panel
+MHI,Hang Seng Index - Mini,HKD,Stock Index,3512,0.9832,excluded,no_usd_conversion,HKD has no conversion source in the supplied panel
+SSG,MSCI Singapore Index,SGD,Stock Index,4101,0.9412,excluded,no_usd_conversion,SGD has no conversion source in the supplied panel
+BAX,Canadian Bankers Acceptance,CAD,Interest Rate,6697,0.8656,excluded,rate_index_quoted,quoted as 100 - rate; price x point_value is not the economic notional
+LEU,Euribor,EUR,Interest Rate,4102,0.9856,excluded,rate_index_quoted,quoted as 100 - rate; price x point_value is not the economic notional
+YIB,ASX 30 Day Interbank Cash Rate,AUD,Interest Rate,2916,0.9263,excluded,rate_index_quoted,quoted as 100 - rate; price x point_value is not the economic notional
+YIR,ASX 90 Day Bank Accepted Bills,AUD,Interest Rate,6571,0.9397,excluded,rate_index_quoted,quoted as 100 - rate; price x point_value is not the economic notional
+ZQ,30 Day Federal Funds,USD,Interest Rate,6601,0.7932,excluded,rate_index_quoted,quoted as 100 - rate; price x point_value is not the economic notional
+AFB,Eastern Australia Feed Barley,AUD,Agriculture & Livestock,2948,0.0,excluded,volume_gate,passes the 60-session median > 1000 contracts gate on only 0.0% of its sessions
+AWM,Eastern Australia Wheat,AUD,Agriculture & Livestock,2952,0.0589,excluded,volume_gate,passes the 60-session median > 1000 contracts gate on only 5.9% of its sessions
+DC,Class III Milk,USD,Agriculture & Livestock,4390,0.4294,excluded,volume_gate,passes the 60-session median > 1000 contracts gate on only 42.9% of its sessions
+FTDX,TecDAX,EUR,Stock Index,2322,0.1516,excluded,volume_gate,passes the 60-session median > 1000 contracts gate on only 15.2% of its sessions
+GD,S&P GSCI,USD,Other,4715,0.0666,excluded,volume_gate,passes the 60-session median > 1000 contracts gate on only 6.7% of its sessions
+LBS,Random Length Lumber,USD,Agriculture & Livestock,9027,0.4929,excluded,volume_gate,passes the 60-session median > 1000 contracts gate on only 49.3% of its sessions
+LWB,Feed Wheat,GBP,Agriculture & Livestock,5829,0.0,excluded,volume_gate,passes the 60-session median > 1000 contracts gate on only 0.0% of its sessions
+ZR,Rough Rice,USD,Agriculture & Livestock,7148,0.1754,excluded,volume_gate,passes the 60-session median > 1000 contracts gate on only 17.5% of its sessions
+YXT,ASX 10 Year Treasury Bond,AUD,Interest Rate,7647,0.9681,excluded,yield_quoted,yield-quoted; price x point_value reproduces neither P&L nor notional
+YYT,ASX 3 Year Treasury Bond,AUD,Interest Rate,6780,0.9913,excluded,yield_quoted,yield-quoted; price x point_value reproduces neither P&L nor notional
+6A,Australian Dollar,USD,Currency,7045,0.6899,included,traded,
+6B,British Pound,USD,Currency,9019,0.9779,included,traded,
+6C,Canadian Dollar,USD,Currency,9030,0.9606,included,traded,
+6E,Euro FX,USD,Currency,4018,0.9853,included,traded,
+6J,Japanese Yen,USD,Currency,8990,0.976,included,traded,
+6M,Mexican Peso,USD,Currency,4950,0.9663,included,traded,
+6N,New Zealand Dollar,USD,Currency,2339,0.8504,included,traded,
+6S,Swiss Franc,USD,Currency,9019,0.9784,included,traded,
+BRN,Brent Crude Oil,USD,Energy,6754,0.9898,included,traded,
+CC,Cocoa,USD,Agriculture & Livestock,8778,0.9772,included,traded,
+CGB,10-Year Govt. of Canada Bond,CAD,Interest Rate,4570,0.9845,included,traded,
+CL,Crude Oil - Light Sweet,USD,Energy,7969,0.9824,included,traded,
+CT,Cotton No. 2,USD,Agriculture & Livestock,9104,0.9703,included,traded,
+EMD,E-mini S&P MidCap 400,USD,Stock Index,3260,0.9598,included,traded,
+ES,E-mini S&P 500,USD,Stock Index,4361,0.9865,included,traded,
+FCE,CAC 40,EUR,Stock Index,6683,0.9912,included,traded,
+FDAX,DAX,EUR,Stock Index,4067,0.9855,included,traded,
+FESX,EURO STOXX 50,EUR,Stock Index,4010,0.9853,included,traded,
+FGBL,Euro-Bund,EUR,Interest Rate,4069,0.9855,included,traded,
+FGBM,Euro-Bobl,EUR,Interest Rate,4049,0.9854,included,traded,
+FGBS,Euro-Schatz,EUR,Interest Rate,4057,0.9855,included,traded,
+FGBX,Euro-Buxl,EUR,Interest Rate,2367,0.9751,included,traded,
+FSMI,Swiss Market Index,CHF,Stock Index,4025,0.9853,included,traded,
+GAS,Low Sulphur Gasoil,USD,Energy,6655,0.976,included,traded,
+GC,Gold,USD,Metal,9238,0.9824,included,traded,
+GF,Feeder Cattle,USD,Agriculture & Livestock,9068,0.9648,included,traded,
+HE,Lean Hogs,USD,Agriculture & Livestock,9113,0.9788,included,traded,
+HG,Copper,USD,Metal,9218,0.9625,included,traded,
+HO,NY Harbor ULSD,USD,Energy,9069,0.9456,included,traded,
+HTW,MSCI Taiwan Index,USD,Stock Index,4433,0.9838,included,traded,
+KC,Coffee C,USD,Agriculture & Livestock,9033,0.9761,included,traded,
+KE,KC HRW Wheat,USD,Agriculture & Livestock,9000,0.9847,included,traded,
+LE,Live Cattle,USD,Agriculture & Livestock,9128,0.9807,included,traded,
+LFT,FTSE 100,GBP,Stock Index,5109,0.9885,included,traded,
+LLG,Long Gilt,GBP,Interest Rate,6788,0.987,included,traded,
+NG,Henry Hub Natural Gas,USD,Energy,6208,0.9523,included,traded,
+NKD,Nikkei 225 Dollar,USD,Stock Index,6122,0.8749,included,traded,
+NQ,E-mini Nasdaq-100,USD,Stock Index,3913,0.9849,included,traded,
+PA,Palladium,USD,Metal,8341,0.2635,included,traded,
+PL,Platinum,USD,Metal,9193,0.8229,included,traded,
+RB,RBOB Gasoline,USD,Energy,2327,0.9527,included,traded,
+RS,Canola,CAD,Agriculture & Livestock,8543,0.9931,included,traded,
+RTY,E-mini Russell 2000,USD,Stock Index,3339,0.962,included,traded,
+SB,Sugar No. 11,USD,Agriculture & Livestock,9074,0.9787,included,traded,
+SI,Silver,USD,Metal,9218,0.9881,included,traded,
+SJB,Japanese Govt Bond - Mini,JPY,Interest Rate,3986,0.9217,included,traded,
+SNK,Nikkei 225 (SGX),JPY,Stock Index,6235,0.9686,included,traded,
+SXF,S&P/TSX 60 Index,CAD,Stock Index,3845,0.9847,included,traded,
+YAP,ASX SPI 200,AUD,Stock Index,8099,0.9927,included,traded,
+YM,E-mini Dow $5,USD,Stock Index,3213,0.9816,included,traded,
+ZB,U.S. T-Bond,USD,Interest Rate,9268,0.9661,included,traded,
+ZC,Corn,USD,Agriculture & Livestock,9324,0.9872,included,traded,
+ZF,5-Year U.S. T-Note,USD,Interest Rate,6694,0.9912,included,traded,
+ZL,Soybean Oil,USD,Agriculture & Livestock,9315,0.9836,included,traded,
+ZM,Soybean Meal,USD,Agriculture & Livestock,9309,0.9832,included,traded,
+ZN,10-Year U.S. T-Note,USD,Interest Rate,8224,0.9928,included,traded,
+ZS,Soybean,USD,Agriculture & Livestock,9353,0.9862,included,traded,
+ZT,2-Year U.S. T-Note,USD,Interest Rate,6166,0.9296,included,traded,
+ZW,Chicago SRW Wheat,USD,Agriculture & Livestock,9323,0.9825,included,traded,
