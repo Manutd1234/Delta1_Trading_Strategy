@@ -219,7 +219,7 @@ def load_shared_frames(
         "metadata": load_metadata(data_dir, symbols=symbols),
         "volumes": load_volumes(data_dir, symbols=symbols),
         "delivery_months": load_delivery_months(data_dir, symbols=symbols),
-        "fx_rates": load_fx_rates(data_dir, prices.index),
+        "fx_rates": load_fx_rates(data_dir, prices.index, ffill_limit),
     }
     missing = [key_ for key_ in _FRAME_KEYS if key_ not in frames]
     if missing:

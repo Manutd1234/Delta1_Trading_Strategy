@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -23,7 +24,9 @@ import pandas as pd
 
 from delta1_strategy.research.strategy import (
     StrategyConfig,
+    _load_column,
     load_prices,
+    performance_metrics,
     run_backtest,
     strategy_symbols,
 )
@@ -141,6 +144,76 @@ class TestReferenceSpecification(unittest.TestCase):
         # 10 -> 11 is a 9% adjustment and is suppressed; 10 -> 20 is not.
         self.assertEqual(list(executed["A"]), [10.0, 10.0, 20.0])
 
+    def test_no_trade_buffer_is_idempotent(self) -> None:
+        """Re-buffering a buffered book is a no-op.
+
+        Every change the buffer let through exceeded the band against the same
+        prior it would face on a second pass, and every hold left the target
+        equal to that prior.  A failure here means the buffer creates paths
+        instead of filtering them.
+        """
+        rng = np.random.default_rng(20260811)
+        shape = (48, 6)
+        # Drifts small against a level of 1.0 stay inside the 25% band; the
+        # persistent sign flips jump it.  NaN holes and exact zeros exercise
+        # the fillna path and the all-out state.
+        levels = 1.0 + np.cumsum(rng.normal(0.0, 0.04, shape), axis=0)
+        levels *= np.cumprod(np.where(rng.random(shape) < 0.08, -1.0, 1.0), axis=0)
+        levels[rng.random(shape) < 0.10] = np.nan
+        levels[rng.random(shape) < 0.06] = 0.0
+        desired = pd.DataFrame(
+            levels,
+            index=pd.date_range("2016-01-31", periods=shape[0], freq="ME"),
+            columns=list("ABCDEF"),
+        )
+
+        once = reference.apply_no_trade_buffer(desired, 0.25)
+        # The fixture must exercise both branches, or idempotence is vacuous.
+        self.assertTrue((once.to_numpy() != 0).any())
+        self.assertTrue((desired.notna() & once.ne(desired)).to_numpy().any())
+        twice = reference.apply_no_trade_buffer(once, 0.25)
+        pd.testing.assert_frame_equal(twice, once, check_exact=True)
+
+    def test_gross_cap_holds_after_integer_rounding(self) -> None:
+        """np.rint can lift a capped book back over the ceiling; trunc ends it.
+
+        Eleven markets at 4.95 contracts of $10 notional against a $500 cap:
+        the continuous rescale lands every market on 50/11 = 4.54..., rint
+        lifts that to 5 for a gross of 550, and the post-round rescale offers
+        5 * 500/550 = 4.54... -- which rint would round straight back to 5.
+        Only truncation terminates, at 4 contracts and $440 gross.
+        """
+        markets = 11
+        desired = np.full(markets, 4.95)
+        price = np.full(markets, 10.0)
+        unit = np.ones(markets)
+        nav = 100.0
+        cap = reference.P["max_gross_notional_multiple"] * nav
+        self.assertEqual(cap, 500.0)  # the arithmetic above assumes this cap
+
+        limited = reference._limit_gross(desired, nav, price, unit, unit, True)
+        self.assertLessEqual(float(np.sum(np.abs(limited * price * unit))), cap)
+        self.assertTrue((limited == np.trunc(limited)).all())
+        self.assertEqual(limited.tolist(), [4.0] * markets)
+
+    def test_gross_cap_fails_closed_on_unvaluable_targets(self) -> None:
+        desired = np.array([1.0, 0.0])
+        clean = np.array([10.0, 10.0])
+        broken = np.array([np.nan, 10.0])
+        cases = {
+            "price": (broken, clean, clean),
+            "point value": (clean, broken, clean),
+            "margin": (clean, clean, broken),
+        }
+        for field, (price, pv, margin) in cases.items():
+            with self.subTest(missing=field), self.assertRaises(ValueError):
+                reference._limit_gross(desired, 100.0, price, pv, margin, True)
+        # Only targeted markets need valuing: a NaN on a zero target is unheld.
+        limited = reference._limit_gross(
+            np.array([0.0, 1.0]), 100.0, broken, clean, clean, True
+        )
+        self.assertEqual(limited.tolist(), [0.0, 1.0])
+
     def test_shock_multiplier_only_ever_cuts(self) -> None:
         rng = np.random.default_rng(0)
         index = pd.bdate_range("2015-01-01", periods=600)
@@ -150,6 +223,74 @@ class TestReferenceSpecification(unittest.TestCase):
         multiplier = reference.shock_multiplier(prices).dropna()
         self.assertTrue((multiplier <= 1.0 + 1e-12).all().all())
         self.assertTrue((multiplier >= reference.P["shock_floor"] - 1e-12).all().all())
+
+
+class TestLoaderParity(unittest.TestCase):
+    """Both column readers must refuse the same malformed vendor files.
+
+    The equality proof only covers files both implementations accept; a row
+    that one loader rejects and the other repairs would let them agree on
+    clean data while reading dirty data differently.
+    """
+
+    MALFORMED = (
+        ("duplicate dates", "Close", "Date,Close\n2020-01-02,1.0\n2020-01-02,2.0\n"),
+        ("non-finite close", "Close", "Date,Close\n2020-01-02,inf\n2020-01-03,-inf\n"),
+        ("negative volume", "Volume", "Date,Volume\n2020-01-02,100\n2020-01-03,-1\n"),
+    )
+
+    def test_both_column_readers_reject_malformed_files(self) -> None:
+        for label, column, text in self.MALFORMED:
+            for loader in (reference._column, _load_column):
+                with (
+                    self.subTest(case=label, loader=loader.__module__),
+                    tempfile.TemporaryDirectory() as tmp,
+                ):
+                    path = Path(tmp) / "&XX.csv"
+                    path.write_text(text)
+                    with self.assertRaises(ValueError):
+                        loader(path, column, "XX")
+
+
+class TestMetricsPins(unittest.TestCase):
+    """Hand-computed values the published formulas must reproduce.
+
+    The parity tests prove the two implementations agree with each other;
+    these prove the shared formula agrees with its definition, so both cannot
+    drift together.
+    """
+
+    @staticmethod
+    def _ledger(index: pd.DatetimeIndex, net_return: list[float], cost) -> pd.DataFrame:
+        return pd.DataFrame(
+            {
+                "net_return": net_return,
+                "cost": cost,
+                "gross_notional_multiple": 1.0,
+                "active_markets": 1.0,
+            },
+            index=index,
+        )
+
+    def test_annual_cost_drag_is_mean_cost_times_annualization(self) -> None:
+        index = pd.bdate_range("2020-01-06", periods=4)
+        daily = self._ledger(
+            index, [0.001, -0.002, 0.0005, 0.0015], [0.001, 0.002, 0.0005, 0.0015]
+        )
+        measured = reference.metrics(daily, "2020-01-06")
+        # mean(0.001, 0.002, 0.0005, 0.0015) = 0.00125, times 252 sessions.
+        self.assertAlmostEqual(float(measured["Annual cost drag"]), 0.315, places=12)
+
+    def test_calmar_is_cagr_over_absolute_max_drawdown(self) -> None:
+        index = pd.bdate_range("2020-01-06", periods=4)
+        daily = self._ledger(index, [0.02, -0.04, 0.01, 0.03], 0.0)
+        measured = reference.metrics(daily, "2020-01-06")
+        # Equity peaks at 1.02, troughs at 1.02 * 0.96 one session later.
+        years = (index[-1] - index[0]).total_seconds() / (365.2425 * 86_400)
+        cagr = (1.02 * 0.96 * 1.01 * 1.03) ** (1 / years) - 1
+        self.assertAlmostEqual(float(measured["Max drawdown"]), -0.04, places=12)
+        self.assertAlmostEqual(float(measured["CAGR"]), cagr, places=12)
+        self.assertAlmostEqual(float(measured["Calmar"]), cagr / 0.04, places=12)
 
 
 def _assert_ledgers_identical(case: unittest.TestCase, ledger: pd.DataFrame, canonical: pd.DataFrame) -> None:
@@ -167,10 +308,59 @@ def _assert_ledgers_identical(case: unittest.TestCase, ledger: pd.DataFrame, can
 class TestReferenceMatchesPackageOnGeneratedData(unittest.TestCase):
     """Equality without the licensed history, so CI can run it."""
 
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.result = run_backtest(StrategyConfig(SYNTHETIC_DIR))
+        cls.ledger = reference.run(SYNTHETIC_DIR)
+
     def test_daily_ledger_is_bit_identical(self) -> None:
-        canonical = run_backtest(StrategyConfig(SYNTHETIC_DIR)).daily
-        ledger = reference.run(SYNTHETIC_DIR)
-        _assert_ledgers_identical(self, ledger, canonical)
+        _assert_ledgers_identical(self, self.ledger, self.result.daily)
+
+    def test_headline_metrics_agree_without_licensed_data(self) -> None:
+        """The supplied-data metric parity check, runnable in CI.
+
+        An identical ledger does not imply identical metrics -- the two
+        implementations could compute a published figure by different
+        formulas -- and the licensed history must not be the only place that
+        drift can surface.
+        """
+        windows = {
+            "generated full span": ("2001-01-01", None),
+            "generated sub-window": ("2003-01-01", "2008-12-31"),
+        }
+        for window, (start, end) in windows.items():
+            measured = reference.metrics(self.ledger, start, end)
+            canonical = performance_metrics(self.result, start, end)
+            for reference_key, published_key in SHARED_METRICS:
+                with self.subTest(window=window, metric=published_key):
+                    self.assertAlmostEqual(
+                        float(measured[reference_key]),
+                        float(canonical[published_key]),
+                        places=12,
+                    )
+
+
+@unittest.skipUnless(SYNTHETIC_DIR.exists(), "Generated data directory is not available")
+class TestReferenceIgnoresPanelLayout(unittest.TestCase):
+    """Column order and calendar length are storage accidents, not inputs.
+
+    The volumes frame reaches the liquidity gate, the sizing caps, and the
+    fill caps; every consumer must realign it to the price calendar, so a
+    reordered and padded copy has to produce the identical ledger.
+    """
+
+    def test_reordered_and_extended_volumes_change_nothing(self) -> None:
+        data = reference.load_market_data(SYNTHETIC_DIR)
+        baseline = reference.run(data=data)
+
+        volumes = data["volumes"]
+        longer = pd.bdate_range(volumes.index[0], periods=len(volumes.index) + 5)
+        variant = dict(data)
+        variant["volumes"] = volumes[volumes.columns[::-1]].reindex(longer)
+
+        pd.testing.assert_frame_equal(
+            reference.run(data=variant), baseline, check_exact=True
+        )
 
 
 @unittest.skipUnless(DATA_DIR.exists(), "Supplied DELTA1 data directory is not available")

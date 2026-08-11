@@ -58,8 +58,8 @@ The current catalogue margin snapshot does not resize historical positions.
 Its historical series is an informational proxy only.
 
 The position-magnitude bounds listed above are not risk controls on the
-evidence. `max_risk_scalar` (2.00) and `min_risk_scalar` (0.25) bind on 0 of 300
-monthly decisions over 1990–2014; the realized multiplier stays inside
+evidence. `max_risk_scalar` (2.00) and `min_risk_scalar` (0.25) bind on 0 of
+6,523 sessions over 1990–2014; the realized multiplier stays inside
 `[0.294, 1.846]`. `max_gross_notional_multiple` binds on 24 of 6,523 sessions.
 They are retained as compliance ceilings, and lowering them is an allocation
 decision rather than a drawdown decision. See
@@ -218,6 +218,14 @@ proxies, not calibrated live risk of ruin. Monte Carlo cannot create alpha.
    episode. The failure mode is forecast accuracy across many correlated
    markets, which no size ceiling reaches. Uniform de-levering leaves Sharpe
    invariant at 1.5895 and makes Calmar slightly worse.
+10. Capacity on this cost model is small and is bounded by roll completion,
+    not price impact. Replaying the frozen configuration at larger initial
+    capital (`outputs/validation/validation_capacity.csv`), every level from
+    $5M upward aborts on the 21-session roll-completion guard in thin markets
+    (SJB first, then RS and GF); the working capacity sits between $2M and
+    $5M. The headline Sharpe describes a book that cannot be scaled past that
+    bound under these participation limits, and no impact-cost erosion figure
+    is estimable because the guard binds first.
 
 ## Production controls
 

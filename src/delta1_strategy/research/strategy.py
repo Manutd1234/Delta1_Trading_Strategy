@@ -446,7 +446,9 @@ def load_metadata(
     return catalogue.sort_index()
 
 
-def load_fx_rates(data_dir: Path, calendar: pd.DatetimeIndex) -> pd.DataFrame:
+def load_fx_rates(
+    data_dir: Path, calendar: pd.DatetimeIndex, ffill_limit: int = 10
+) -> pd.DataFrame:
     """Load point-in-time USD conversion rates from currency futures."""
     plausible = {
         "EUR": (0.5, 2.5), "GBP": (0.8, 3.0), "JPY": (0.003, 0.02),
@@ -461,7 +463,7 @@ def load_fx_rates(data_dir: Path, calendar: pd.DatetimeIndex) -> pd.DataFrame:
         observed = rate.dropna()
         if not ((observed > low) & (observed < high)).all():
             raise ValueError(f"{currency} rate outside plausible bounds; check scaling")
-        rates[currency] = rate.reindex(calendar).ffill(limit=10)
+        rates[currency] = rate.reindex(calendar).ffill(limit=ffill_limit)
     frame = pd.DataFrame(rates, index=calendar)
     frame["USD"] = 1.0
     return frame
@@ -675,6 +677,13 @@ def _base_target_positions(
         symbols = list(members)
         available = forecast[symbols].notna() & annual_dollar_vol[symbols].gt(0)
         count = available.sum(axis=1).replace(0, np.nan)
+        # sqrt(class_weight / count) differs from the reference's
+        # target_vol / sqrt(n) by 1 ulp for some counts.  The gap never reaches
+        # a traded position or a published metric — the ledger-equality test
+        # proves that — but the frozen daily fingerprint was generated with
+        # THIS arithmetic, and rewriting it as sqrt(class_weight)/sqrt(count)
+        # was measured to change the fingerprint.  Re-pinning every downstream
+        # artifact for zero numeric benefit is the wrong trade, so it stays.
         risk_budget = config.target_vol * np.sqrt(class_weight / count)
         positions[symbols] = forecast[symbols].mul(risk_budget, axis=0).div(
             annual_dollar_vol[symbols]
@@ -1806,7 +1815,7 @@ def run_backtest(
         )
     )
     fx_rates = fx_rates if fx_rates is not None else load_fx_rates(
-        config.data_dir, prices.index
+        config.data_dir, prices.index, config.price_ffill_limit
     )
     point_values = usd_point_values(metadata, fx_rates, prices.index)
     margin_values = usd_margin_values(metadata, fx_rates, prices.index)

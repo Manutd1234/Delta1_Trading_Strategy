@@ -211,6 +211,49 @@ member because seventeen configurations *declared today* are not the lineage's
 unrecoverable true trial count; `inference.promotion_support` therefore blocks
 promotion.
 
+## 3. Descriptive robustness of the frozen baseline
+
+Four analyses added after the validation suite, all of them descriptions of the
+one frozen configuration — no family, no selection, and nothing here altered a
+parameter. Each artifact carries its own status label and the runner that wrote
+it reconciles its baseline before emitting a number
+(`outputs/validation/validation_*.csv`).
+
+**Crisis windows** (`validation_crisis_windows.csv`). Eight windows declared
+from public event dates — an invasion, a rate hike, a bankruptcy filing — not
+from the equity curve. The strategy is net positive in six of eight: +14.2%
+through the 1990 Gulf shock, +39.9% through the dot-com unwind, +3.4% through
+Lehman's quarter. The two losses are LTCM/Russia (−2.9% over 65 sessions) and
+the 2011 US downgrade (−3.7% over 45 sessions). Worst within-window drawdown
+across all eight: −8.9% (1994 bond selloff). None of these windows was chosen
+by looking at the result.
+
+**Cost breakeven** (`validation_cost_breakeven.csv`). All five execution-cost
+inputs scaled jointly from 0.5x to 16x, everything else frozen. Net Sharpe is
+strictly decreasing in the multiplier; net CAGR crosses zero at an interpolated
+**12.7x** the modeled costs and net Sharpe at **12.8x** — both crossings inside
+the declared grid. The 1.0x row reproduces the published metrics row and the
+2.0x row reproduces the friction stress's `double_all_execution_costs` to
+twelve decimal places before anything is written.
+
+**Capacity** (`validation_capacity.csv`). The frozen configuration replayed at
+1x–100x the $1M initial capital. The binding constraint is not impact-cost
+Sharpe erosion — at 2x the Sharpe is marginally *higher* (integer-contract
+granularity improves target tracking faster than the extra ~4bp of cost drag
+hurts). From **$5M upward every replay aborts on the 21-session roll-completion
+guard** in thin markets (SJB first, then RS, GF), so on this cost model the
+working capacity sits **between $2M and $5M** and is set by roll completion,
+not by price impact. The Sharpe-erosion thresholds the sweep was designed to
+interpolate are therefore not estimable, and the artifact records that refusal
+rather than a number.
+
+**Leave-one-sector-out** (`validation_universe_jackknife.csv`). The frozen
+configuration replayed six times, each with one asset class removed. Full-book
+Sharpe 1.59; the worst single exclusion (equity indices, 15 markets removed)
+leaves 1.36, and no exclusion pushes maximum drawdown past −15.2%
+(government bonds out). The prose claim that no single market or class carries
+the result now has a table behind it.
+
 ## What none of this establishes
 
 Every number above is reused 1990–2014 history. The walk-forward's segments are
@@ -234,4 +277,10 @@ python scripts/run_benchmark_comparison.py \
 
 python scripts/run_validation_suite.py \
   --data-dir "Round1AllData/Quant Researcher/Delta1" --output-dir outputs/validation
+
+# descriptive robustness of the frozen baseline
+python scripts/run_crisis_windows.py
+python scripts/run_cost_breakeven.py     --data-dir "Round1AllData/Quant Researcher/Delta1"
+python scripts/run_capacity_sweep.py     --data-dir "Round1AllData/Quant Researcher/Delta1"
+python scripts/run_universe_jackknife.py --data-dir "Round1AllData/Quant Researcher/Delta1"
 ```

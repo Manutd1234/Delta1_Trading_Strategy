@@ -82,7 +82,7 @@ P = {
     "vol_span": 60,                 # per-market EWMA price volatility
     "risk_managed_window": 63, "risk_managed_cap": 2.00,
     "target_vol": 0.07,             # portfolio annualized volatility budget
-    "vol_decay": 0.94,              # RiskMetrics EWMA for the portfolio scaler
+    "vol_decay": 0.94,              # RiskMetrics lambda for the portfolio scaler
     "vol_min_periods": 20, "portfolio_vol_window": 63,
     "min_risk_scalar": 0.25, "max_risk_scalar": 2.00,
     "max_gross_notional_multiple": 5.0,
@@ -114,6 +114,11 @@ def _column(path: Path, column: str, name: str) -> pd.Series:
     values = pd.to_numeric(frame[column], errors="raise")
     if dates.duplicated().any():
         raise ValueError(f"Duplicate dates in {path}")
+    observed = values.notna()
+    if not np.isfinite(values.to_numpy(dtype=float)[observed]).all():
+        raise ValueError(f"Non-finite {column} values in {path}")
+    if column == "Volume" and values[observed].lt(0).any():
+        raise ValueError(f"Negative Volume values in {path}")
     return pd.Series(values.to_numpy(), index=pd.DatetimeIndex(dates), name=name).sort_index()
 
 
@@ -304,10 +309,14 @@ def month_end_rows(frame: pd.DataFrame | pd.Series):
 
 
 def portfolio_risk_scalar(gross_returns: pd.Series, positions: pd.DataFrame) -> pd.Series:
-    """RiskMetrics EWMA multiplier steering realized volatility to the target.
+    """EWMA multiplier steering realized volatility to the target.
 
-    Held to 1.0 until the book has been live for a full 63-session window, so
-    the scaler never extrapolates from a nearly empty portfolio.
+    The decay is the RiskMetrics lambda = 0.94, but under pandas' default
+    adjusted weighting rather than the classic adjust=False recursion the
+    per-market estimators use -- a deliberate difference the hardened engine
+    mirrors exactly.  Held to 1.0 until the book has been live for a full
+    63-session window, so the scaler never extrapolates from a nearly empty
+    portfolio.
     """
     realized = gross_returns.ewm(
         alpha=1 - P["vol_decay"], min_periods=P["vol_min_periods"]
@@ -361,8 +370,20 @@ def roll_events(delivery: pd.DataFrame) -> pd.DataFrame:
 
 
 def _limit_gross(desired: np.ndarray, nav: float, price: np.ndarray,
-                 pv: np.ndarray, integer: bool) -> np.ndarray:
-    """Scale a target book down to the 5x gross-notional ceiling."""
+                 pv: np.ndarray, margin: np.ndarray, integer: bool) -> np.ndarray:
+    """Scale a target book down to the 5x gross-notional ceiling.
+
+    Fails closed when a nonzero target cannot be valued: a NaN price, point
+    value, or margin on the decision date must abort the run, not silently
+    drop that market out of the cap arithmetic.
+    """
+    nonzero = desired != 0
+    if nonzero.any() and (
+        not np.isfinite(price[nonzero]).all()
+        or not np.isfinite(pv[nonzero]).all()
+        or not np.isfinite(margin[nonzero]).all()
+    ):
+        raise ValueError("Missing decision-date valuation input for a nonzero target")
     gross = float(np.nansum(np.abs(desired * price * pv)))
     cap = P["max_gross_notional_multiple"] * nav
     if gross > cap > 0:
@@ -385,7 +406,7 @@ def simulate(
     integer: bool,
     charge_costs: bool,
     launch: str | None,
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Fill monthly targets session by session and mark a self-financing ledger.
 
     Two participation bounds, deliberately on different information sets:
@@ -417,7 +438,7 @@ def simulate(
 
     # Sizing capacity from lagged median volume; fill capacity from this session.
     lagged_volume = (
-        data["volumes"].fillna(0.0)
+        data["volumes"].reindex(index=index, columns=columns).fillna(0.0)
         .rolling(P["volume_gate_window"], min_periods=P["volume_gate_window"])
         .median().shift(1).to_numpy(float)
     )
@@ -453,15 +474,22 @@ def simulate(
             decision = max(earlier) if earlier else None
         if decision is not None:
             loc = index.get_loc(decision)
-            pending = _limit_gross(targets[decision] * nav, nav, unadj[loc], pv[loc], integer)
-            pending[np.isclose(pending, quantity, atol=1e-12)] = np.nan
+            pending = _limit_gross(
+                targets[decision] * nav, nav, unadj[loc], pv[loc], margin[loc], integer
+            )
+            pending[np.isclose(pending, quantity, atol=1e-12, rtol=0.0)] = np.nan
         pending_roll |= rolls[i]
 
         start_nav, old = nav, quantity.copy()
         tradeable_now = np.isfinite(raw_close[i]) & (volume[i] > 0)
 
         change = close[i] - close[i - 1] if i > 0 else np.zeros(m)
-        gross_pnl = float(np.sum(np.where(old != 0, old * change * pv[i], 0.0)))
+        held = old != 0
+        if held.any() and (
+            not np.isfinite(change[held]).all() or not np.isfinite(pv[i, held]).all()
+        ):
+            raise ValueError(f"Missing held settlement or FX value on {date.date()}")
+        gross_pnl = float(np.sum(np.where(held, old * change * pv[i], 0.0)))
 
         # Fill, bounded by both caps; whatever is refused stays pending.
         fill = tradeable_now & np.isfinite(pending)
@@ -469,7 +497,7 @@ def simulate(
                        np.minimum(size_cap[i], fill_cap[i]))
         step = np.where(np.isfinite(step), step, 0.0)
         quantity[fill] = old[fill] + step[fill]
-        pending[fill & np.isclose(quantity, pending, atol=1e-12)] = np.nan
+        pending[fill & np.isclose(quantity, pending, atol=1e-12, rtol=0.0)] = np.nan
         turnover = np.abs(quantity - old)
 
         # Delivery transfers.  A reducing trade comes out of the expiring leg
@@ -525,7 +553,7 @@ def simulate(
 
         nav = start_nav + gross_pnl - day_cost
         if not np.isfinite(nav) or nav <= 0:
-            raise ValueError(f"NAV non-positive on {date.date()}")
+            raise ValueError(f"Portfolio NAV is non-positive or non-finite on {date.date()}")
 
         held = quantity != 0
         rows[i] = (

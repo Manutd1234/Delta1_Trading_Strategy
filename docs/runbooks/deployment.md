@@ -67,8 +67,8 @@ post-freeze, independently custodied or prospective, so none satisfies
   the kill switch with separate operator/risk identities.
 - Predeclare paper, drawdown, cost, roll and recovery acceptance criteria. The
   drawdown criteria must not be written as if the position-magnitude bounds
-  enforce them. `max_risk_scalar` and `min_risk_scalar` bind on 0 of 300
-  historical monthly decisions and `max_gross_notional_multiple` on 24 of 6,523
+  enforce them. `max_risk_scalar` and `min_risk_scalar` bind on 0 of 6,523
+  sessions and `max_gross_notional_multiple` on 24 of 6,523
   sessions; measured drawdowns are broad accuracy failures at slightly *lower*
   volatility and a *smaller* book, not size failures. Tightening the scalar
   ceiling to 1.00 at matched risk raises simulated P(drawdown > 15%) from 4.90%

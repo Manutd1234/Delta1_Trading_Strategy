@@ -1,0 +1,8 @@
+excluded_class,markets_remaining,sharpe,cagr,annualized_volatility,max_drawdown,delta_sharpe_vs_baseline,delta_cagr_vs_baseline,validation_status
+none,59,1.5895266624546427,0.13189524685750764,0.07718572567461184,-0.11847122445591607,0.0,0.0,retrospective_reused_history; leave-one-class-out replay of the frozen specification; no selection
+Equity indices,44,1.362499676425752,0.11073243096481589,0.07662853371442742,-0.1374790895361213,-0.2270269860288907,-0.021162815892691755,retrospective_reused_history; leave-one-class-out replay of the frozen specification; no selection
+Government bonds,48,1.422307181823349,0.11672986789678896,0.07709075770919947,-0.15145067049897698,-0.16721948063129366,-0.015165378960718678,retrospective_reused_history; leave-one-class-out replay of the frozen specification; no selection
+FX,51,1.581558701727471,0.13074568330225933,0.07694167853125429,-0.10162199229338997,-0.007967960727171652,-0.0011495635552483119,retrospective_reused_history; leave-one-class-out replay of the frozen specification; no selection
+Energy,53,1.5174287653442722,0.12510768815131446,0.0770138314702362,-0.12334797386368657,-0.07209789711037051,-0.006787558706193186,retrospective_reused_history; leave-one-class-out replay of the frozen specification; no selection
+Metals,54,1.516273523103262,0.12709188103381974,0.07825898285537214,-0.10382866893581177,-0.07325313935138067,-0.0048033658236878995,retrospective_reused_history; leave-one-class-out replay of the frozen specification; no selection
+Agriculture & livestock,45,1.4234811234397409,0.11860666220638194,0.07822828273027488,-0.12169928489555293,-0.16604553901490182,-0.013288584651125701,retrospective_reused_history; leave-one-class-out replay of the frozen specification; no selection

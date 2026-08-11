@@ -981,10 +981,11 @@ Stated plainly, because they bound every number above.
    cycle. The brief permits other data sources, so that boundary is a scope
    decision, not an impossibility, and it is defended rather than assumed:
 
-   - **Free daily futures history** (Yahoo `=F`, Stooq) reaches 40 of the 59
-     traded roots. The 18 it misses — including seven of the eleven government
-     bond roots — carry roughly two fifths of 1990–2014 gross P&L, so a spliced
-     panel would be a materially different book wearing the same name. Those
+   - **Free daily futures history** (Yahoo `=F`, Stooq) reaches roughly two
+     thirds of the 59 traded roots. The roots it misses — including seven of
+     the eleven government bond roots — carry roughly two fifths of 1990–2014
+     gross P&L, so a spliced panel would be a materially different book wearing
+     the same name. Those
      feeds are also unadjusted front-month with no vendor-consistent
      back-adjusted twin, and the roll-yield sleeve is computed from exactly
      that pair, so half the forecast could not be formed. A vendor-consistent

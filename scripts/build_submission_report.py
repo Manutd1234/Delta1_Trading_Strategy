@@ -569,6 +569,62 @@ difference above.</div>""")
     keep = ["scenario", "cagr", "annualized_volatility", "sharpe", "max_drawdown", "annual_cost_drag"]
     add(table(stress[[c for c in keep if c in stress.columns]]))
 
+    # ---- robustness beyond the brief ----------------------------------
+    # Four descriptive analyses of the same frozen configuration.  Each reads
+    # its artifact from outputs/validation; a missing artifact degrades to
+    # "section absent", the same contract as every optional() table above.
+    def validation(name: str) -> pd.DataFrame | None:
+        path = ROOT / "outputs/validation" / name
+        if not path.is_file():
+            return None
+        frame = pd.read_csv(path)
+        return frame if not frame.empty else None
+
+    crisis = validation("validation_crisis_windows.csv")
+    if crisis is not None:
+        add("<h3>Crisis windows</h3>")
+        add('<p class="lede">Eight windows declared from public event dates — an invasion, '
+            'a rate hike, a bankruptcy filing — not from the equity curve, so they measure '
+            'episodes history picked rather than episodes the drawdown record picked.</p>')
+        keep = ["label", "start", "end", "sessions", "cumulative_net_return",
+                "max_drawdown", "worst_rolling_21_session_net_return"]
+        add(table(crisis[[c for c in keep if c in crisis.columns]]))
+
+    breakeven = validation("validation_cost_breakeven.csv")
+    if breakeven is not None:
+        add("<h3>Cost breakeven</h3>")
+        grid = breakeven[breakeven["row_type"] == "grid"]
+        crossings = breakeven[breakeven["row_type"] == "breakeven"].set_index("crossing_metric")
+        cagr_x = float(crossings.at["net_cagr", "cost_multiplier"])
+        sharpe_x = float(crossings.at["net_sharpe", "cost_multiplier"])
+        add(f'<p class="lede">Every modeled execution cost — spread, slippage, commission, fees '
+            f'and impact — scaled jointly, everything else frozen. Net CAGR crosses zero at an '
+            f'interpolated <strong>{cagr_x:.1f}x</strong> the modeled costs and net Sharpe at '
+            f'<strong>{sharpe_x:.1f}x</strong>; both crossings sit inside the declared grid, '
+            f'and are estimates from adjacent grid runs, not measurements.</p>')
+        keep = ["cost_multiplier", "net_cagr", "net_sharpe", "max_drawdown", "annual_cost_drag"]
+        add(table(grid[[c for c in keep if c in grid.columns]]))
+
+    capacity = validation("validation_capacity.csv")
+    if capacity is not None:
+        add("<h3>Capacity</h3>")
+        add('<p class="lede">The frozen configuration replayed at pre-declared capital multiples. '
+            'The binding constraint is not impact-cost Sharpe erosion: from $5M the '
+            '21-session roll-completion guard aborts the replay in thin markets, so on this cost '
+            'model the working capacity sits between $2M and $5M and is set by roll completion.</p>')
+        levels = capacity[capacity["row_type"] == "capacity_level"]
+        keep = ["capital_multiple", "initial_capital_usd", "run_outcome", "sharpe", "cagr",
+                "annual_cost_drag", "peak_order_participation", "backlog_guard_detail"]
+        add(table(levels[[c for c in keep if c in levels.columns]]))
+
+    jackknife = validation("validation_universe_jackknife.csv")
+    if jackknife is not None:
+        add("<h3>Leave-one-sector-out</h3>")
+        add('<p class="lede">The frozen configuration replayed six times, each time with one '
+            'asset class removed, in the declared order. No row is a recommendation; the table '
+            'substantiates the claim that no single class carries the result.</p>')
+        add(table(jackknife))
+
     # ---- benchmark and attribution ------------------------------------
     add("<h2>Benchmark and attribution</h2>")
     add(table(optional("benchmark_comparison.csv")))

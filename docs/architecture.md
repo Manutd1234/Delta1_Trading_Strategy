@@ -15,6 +15,7 @@ notebooks/       case research narrative and executed committee review
 scripts/         reproducible notebook builders and research runners
 examples/        fail-closed evidence examples
 outputs/         canonical generated research bundle and per-study subdirectories
+dist/            packaged submission bundle and its dated zip
 tests/           unit, integration and artifact tests
 ```
 
@@ -111,13 +112,20 @@ other, and neither may be waived on the strength of the other.
 ## Where each study writes
 
 Studies never write into the canonical bundle: each runner takes its own
-`--output-dir` and never calls `save_outputs`. Every runner that measures the
-incumbent on the futures panel first reconciles its own baseline replay against
-the frozen manifest's `daily_fingerprint_sha256` through
-`levers.assert_baseline_fingerprint`, so a wiring mistake fails before a number
-is published. The ETF runner is the exception and cannot do this: it reads a
-different panel and has no incumbent baseline to reconcile, which is one more
-reason its output is a separate lineage rather than a continuation of this one.
+`--output-dir` and never calls `save_outputs`. A runner that re-simulates the
+incumbent on the futures panel first reconciles its own baseline replay before
+publishing a number — against the frozen manifest's `daily_fingerprint_sha256`
+through `levers.assert_baseline_fingerprint` where it replays the full book
+(`run_lever_sweep`, `run_drawdown_attribution`, `run_bounds_sweep`,
+`run_benchmark_comparison`, `run_validation_suite`, `run_universe_jackknife`),
+or against the published full-history Sharpe where it perturbs an input the
+fingerprint pins (`run_capacity_sweep`, `run_cost_breakeven`). Three runners
+cannot reconcile and say so: the ETF runner reads a different panel and has no
+incumbent baseline — one more reason its output is a separate lineage — while
+`run_universe_audit.py` reads the data mount rather than measuring the
+incumbent, and `run_observed_only_signals.py` rebuilds the panel itself, which
+is the thing being varied. `run_crisis_windows.py` re-simulates nothing; it
+reads the frozen daily ledger.
 
 | Runner | Output directory | Findings document |
 |---|---|---|
@@ -126,8 +134,21 @@ reason its output is a separate lineage rather than a continuation of this one.
 | `scripts/run_bounds_sweep.py` | `outputs/bounds/` | [`drawdown-attribution-findings.md`](drawdown-attribution-findings.md) |
 | `scripts/run_benchmark_comparison.py` | `outputs/benchmarks/` | [`benchmark-and-validation-findings.md`](benchmark-and-validation-findings.md) |
 | `scripts/run_validation_suite.py` | `outputs/validation/` | [`benchmark-and-validation-findings.md`](benchmark-and-validation-findings.md) |
+| `scripts/run_crisis_windows.py` | `outputs/validation/` | [`benchmark-and-validation-findings.md`](benchmark-and-validation-findings.md) |
+| `scripts/run_cost_breakeven.py` | `outputs/validation/` | [`benchmark-and-validation-findings.md`](benchmark-and-validation-findings.md) |
+| `scripts/run_capacity_sweep.py` | `outputs/validation/` | [`benchmark-and-validation-findings.md`](benchmark-and-validation-findings.md) |
+| `scripts/run_universe_jackknife.py` | `outputs/validation/` | [`benchmark-and-validation-findings.md`](benchmark-and-validation-findings.md) |
+| `scripts/run_universe_audit.py` | `outputs/universe/` | README, [the supplied universe, in full](../README.md#the-supplied-universe-in-full) |
+| `scripts/run_observed_only_signals.py` | `outputs/submission/robustness_no_fill.csv` | `outputs/submission/report.html` |
 | `scripts/run_etf_regime_allocation.py` | `outputs/etf/` | [`etf-regime-allocation-findings.md`](etf-regime-allocation-findings.md) |
 | `scripts/run_holdout_evaluation.py` | `outputs/holdout/` | [`lever-program-findings.md`](lever-program-findings.md) |
+
+The eight `scripts/build_submission_*.py` builders derive the brief's required
+tables and the self-contained HTML report into `outputs/submission/`, and
+`scripts/build_submission_bundle.py` assembles `dist/delta1_submission/` — the
+report, the one-file strategy, the executed notebook, the cleaned parquet
+panel, an offline `reproduce.py` and a SHA-256 `MANIFEST.csv` — then zips it as
+`dist/delta1_submission_<date>.zip`.
 
 `run_validation_suite.py` additionally reads `outputs/levers`, which is the one
 ordering constraint between runners. `run_holdout_evaluation.py` appends to a
@@ -154,6 +175,8 @@ adapter, funded-account simulation, live treasury ledger, or external launch
 record. The required operating evidence remains described in
 [`controls/funding-and-margin.md`](controls/funding-and-margin.md).
 
+`scripts/build_case_notebook.py` writes the case-facing research narrative,
+`notebooks/delta1_case_research.ipynb`, from the same canonical artifacts.
 `scripts/build_committee_notebook.py` writes
 `notebooks/global_futures_trend_basis_committee_review.ipynb`. The notebook is
 a read-only presentation layer: it imports the installed package version,

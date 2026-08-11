@@ -31,7 +31,7 @@ exact configuration in [`outputs/strategy_config.json`](outputs/strategy_config.
 python reference/delta1_reference.py --data-dir "Round1AllData/Quant Researcher/Delta1"
 
 # and the proof that that one file is what the 29k-line package runs
-# (identical daily ledger AND identical published metrics, no tolerance)
+# (identical daily ledger, no tolerance; published metrics agree to 12 decimals)
 python -m unittest tests.test_reference -v
 ```
 
@@ -101,10 +101,10 @@ assets in the given global futures/ETFs.*
 The brief permits other sources and this repository uses none, so the boundary
 is a choice and is defended as one rather than presented as a constraint.
 
-Free daily futures history (Yahoo `=F`, Stooq) covers 40 of the 59 traded
-roots. The 18 it misses include seven of the eleven government-bond roots and
-carry roughly two fifths of 1990–2014 gross P&L, so a spliced panel would be a
-materially different book under the same name. Those feeds are also unadjusted
+Free daily futures history (Yahoo `=F`, Stooq) reaches roughly two thirds of
+the 59 traded roots. The roots it misses include seven of the eleven
+government-bond roots and carry roughly two fifths of 1990–2014 gross P&L, so a
+spliced panel would be a materially different book under the same name. Those feeds are also unadjusted
 front-month with no vendor-consistent back-adjusted twin, and the roll-yield
 sleeve is computed from exactly that pair — so half the forecast could not be
 formed. A vendor-consistent extension is licensed.
@@ -366,6 +366,27 @@ unflattering answers. It is not that a forward record now exists. See
 for the audited session accounting, the survivorship disclosure and the four
 vendor defects the panel carries.
 
+## Stress, cost headroom, capacity and concentration
+
+Four descriptive analyses of the same frozen configuration, written beside the
+validation suite in `outputs/validation/` and detailed in
+[the findings document](docs/benchmark-and-validation-findings.md#3-descriptive-robustness-of-the-frozen-baseline):
+
+- **Crisis windows.** Eight windows declared from public event dates, not from
+  the equity curve: net positive in six of eight, including +14.2% through the
+  1990 Gulf shock and +3.4% through Lehman's quarter; the two losses are
+  LTCM/Russia (−2.9%) and the 2011 US downgrade (−3.7%).
+- **Cost headroom.** With all five execution-cost inputs scaled jointly, net
+  CAGR survives to an interpolated **12.7x** the modeled costs.
+- **Capacity, honestly small.** From **$5M of capital upward the replay aborts
+  on the 21-session roll-completion guard** in thin markets; the working
+  capacity on this cost model is between $2M and $5M, set by roll completion,
+  not price impact. This bound belongs next to any reading of the headline
+  Sharpe.
+- **Concentration.** Leave-one-sector-out: the worst single exclusion (equity
+  indices) still leaves Sharpe 1.36 of the full book's 1.59 — no single class
+  carries the result.
+
 ## What the hardened v3.2.1 strategy corrected
 
 - Removed the current static-margin snapshot from 1990–2014 position sizing.
@@ -618,11 +639,14 @@ embedded committee charts. Important artifacts include
 ### The studies
 
 Each study is a separate runner writing to its own subdirectory, and none of
-them modifies the canonical bundle. Every runner that measures the incumbent on
-the futures panel first reconciles its baseline replay against the frozen run
-manifest's daily fingerprint, so a wiring mistake fails before a number is
-published. The ETF runner reads a different panel and has no incumbent baseline
-to reconcile.
+them modifies the canonical bundle. A runner that re-simulates the incumbent on
+the futures panel first reconciles its baseline replay — against the frozen run
+manifest's daily fingerprint where it replays the full book, or against the
+published full-history Sharpe where it perturbs an input the fingerprint pins —
+so a wiring mistake fails before a number is published. The ETF runner reads a
+different panel and has no incumbent baseline to reconcile; the universe audit
+reads the data mount rather than measuring the incumbent; the observed-only
+rebuild varies the panel itself, which is the thing a fingerprint would pin.
 
 ```bash
 DATA="Round1AllData/Quant Researcher/Delta1"
@@ -633,6 +657,12 @@ python scripts/run_bounds_sweep.py           --data-dir "$DATA" --output-dir out
 python scripts/run_benchmark_comparison.py   --data-dir "$DATA" --output-dir outputs/benchmarks
 python scripts/run_validation_suite.py       --data-dir "$DATA" --output-dir outputs/validation
 python scripts/run_etf_regime_allocation.py  --data-dir "$DATA" --output-dir outputs/etf
+
+# descriptive robustness of the frozen baseline, written beside the validation suite
+python scripts/run_crisis_windows.py                             # reads the frozen ledger only
+python scripts/run_cost_breakeven.py         --data-dir "$DATA"
+python scripts/run_capacity_sweep.py         --data-dir "$DATA"
+python scripts/run_universe_jackknife.py     --data-dir "$DATA"
 ```
 
 `run_validation_suite.py` also reads `outputs/levers`, so run the lever sweep
@@ -660,5 +690,12 @@ python scripts/run_holdout_evaluation.py \
 | `outputs/validation/` | walk-forward, family-wise inference, CSCV/PBO | [benchmarks and validation](docs/benchmark-and-validation-findings.md) |
 | `outputs/etf/` | ETF regime-allocation sleeve and its out-of-sample accounting | [ETF regime allocation](docs/etf-regime-allocation-findings.md) |
 | `outputs/holdout/` | 2015–2016 twelve-root subset ledger | [lever program](docs/lever-program-findings.md) |
+| `outputs/universe/` | full supplied-universe audit: every root's include/exclude ground | [the supplied universe, in full](#the-supplied-universe-in-full) |
+| `outputs/submission/` | the brief's required results, robustness checks and HTML report | `outputs/submission/report.html` |
+
+The packaged deliverable lives in `dist/delta1_submission/` — the report,
+the one-file strategy, the executed notebook, the cleaned parquet panel and an
+offline `reproduce.py`, zipped with a SHA-256 manifest by
+`scripts/build_submission_bundle.py`. Start at `dist/delta1_submission/00_START_HERE.md`.
 
 None of these artifacts alone authorizes trading. See [LICENSE](LICENSE).

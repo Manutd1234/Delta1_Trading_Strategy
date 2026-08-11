@@ -603,6 +603,73 @@ class TestTargetLimits(unittest.TestCase):
                 integer_contracts=True,
             )
 
+    def test_post_rounding_rescale_truncates_back_under_the_gross_limit(self) -> None:
+        """np.rint can recross the cap, so the rescue rescale must truncate.
+
+        The pre-round scale leaves [5/3, 5/3] contracts; rint gives [2, 2] and
+        120 gross against the 100 cap, and re-rounding the rescaled [5/3, 5/3]
+        would give [2, 2] right back.  Only truncation terminates under the cap.
+        """
+
+        config = StrategyConfig(
+            Path("unused"),
+            max_gross_notional_multiple=1.0,
+            max_static_margin_fraction=None,
+        )
+        contracts, _ = _limit_target_contracts(
+            np.array([0.018, 0.018]),
+            100.0,
+            np.array([30.0, 30.0]),
+            np.array([1.0, 1.0]),
+            np.array([1.0, 1.0]),
+            config,
+            integer_contracts=True,
+        )
+        np.testing.assert_allclose(contracts, [1.0, 1.0])
+        np.testing.assert_allclose(contracts, np.rint(contracts))
+        gross = float(np.sum(np.abs(contracts * 30.0)))
+        self.assertLessEqual(gross, config.max_gross_notional_multiple * 100.0)
+
+    def test_integer_targets_respect_hard_limits_across_random_books(self) -> None:
+        """Integrality and both hard limits survive rounding for any book."""
+
+        rng = np.random.default_rng(20260811)
+        for draw in range(200):
+            n_markets = int(rng.integers(1, 6))
+            targets = rng.normal(0.0, 0.05, n_markets)
+            targets[rng.random(n_markets) < 0.2] = 0.0
+            nav = float(rng.uniform(50.0, 1_000_000.0))
+            prices = rng.uniform(0.5, 500.0, n_markets) * rng.choice(
+                [-1.0, 1.0], n_markets
+            )
+            point_values = rng.uniform(0.5, 100.0, n_markets)
+            margins = rng.uniform(0.1, 5_000.0, n_markets)
+            gross_cap = float(rng.choice([0.5, 1.0, 2.0, 5.0]))
+            margin_cap = (
+                float(rng.uniform(0.05, 0.5)) if rng.random() < 0.5 else None
+            )
+            config = StrategyConfig(
+                Path("unused"),
+                max_gross_notional_multiple=gross_cap,
+                max_static_margin_fraction=margin_cap,
+            )
+            contracts, _ = _limit_target_contracts(
+                targets,
+                nav,
+                prices,
+                point_values,
+                margins,
+                config,
+                integer_contracts=True,
+            )
+            label = f"draw {draw}"
+            self.assertTrue(np.allclose(contracts, np.rint(contracts)), label)
+            gross = float(np.sum(np.abs(contracts * prices * point_values)))
+            self.assertLessEqual(gross, gross_cap * nav * (1 + 1e-12), label)
+            if margin_cap is not None:
+                margin = float(np.sum(np.abs(contracts) * margins))
+                self.assertLessEqual(margin, margin_cap * nav * (1 + 1e-12), label)
+
 
 class TestRiskAndExecution(unittest.TestCase):
     def test_volume_gate_uses_only_trailing_observations(self) -> None:
@@ -617,6 +684,30 @@ class TestRiskAndExecution(unittest.TestCase):
         desired = pd.DataFrame({"X": [1.0, 1.1, -1.0]}, index=dates)
         actual = apply_no_trade_buffer(desired, 0.25)
         self.assertEqual(actual.iloc[:, 0].tolist(), [1.0, 1.0, -1.0])
+
+    def test_buffer_is_idempotent_for_scalar_and_per_market_widths(self) -> None:
+        """A buffered path re-buffered is itself, bit for bit.
+
+        The output only moves when a move cleared the band, so feeding it back
+        must reproduce it exactly; anything else means the band depends on
+        state the output does not carry.
+        """
+
+        rng = np.random.default_rng(20260811)
+        index = pd.date_range("2005-01-31", periods=48, freq="BME")
+        columns = ["A", "B", "C", "D"]
+        # Small drifts from the scaled random walk, plus NaN holes, exact
+        # zeros, and sign flips — every hazard the band must absorb.
+        values = 0.1 * rng.normal(size=(48, 4)).cumsum(axis=0)
+        values[rng.random((48, 4)) < 0.15] = np.nan
+        values[rng.random((48, 4)) < 0.10] = 0.0
+        values = np.where(rng.random((48, 4)) < 0.10, -values, values)
+        desired = pd.DataFrame(values, index=index, columns=columns)
+        for width in (0.25, pd.Series([0.0, 0.1, 0.25, 0.9], index=columns)):
+            once = apply_no_trade_buffer(desired, width)
+            pd.testing.assert_frame_equal(
+                apply_no_trade_buffer(once, width), once, check_exact=True
+            )
 
     def test_next_open_fill_does_not_receive_the_overnight_gap(self) -> None:
         ledger, index = execution_inputs(
@@ -1096,6 +1187,37 @@ class TestRiskAndExecution(unittest.TestCase):
                 [100.0] * 3,
             )
 
+    def test_insolvent_pre_trade_nav_fails_closed(self) -> None:
+        # The open crashes with the close, so the overnight mark wipes the NAV
+        # before any trade or cost is booked: the pre-trade guard fires.
+        with self.assertRaisesRegex(ValueError, "non-positive or non-finite"):
+            execution_inputs(
+                [100.0, 100.0, -50.0],
+                [100.0, 100.0, -50.0],
+                [100.0] * 3,
+            )
+
+    def test_insolvent_end_of_day_nav_fails_closed(self) -> None:
+        # The flat open keeps the overnight mark solvent under next_open
+        # timing, so only the end-of-day ledger can observe the loss.
+        with self.assertRaisesRegex(ValueError, "non-positive or non-finite"):
+            execution_inputs(
+                [100.0, 100.0, -50.0],
+                [100.0, 100.0, 100.0],
+                [100.0] * 3,
+            )
+
+    def test_missing_held_valuation_fails_closed_without_a_trade(self) -> None:
+        # Back-adjusted closes stay complete, so settlement P&L is computable;
+        # only the held position's contract-level valuation is missing.
+        with self.assertRaisesRegex(ValueError, "Missing held valuation"):
+            execution_inputs(
+                [100.0] * 3,
+                [100.0] * 3,
+                [100.0] * 3,
+                valuation_closes=[100.0, 100.0, np.nan],
+            )
+
     def test_roll_event_mask_charges_every_switch_and_flags_anomalies(self) -> None:
         index = pd.bdate_range("2020-01-01", periods=7)
         delivery = pd.DataFrame(
@@ -1126,6 +1248,41 @@ class TestRiskAndExecution(unittest.TestCase):
         )
         self.assertEqual(low.daily.loc[low_index[2], "gross_notional_usd"], 102.0)
         self.assertEqual(high.daily.loc[high_index[2], "gross_notional_usd"], 202.0)
+
+    def test_negative_prices_keep_costs_and_notional_nonnegative(self) -> None:
+        """A contract price through zero flips neither a cost nor a notional.
+
+        Impact and gross notional are both priced off the absolute contract
+        level, so a WTI-April-2020-style excursion — including a roll worked
+        on a negative-price session — changes magnitudes, never signs.
+        """
+
+        valuation = [5.0, 2.0, -3.0, -4.0, -2.0, 1.0]
+        ledger, index = execution_inputs(
+            [10.0] * 6,
+            [10.0] * 6,
+            [100.0] * 6,
+            valuation_closes=valuation,
+            roll_dates=(3,),
+            one_way_cost=1.0,
+            impact_bps=10.0,
+        )
+        daily = ledger.daily
+        self.assertTrue(bool((daily["transaction_cost_usd"] >= 0).all()))
+        self.assertTrue(bool(ledger.executed_rolls.loc[index[3], "X"]))
+        self.assertGreater(float(daily.loc[index[3], "transaction_cost_usd"]), 0.0)
+        np.testing.assert_allclose(
+            daily["gross_notional_multiple"] * daily["nav"],
+            (ledger.positions["X"] * pd.Series(valuation, index=index)).abs(),
+        )
+        np.testing.assert_allclose(
+            daily["nav"],
+            daily["prior_nav_usd"]
+            + daily["gross_pnl_usd"]
+            - daily["transaction_cost_usd"],
+            rtol=1e-9,
+            atol=1e-9,
+        )
 
     def test_point_values_and_margin_convert_foreign_currency(self) -> None:
         index = pd.bdate_range("2020-01-01", periods=2)
@@ -1309,6 +1466,18 @@ class TestSuppliedDataIntegration(unittest.TestCase):
                 >= daily["max_roll_participation_proxy"]
             ).all()
         )
+        # The roll competes for the rebalance's leftover session budget, so
+        # every reported participation — combined order, rebalance leg, and
+        # roll leg — sits under the one configured cap.
+        participation_cap = float(self.config.max_rebalance_participation)
+        for column in (
+            "max_order_participation",
+            "max_rebalance_participation",
+            "max_roll_participation_proxy",
+        ):
+            self.assertLessEqual(
+                float(daily[column].max()), participation_cap + 1e-12, column
+            )
 
     def test_per_market_and_episode_attribution_reconcile(self) -> None:
         daily = self.result.daily

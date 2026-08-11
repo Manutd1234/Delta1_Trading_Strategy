@@ -45,14 +45,14 @@
     "src/delta1_strategy/research/friction.py": "119158a5a5a391c58b302ebfbaea8946eb91de921d578a88da507a984c9ad4d9",
     "src/delta1_strategy/research/holdout.py": "23ecd79c1af7381ee054ad24205d7f926815a2e10c5950c31dac44dcfd65e1a0",
     "src/delta1_strategy/research/inference.py": "ec977cfbe29800e60497b97d83d36b9aaebcf88bf6857e209c2a12f6ab7fda83",
-    "src/delta1_strategy/research/levers.py": "07091860437135771148b271a6b36e2a3a9fbd66b881b73062411a5827a7c2a8",
+    "src/delta1_strategy/research/levers.py": "eefd4905240409809d260c2e41c3611a5ac647b7feb709cfa4f74d05a8604d30",
     "src/delta1_strategy/research/regimes.py": "b40756d383ade02e4dfdcf27dbd53cef9a8cef78b5b7118d4f051318275de9f5",
     "src/delta1_strategy/research/registry.py": "65bef45abf8814b874ee6a0f777cd1206ddaf86f16fd0c8c45df2cfd83085725",
-    "src/delta1_strategy/research/strategy.py": "8108344f109be87004821cae05d357cd3fcbfdd39f049a00b480d8839b705a50",
+    "src/delta1_strategy/research/strategy.py": "17b65db23939f329a81af1dda8db7ecdebb7c2e4ff7789cecc7576c2b10f4cef",
     "src/delta1_strategy/research/trade_sequence.py": "dddb0be32ae48fb40ade947cf344d8026b78c3256066132479bdf66805453b30",
     "src/delta1_strategy/research/validation.py": "f39271240d5f6c37367e6598bd6eb5ec81865ec3252a376cec16cc9c9ac8a939"
   },
-  "implementation_fingerprint_sha256": "10509225d6d5688ce3bc47c2417a3d93dcbbee8f06a59fe6981c730014ffdbbc",
+  "implementation_fingerprint_sha256": "4f6cf6e5eb54006cc27afac547141cb01c3bbcf4894568ad2c9e2b31791b5c0d",
   "launch_date": "1990-01-01",
   "output_files": {
     "cost_model_assumptions.csv": "35dfdc5f8d09e5492ab3465d90f6bbb90aa368104856ff4ed24a8504afd2287a",

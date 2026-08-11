@@ -209,6 +209,15 @@ python strategy/delta1_reference.py --data-dir "<path to>/Quant Researcher/Delta
 | Cost sensitivity | `results/cost_sensitivity.csv` |
 | Performance across at least two regimes | `results/robustness_regimes.csv` — two independent regime axes |
 
+Beyond the brief, four descriptive analyses of the same frozen configuration:
+
+| Analysis | Where |
+|---|---|
+| Eight crisis windows declared from public event dates (Gulf, 1994 bonds, Asia, LTCM, dot-com, Lehman, US downgrade, taper) | `results/validation_crisis_windows.csv` |
+| Cost breakeven — net CAGR survives until ~12.7x every modeled execution cost | `results/validation_cost_breakeven.csv` |
+| Capacity — the binding constraint is roll completion in thin markets between $2M and $5M, not impact-cost Sharpe erosion | `results/validation_capacity.csv` |
+| Leave-one-sector-out jackknife of the 59-market book | `results/validation_universe_jackknife.csv` |
+
 ### F. Deliverables
 
 | Requirement | Where |
@@ -269,6 +278,14 @@ def build(output_dir: Path, stage: Path) -> Path:
     # Cost sensitivity already exists canonically; give it its spec name.
     stress = pd.read_csv(ROOT / "outputs/strategy_friction_stress.csv")
     stress.to_csv(stage / "results/cost_sensitivity.csv", index=False)
+    # Robustness beyond the brief: descriptive analyses of the frozen baseline.
+    for name in (
+        "validation_crisis_windows.csv",
+        "validation_cost_breakeven.csv",
+        "validation_capacity.csv",
+        "validation_universe_jackknife.csv",
+    ):
+        shutil.copy2(ROOT / "outputs/validation" / name, stage / "results" / name)
     # The daily ledger, so any figure in the report can be re-derived.
     shutil.copy2(ROOT / "outputs/strategy_daily.csv", stage / "results/strategy_daily.csv")
     shutil.copy2(ROOT / "outputs/strategy_metrics.csv", stage / "results/strategy_metrics.csv")
