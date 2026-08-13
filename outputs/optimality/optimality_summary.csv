@@ -1,0 +1,10 @@
+question,measure,value,reading
+Is the frozen configuration the full-sample optimum?,frozen full-sample Sharpe percentile among all configurations tested,0.8819277108433735,49 of 415 configurations beat it in sample; the best reached 1.698 against 1.590
+How much could a searcher have added in sample?,best full-sample Sharpe minus frozen,0.10891259349659421,the headroom an in-sample optimiser would have claimed
+Does choosing on 1990-2004 pay over 2005-2014?,out-of-sample Sharpe of the in-sample winner minus frozen,-0.036879882918532836,in-sample gain +0.008 decayed to -0.037 out of sample
+Did any joint combination of parameters beat the frozen one?,frozen full-sample Sharpe percentile within the joint random search,1.0,"0 of 300 independent draws beat it in sample, 0 over 2005-2014"
+Does any single change beat the frozen one in both windows?,profile points with a higher Sharpe over 1990-2004 and over 2005-2014,34.0,basis_weight=0.6 (1.896/1.338); risk_managed_window=252 (1.858/1.273); vol_decay=0.9 (1.851/1.269); risk_managed_window=189 (1.841/1.265) against frozen (1.822/1.235)
+Does in-sample rank predict out-of-sample rank?,Spearman correlation of train and test Sharpe across all configurations,0.7777710992457103,near zero would mean the search learns nothing transferable
+Is the 12-month trend lookback a plateau or a spike?,full-sample Sharpe lost at the adjacent grid points,0.2839296833866203,grid spans 0.558 Sharpe; 12% of the axis lies within 0.10 Sharpe of its own best
+Would annual re-optimisation have beaten holding the frozen rules?,"Sharpe of the re-optimised path minus frozen, same window",-0.0001095750428707909,"1996-01-01 to 2014-12-31, 2 changes of configuration"
+Does the headline Sharpe survive the size of this search?,deflated Sharpe probability for the frozen configuration,0.9987480942805271,declared family of 416 trials; the search maximum deflates to 0.9998164402519082
