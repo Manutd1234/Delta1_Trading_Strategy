@@ -69,8 +69,8 @@ decision rather than a drawdown decision. See
 
 All reported windows are `retrospective_reused_history`. Authoritative point
 estimates live in `outputs/strategy_metrics.csv` and
-`outputs/strategy_trade_metrics.csv`; the committee notebook reads them only
-after verifying the v3.2.1 run manifest. They are not duplicated here because a
+`outputs/strategy_trade_metrics.csv`, and are read only after the v3.2.1 run
+manifest verifies. They are not duplicated here because a
 code, data, cost, or execution change requires regenerated artifacts. Episodes
 overlap and share portfolio NAV, so they are not independent trials.
 
@@ -80,9 +80,8 @@ Against the user-supplied descriptive bands, historical Sharpe is
 institutional while CAGR is conservative. The model is not labeled high alpha.
 
 Twenty percent CAGR and approximately 2.0 Sharpe are aspirations, not an
-optimization, promotion, or launch objective. The committee notebook derives
-the arithmetic relationship from the generated volatility rather than using a
-hard-coded claim. Bounded signal and portfolio challengers did not establish a
+optimization, promotion, or launch objective. The arithmetic relationship is
+derived from the generated volatility rather than from a hard-coded claim. Bounded signal and portfolio challengers did not establish a
 robust joint improvement. A 9.3% volatility-target sensitivity was rejected
 because it bought exposure rather than alpha, failed to establish the joint
 aspiration on full and later reused history, and left inadequate drawdown
