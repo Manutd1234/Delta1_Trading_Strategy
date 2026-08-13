@@ -8,8 +8,10 @@ visualisations, key takeaways -- and executing the readable reference
 implementation rather than the hardened package, so the notebook a reviewer
 reads is the code a reviewer reads.
 
-The separate committee notebook (`build_committee_notebook.py`) is unchanged
-and remains the deployment-review artifact.
+This is the only notebook the repository keeps. The case brief asks for one
+notebook that carries the research end to end; a second one presenting the same
+frozen artifacts to a different audience was removed rather than maintained
+alongside it.
 """
 
 from __future__ import annotations
@@ -116,7 +118,7 @@ transcribed.
 | **The strategy** | [`reference/delta1_reference.py`](../reference/delta1_reference.py) — the entire model in one file, no imports from this project (the setup cell below prints its exact size) |
 | **The research** | this notebook |
 | **Proof the short file is the real one** | [`tests/test_reference.py`](../tests/test_reference.py) — asserts it reproduces the production engine *bit for bit* |
-| **The production hardening** | [`src/delta1_strategy/`](../src/delta1_strategy) and the [committee notebook](global_futures_trend_basis_committee_review.ipynb) — execution controls, risk gates, deployment evidence |
+| **The production hardening** | [`src/delta1_strategy/`](../src/delta1_strategy) — execution controls, risk gates, deployment evidence |
 
 The case asks for a model that is explainable and code that is easily read and
 run. That is the first row. The last row exists because a strategy that would
@@ -525,6 +527,101 @@ reduce drawdown. The answer was **no, measurably**:
 
 That is a negative result, and it is reported because it is the answer. Full
 measurements: [`docs/drawdown-attribution-findings.md`](../docs/drawdown-attribution-findings.md).
+
+### Was this the configuration a search would have picked?
+
+The three kinds above describe how the parameters were *chosen*. They do not
+answer the obvious follow-up: if someone had simply searched, would they have
+found something better? So after the configuration was frozen and published,
+417 configurations were run — dense one-parameter profiles over 18 axes, 300
+independent joint draws from the same box, and seven structural alternatives
+including multi-horizon trend ensembles.
+
+**This is a search, and the only one in this notebook.** It is declared as one.
+No parameter was re-selected from it and no figure anywhere else depends on it;
+its purpose is to price the configuration choice, not to make it. Regenerate
+with `python scripts/run_optimality_study.py`.
+"""))
+
+CELLS.append(code("""
+# The optimality audit, read from its artifacts. Regenerate with:
+#   python scripts/run_optimality_study.py
+summary = pd.read_csv(ROOT / "outputs/optimality/optimality_summary.csv")
+walk = pd.read_csv(ROOT / "outputs/optimality/optimality_walk_forward_summary.csv")
+shapes = pd.read_csv(ROOT / "outputs/optimality/optimality_profile_summary.csv")
+profiles = pd.read_csv(ROOT / "outputs/optimality/optimality_profiles.csv")
+
+display(summary[["question", "value", "reading"]].style.hide(axis="index")
+        .set_properties(**{"text-align": "left"}))
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.5, 3.6),
+                               gridspec_kw={"width_ratios": [1.2, 1]})
+
+# Left: the axis that spikes. A single-horizon choice is the one real
+# fragility in this design, and hiding it would defeat the point of measuring.
+axis = profiles[profiles["parameter"] == "trend_lookback"].sort_values("value")
+frozen = float(shapes.set_index("parameter").at["trend_lookback", "frozen_value"])
+ax1.plot(axis["value"], axis["full_sharpe"], color=BLUE, marker="o", markersize=3.5)
+ax1.axvline(frozen, color=ORANGE, linewidth=1.1, linestyle=(0, (4, 3)))
+ax1.text(frozen + 8, axis["full_sharpe"].min(), f" frozen at {frozen:.0f}",
+         color="#c04d1f", fontsize=8.5, va="bottom", fontweight="semibold")
+style(ax1, "The trend lookback is a spike, not a plateau",
+      "full-sample Sharpe against lookback, everything else frozen")
+ax1.set_xlabel("Trend lookback (sessions)")
+
+# Right: nineteen years of annual re-optimisation against holding the rules.
+books = walk.set_index("book")
+labels = ["Frozen rules", "Re-optimised\\nevery year"]
+sharpes = [float(books.at["frozen baseline", "sharpe"]),
+           float(books.at["annually re-optimised", "sharpe"])]
+cagrs = [float(books.at["frozen baseline", "cagr"]),
+         float(books.at["annually re-optimised", "cagr"])]
+x = range(2)
+ax2.bar([v - 0.19 for v in x], sharpes, width=0.36, color=BLUE, label="Sharpe")
+ax2.bar([v + 0.19 for v in x], cagrs, width=0.36, color=MUTED, label="CAGR")
+for position, (sharpe, cagr) in enumerate(zip(sharpes, cagrs)):
+    ax2.text(position - 0.19, sharpe + 0.03, f"{sharpe:.3f}", ha="center", fontsize=8.5)
+    ax2.text(position + 0.19, cagr + 0.03, f"{cagr:.2%}", ha="center", fontsize=8.5,
+             color=SECOND)
+ax2.set_xticks(list(x))
+ax2.set_xticklabels(labels)
+ax2.set_ylim(0, max(sharpes) * 1.25)
+style(ax2, "Optimising bought nothing", "1996-2014, same window, same panel")
+ax2.legend(loc="upper right", fontsize=8.5)
+
+plt.tight_layout()
+plt.show()
+"""))
+
+CELLS.append(md("""
+Three results, and one of them is uncomfortable.
+
+**Nothing in the joint space beat it.** Of 300 independent draws from the
+declared box, **none** beat the frozen configuration on the full history and
+none beat it over 2005-2014. Fifteen of the eighteen axes are plateaus or
+gentle slopes — every risk control among them.
+
+**Optimising paid nothing.** Choosing the best configuration on 1990-2004 and
+holding it afterwards *lost* Sharpe over 2005-2014. Nineteen years of annual
+re-optimisation matched the frozen book's Sharpe to four decimals (1.5958
+against 1.5959) while giving up 4.2 points of compound return, because the
+optimiser kept selecting a lower risk budget. The paired block bootstrap puts
+that CAGR shortfall below zero at every block length.
+
+**The trend lookback is a spike.** It is worth 0.28 Sharpe against its own
+neighbours, and that is the honest weakness in this design. Two things bound
+it: 252 sessions is the 12-month convention from Moskowitz, Ooi and Pedersen
+(2012) rather than a fitted value, and the peak does not transfer — the
+development window's best value is 231, not 252, and adopting it would have
+cost 0.14 Sharpe afterwards. A peak whose location moves between halves of the
+sample is noise. The multi-horizon ensembles that would normally smooth it were
+tested and are all worse, in both windows.
+
+One change beat the frozen configuration in both windows: a basis weight of 0.6
+rather than 0.5. It is **not adopted** — it is one grid step from the equal-risk
+prior, the gain is inside the bootstrap standard error, and one further step
+gives it all back. Moving a frozen parameter onto a peak found by searching the
+same history that scored it is the exact failure this study was built to detect.
 """))
 
 CELLS.append(code("""
