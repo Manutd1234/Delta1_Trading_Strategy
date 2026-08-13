@@ -1,0 +1,285 @@
+{
+  "baseline_reconciled_sharpe": 1.5895266624546427,
+  "bootstrap_samples": 4000,
+  "candidates": [
+    {
+      "assumption": "Trend sign averaged over 3, 6 and 12 month lookbacks.",
+      "name": "ensemble_63_126_252",
+      "overrides": {},
+      "trend_ensemble": [
+        63,
+        126,
+        252
+      ]
+    },
+    {
+      "assumption": "Trend sign averaged over 6, 12 and 24 month lookbacks.",
+      "name": "ensemble_126_252_504",
+      "overrides": {},
+      "trend_ensemble": [
+        126,
+        252,
+        504
+      ]
+    },
+    {
+      "assumption": "Trend sign averaged over 4, 8 and 12 month lookbacks.",
+      "name": "ensemble_84_168_252",
+      "overrides": {},
+      "trend_ensemble": [
+        84,
+        168,
+        252
+      ]
+    },
+    {
+      "assumption": "Trend sign averaged over five horizons from 1 to 24 months.",
+      "name": "ensemble_21_63_126_252_504",
+      "overrides": {},
+      "trend_ensemble": [
+        21,
+        63,
+        126,
+        252,
+        504
+      ]
+    },
+    {
+      "assumption": "Trend sleeve alone; the basis sleeve switched off.",
+      "name": "trend_only",
+      "overrides": {
+        "basis_weight": 0.0
+      },
+      "trend_ensemble": null
+    },
+    {
+      "assumption": "Basis sleeve alone, falling back to trend before it is estimable.",
+      "name": "basis_only",
+      "overrides": {
+        "basis_weight": 1.0
+      },
+      "trend_ensemble": null
+    },
+    {
+      "assumption": "Multi-horizon trend ensemble with the basis sleeve switched off.",
+      "name": "ensemble_63_126_252_trend_only",
+      "overrides": {
+        "basis_weight": 0.0
+      },
+      "trend_ensemble": [
+        63,
+        126,
+        252
+      ]
+    }
+  ],
+  "changes_any_published_number": false,
+  "configurations_completed": 416,
+  "configurations_infeasible": 1,
+  "configurations_run": 417,
+  "declaration": "Post-freeze optimality audit, and an explicit search. Unlike robustness_parameter_sensitivity.csv, this file IS a search: it exists to measure what a search could have found, after the configuration was already frozen and published. No row here was used to select any parameter, and no published number depends on this file.",
+  "full_window": [
+    "1990-01-01",
+    "2014-12-31"
+  ],
+  "infeasible_configurations": [
+    "profile:target_vol=0.12"
+  ],
+  "joint_search_trials": 300,
+  "profile_grid": {
+    "basis_lookback": [
+      63,
+      126,
+      189,
+      252,
+      315,
+      378,
+      504
+    ],
+    "basis_roll_window": [
+      63,
+      126,
+      189,
+      252,
+      315,
+      378,
+      504
+    ],
+    "basis_weight": [
+      0.0,
+      0.1,
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7,
+      0.8,
+      0.9,
+      1.0
+    ],
+    "fast_vol_span": [
+      10,
+      15,
+      20,
+      30,
+      40
+    ],
+    "no_trade_buffer": [
+      0.0,
+      0.05,
+      0.1,
+      0.15,
+      0.2,
+      0.25,
+      0.3,
+      0.35,
+      0.4,
+      0.5
+    ],
+    "portfolio_vol_window": [
+      21,
+      42,
+      63,
+      126,
+      189,
+      252
+    ],
+    "risk_managed_cap": [
+      1.0,
+      1.5,
+      2.0,
+      2.5,
+      3.0
+    ],
+    "risk_managed_window": [
+      21,
+      42,
+      63,
+      84,
+      126,
+      189,
+      252
+    ],
+    "shock_floor": [
+      0.5,
+      0.6,
+      0.75,
+      0.9,
+      1.0
+    ],
+    "shock_full": [
+      1.5,
+      1.75,
+      2.0,
+      2.25,
+      2.5
+    ],
+    "shock_start": [
+      1.0,
+      1.2,
+      1.35,
+      1.5,
+      1.75,
+      1.9
+    ],
+    "signal_cap": [
+      1.0,
+      1.5,
+      2.0,
+      2.5,
+      3.0,
+      4.0
+    ],
+    "signal_norm_window": [
+      126,
+      189,
+      252,
+      378,
+      504
+    ],
+    "slow_vol_span": [
+      60,
+      90,
+      120,
+      180,
+      252
+    ],
+    "target_vol": [
+      0.04,
+      0.05,
+      0.06,
+      0.07,
+      0.08,
+      0.09,
+      0.1,
+      0.12
+    ],
+    "trend_lookback": [
+      63,
+      84,
+      105,
+      126,
+      147,
+      168,
+      189,
+      210,
+      231,
+      252,
+      273,
+      294,
+      315,
+      378,
+      441,
+      504
+    ],
+    "vol_decay": [
+      0.9,
+      0.92,
+      0.94,
+      0.96,
+      0.97,
+      0.98
+    ],
+    "vol_span": [
+      20,
+      30,
+      40,
+      60,
+      80,
+      100,
+      120
+    ]
+  },
+  "reference_file_sha256": "b973ea789a5bce1249fcc2b8e1a9143c6fbb28bf273bebc1fa84c24366c3fcfd",
+  "search_axes": [
+    "trend_lookback",
+    "basis_weight",
+    "basis_roll_window",
+    "basis_lookback",
+    "signal_norm_window",
+    "signal_cap",
+    "vol_span",
+    "risk_managed_window",
+    "risk_managed_cap",
+    "fast_vol_span",
+    "slow_vol_span",
+    "shock_start",
+    "shock_full",
+    "shock_floor",
+    "vol_decay",
+    "portfolio_vol_window",
+    "no_trade_buffer"
+  ],
+  "search_seed": 20260813,
+  "selection_adjusted": true,
+  "test_window": [
+    "2005-01-01",
+    "2014-12-31"
+  ],
+  "train_window": [
+    "1990-01-01",
+    "2004-12-31"
+  ],
+  "walk_forward_first_year": 1996
+}
