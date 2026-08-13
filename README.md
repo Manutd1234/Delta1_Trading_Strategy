@@ -24,7 +24,8 @@ exact configuration in [`outputs/strategy_config.json`](outputs/strategy_config.
 | **The strategy** | [`reference/delta1_reference.py`](reference/delta1_reference.py) | one file, imports nothing from this project |
 | **The research** | [the case notebook](notebooks/delta1_case_research.ipynb) | introduction → methodology → findings → takeaways |
 | **Proof the short file is the real one** | [`tests/test_reference.py`](tests/test_reference.py) | asserts bit-for-bit equality with the production engine |
-| **The production hardening** | [`src/delta1_strategy/`](src/delta1_strategy) · [committee notebook](notebooks/global_futures_trend_basis_committee_review.ipynb) | execution controls, risk gates, deployment evidence |
+| **Whether a search would have picked this** | [`outputs/optimality/`](outputs/optimality) | 417 configurations run after the model was frozen |
+| **The production hardening** | [`src/delta1_strategy/`](src/delta1_strategy) | execution controls, risk gates, deployment evidence |
 
 ```bash
 # the whole strategy, no notebook, ~3 seconds
@@ -93,7 +94,7 @@ assets in the given global futures/ETFs.*
 | ≥ 5 years out of sample; rolling walk-forward recommended | **20 years, 5,218 sessions**, anchored expanding walk-forward — [above](#out-of-sample-evidence) and `outputs/validation/` |
 | Research papers as inspiration and a benchmark comparison | Six papers re-implemented into thirteen replicated paths, run through the identical engine, panel and cost model, plus a joint spanning regression — `outputs/benchmarks/` |
 | Occam's razor; explainable model, code easily read and run | [`reference/delta1_reference.py`](reference/delta1_reference.py) — the whole strategy in one file with no fitted magnitude parameters, proven equal to the production engine |
-| Jupyter notebook with introduction, methodology, findings with visualisations, key takeaways | [the case notebook](notebooks/delta1_case_research.ipynb) |
+| Jupyter notebook with introduction, methodology (model, **optimizations**, limitations), findings with visualisations, key takeaways | [the case notebook](notebooks/delta1_case_research.ipynb) — the one notebook here, committed executed, in exactly those sections; § 4 carries the [optimality audit](outputs/optimality) and § 8 the limitations |
 | *"You are allowed to use other data sources"* | Declined deliberately, with the reason stated in the notebook's Limitation 1 — see [why no external data](#why-no-external-data) below |
 
 ## Why no external data
@@ -177,11 +178,11 @@ engine, data, costs, or execution controls change. The authoritative values are
 generated in
 [`outputs/strategy_metrics.csv`](outputs/strategy_metrics.csv), with the exact
 configuration and package version in
-[`outputs/strategy_config.json`](outputs/strategy_config.json). The committee
-notebook verifies both files against
-[`outputs/run_manifest.json`](outputs/run_manifest.json) before displaying
-CAGR, daily/monthly/HAC Sharpe, Sortino, drawdown, profit factors, expectancy,
-cost drag, gross exposure, and participation.
+[`outputs/strategy_config.json`](outputs/strategy_config.json). Both files are
+pinned by [`outputs/run_manifest.json`](outputs/run_manifest.json), which carries
+the daily fingerprint every study reconciles against before it publishes a
+number: CAGR, daily/monthly/HAC Sharpe, Sortino, drawdown, profit factors,
+expectancy, cost drag, gross exposure, and participation.
 
 Order **size** is capped from lagged median volume, so the completed execution
 session never decides how much to trade. The **fill** is separately capped at
@@ -226,10 +227,10 @@ headroom beneath the drawdown policy, and produced materially higher simulated
 15% drawdown-breach frequencies. It is not the adopted configuration and is
 not promoted as a canonical result.
 
-The committee notebook calculates, from the generated full-history volatility,
-the Sharpe required for a 20% geometric return and the CAGR implied by a 2.0
-Sharpe under a clearly labeled lognormal approximation. Leverage cannot create
-the missing risk-adjusted edge.
+From the generated full-history volatility, the Sharpe required for a 20%
+geometric return and the CAGR implied by a 2.0 Sharpe follow under a clearly
+labeled lognormal approximation. Leverage cannot create the missing
+risk-adjusted edge.
 
 The defensible conclusion is **institutional historical risk-adjusted
 characteristics with conservative CAGR**, not “high alpha” — and the two
@@ -615,18 +616,18 @@ delta1-strategy \
 
 python -m unittest discover -s tests -v
 
-python scripts/build_committee_notebook.py
+python scripts/build_case_notebook.py
 
 jupyter nbconvert --to notebook --execute --inplace \
-  notebooks/global_futures_trend_basis_committee_review.ipynb \
+  notebooks/delta1_case_research.ipynb \
   --ExecutePreprocessor.timeout=900
 ```
 
-The generated committee notebook refuses a stale bundle whose manifest engine
-version or implementation hashes do not match the installed v3.2.1 package. The
-[committee notebook](notebooks/global_futures_trend_basis_committee_review.ipynb)
-reads only hashed canonical outputs; its executed review copy must contain
-embedded committee charts. Important artifacts include
+`notebooks/delta1_case_research.ipynb` is the one notebook this repository
+keeps, and it must be committed executed: `tests/test_strategy.py` fails on an
+unexecuted copy, on an error output, and on a printed warning. It reads only
+the canonical artifacts and runs the readable reference file rather than the
+hardened package. Important artifacts include
 `outputs/strategy_metrics.csv`, `outputs/strategy_daily.csv`,
 `outputs/strategy_market_daily.csv.gz`, `outputs/strategy_trade_metrics.csv`,
 `outputs/strategy_friction_stress.csv`,
@@ -657,6 +658,7 @@ python scripts/run_bounds_sweep.py           --data-dir "$DATA" --output-dir out
 python scripts/run_benchmark_comparison.py   --data-dir "$DATA" --output-dir outputs/benchmarks
 python scripts/run_validation_suite.py       --data-dir "$DATA" --output-dir outputs/validation
 python scripts/run_etf_regime_allocation.py  --data-dir "$DATA" --output-dir outputs/etf
+python scripts/run_optimality_study.py       --data-dir "$DATA" --output-dir outputs/optimality
 
 # descriptive robustness of the frozen baseline, written beside the validation suite
 python scripts/run_crisis_windows.py                             # reads the frozen ledger only
@@ -690,6 +692,7 @@ python scripts/run_holdout_evaluation.py \
 | `outputs/validation/` | walk-forward, family-wise inference, CSCV/PBO | [benchmarks and validation](docs/benchmark-and-validation-findings.md) |
 | `outputs/etf/` | ETF regime-allocation sleeve and its out-of-sample accounting | [ETF regime allocation](docs/etf-regime-allocation-findings.md) |
 | `outputs/holdout/` | 2015–2016 twelve-root subset ledger | [lever program](docs/lever-program-findings.md) |
+| `outputs/optimality/` | post-freeze search: 417 configurations, walk-forward re-optimisation, deflated Sharpe | `report.html` § Optimality audit |
 | `outputs/universe/` | full supplied-universe audit: every root's include/exclude ground | [the supplied universe, in full](#the-supplied-universe-in-full) |
 | `outputs/submission/` | the brief's required results, robustness checks and HTML report | `outputs/submission/report.html` |
 
