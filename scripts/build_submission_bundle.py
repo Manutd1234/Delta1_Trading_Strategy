@@ -17,6 +17,7 @@ import argparse
 import datetime as dt
 import hashlib
 import importlib.util
+import json
 import shutil
 import zipfile
 from pathlib import Path
@@ -118,6 +119,24 @@ def headline_numbers() -> dict:
     fill = fill.loc[fill["window"] == "1990-2014 full"].iloc[0]
     values["fill_delta"] = float(fill["delta_Sharpe (rf=0)"])
     values["fill_strict_sharpe"] = float(fill["observed_only_Sharpe (rf=0)"])
+
+    optimality = ROOT / "outputs/optimality"
+    walk = pd.read_csv(optimality / "optimality_walk_forward_summary.csv").set_index("book")
+    selection = pd.read_csv(optimality / "optimality_selection.csv").set_index("pool")
+    manifest = json.loads((optimality / "optimality_run.json").read_text(encoding="utf-8"))
+    values["opt_runs"] = int(manifest["configurations_run"])
+    values["opt_draws"] = int(manifest["joint_search_trials"])
+    values["opt_draws_beating"] = int(round(
+        (1.0 - float(selection.at["joint random search", "frozen_full_sharpe_percentile"]))
+        * float(selection.at["joint random search", "configurations"])
+    ))
+    values["opt_reopt_sharpe"] = float(walk.at["annually re-optimised", "sharpe"])
+    values["opt_frozen_sharpe"] = float(walk.at["frozen baseline", "sharpe"])
+    values["opt_reopt_cagr"] = float(walk.at["annually re-optimised", "cagr"])
+    values["opt_frozen_cagr"] = float(walk.at["frozen baseline", "cagr"])
+    profiles = pd.read_csv(optimality / "optimality_profile_summary.csv").set_index("parameter")
+    values["opt_lookback"] = int(profiles.at["trend_lookback", "frozen_value"])
+    values["opt_spike"] = float(profiles.at["trend_lookback", "neighbour_sharpe_drop"])
     return values
 
 
@@ -209,6 +228,30 @@ python strategy/delta1_reference.py --data-dir "<path to>/Quant Researcher/Delta
 | Cost sensitivity | `results/cost_sensitivity.csv` |
 | Performance across at least two regimes | `results/robustness_regimes.csv` — two independent regime axes |
 
+### Was this configuration the one a search would have picked?
+
+The parameter sensitivity above is nine pre-declared runs and searches nothing, which
+leaves the fair question open. So, **after** the configuration was frozen and published,
+{v['opt_runs']} configurations were run: dense one-parameter profiles, {v['opt_draws']}
+independent joint draws from the same box, and seven structural alternatives.
+
+- **{v['opt_draws_beating']} of {v['opt_draws']}** joint draws beat the frozen configuration
+  in sample, and none beat it over 2005-2014.
+- Choosing the best configuration on 1990-2004 and living with it afterwards **lost**
+  Sharpe over 2005-2014.
+- Nineteen years of annual re-optimisation returned a Sharpe of
+  **{v['opt_reopt_sharpe']:.3f}** against the frozen book's **{v['opt_frozen_sharpe']:.3f}**
+  — and a CAGR of {v['opt_reopt_cagr']:.2%} against {v['opt_frozen_cagr']:.2%}. The optimiser
+  bought nothing and paid {(v['opt_frozen_cagr'] - v['opt_reopt_cagr']) * 100:.1f} points of
+  compound return for it.
+- The one real weakness it found: the {v['opt_lookback']}-session trend lookback sits on a
+  spike worth {v['opt_spike']:.2f} Sharpe against its neighbours. The peak moves between
+  halves of the sample, so it is noise — but it is reported, in
+  `results/optimality_profile_summary.csv`.
+
+No parameter was re-selected from any of it, and no number elsewhere in this bundle
+depends on it. `report.html` § Optimality audit; `results/optimality_*.csv`.
+
 Beyond the brief, four descriptive analyses of the same frozen configuration:
 
 | Analysis | Where |
@@ -286,6 +329,11 @@ def build(output_dir: Path, stage: Path) -> Path:
         "validation_universe_jackknife.csv",
     ):
         shutil.copy2(ROOT / "outputs/validation" / name, stage / "results" / name)
+    # The optimality audit: the one explicit search in the bundle, shipped
+    # whole -- every configuration it ran, not just the ones that flatter the
+    # frozen answer.
+    for path in sorted((ROOT / "outputs/optimality").glob("optimality_*")):
+        shutil.copy2(path, stage / "results" / path.name)
     # The daily ledger, so any figure in the report can be re-derived.
     shutil.copy2(ROOT / "outputs/strategy_daily.csv", stage / "results/strategy_daily.csv")
     shutil.copy2(ROOT / "outputs/strategy_metrics.csv", stage / "results/strategy_metrics.csv")
