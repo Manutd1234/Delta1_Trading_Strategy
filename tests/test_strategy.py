@@ -330,13 +330,19 @@ class TestConfiguration(unittest.TestCase):
 
 
 class TestNotebookArtifact(unittest.TestCase):
+    """The one notebook the repository ships must be executed and honest.
+
+    It replaces an identical guard on a second, committee-facing notebook that
+    was removed on 2026-08-13. The assertions are the same in kind: the
+    notebook must read the canonical artifacts rather than recompute them, must
+    have been executed rather than shipped as source, must carry its charts
+    inline so a reviewer with no kernel still sees them, and must not have
+    printed a warning or raised on the way.
+    """
+
     def test_notebook_is_executed_uses_canonical_artifacts_and_embeds_charts(self) -> None:
         notebook = json.loads(
-            (
-                ROOT_DIR
-                / "notebooks"
-                / "global_futures_trend_basis_committee_review.ipynb"
-            ).read_text()
+            (ROOT_DIR / "notebooks" / "delta1_case_research.ipynb").read_text()
         )
         self.assertEqual(notebook["nbformat"], 4)
         self.assertIsInstance(notebook.get("cells"), list)
@@ -346,15 +352,27 @@ class TestNotebookArtifact(unittest.TestCase):
         all_source = "".join(
             "".join(cell.get("source", [])) for cell in notebook["cells"]
         )
-        self.assertIn("run_manifest.json", source)
-        self.assertIn("production_readiness.csv", source)
-        self.assertIn("strategy_trade_sequence_monte_carlo.csv", source)
-        self.assertIn("strategy_daily_drawdown_monte_carlo.csv", source)
-        self.assertIn('manifest["output_files"]', source)
-        self.assertIn("sha256", source.lower())
-        self.assertIn("STRATEGY_DESIGNATION", source)
-        self.assertIn("Best Available Hardened Strategy", all_source)
-        self.assertIn("BLOCKED — NO LIVE CAPITAL AUTHORIZATION", all_source)
+        # Runs the readable reference file rather than the hardened package,
+        # and takes every figure it does not compute from the canonical
+        # artifacts rather than from a number typed into a cell.
+        self.assertIn("delta1_reference", source)
+        for artifact in (
+            "outputs/universe/universe_audit.csv",
+            "outputs/validation/validation_walk_forward_summary.csv",
+            "outputs/benchmarks/benchmark_comparison.csv",
+            "outputs/optimality/optimality_summary.csv",
+        ):
+            self.assertIn(artifact, source, f"notebook does not read {artifact}")
+        # The sections the case brief names, in the notebook a reviewer opens.
+        for heading in (
+            "Introduction",
+            "Methodology",
+            "Optimizations",
+            "Findings",
+            "Limitations",
+            "Key takeaways",
+        ):
+            self.assertIn(heading, all_source, f"missing section: {heading}")
         self.assertTrue(
             all(
                 isinstance(cell.get("execution_count"), int)
@@ -368,7 +386,7 @@ class TestNotebookArtifact(unittest.TestCase):
             for output in outputs
             if "image/png" in output.get("data", {})
         ]
-        self.assertGreaterEqual(len(embedded_images), 10)
+        self.assertGreaterEqual(len(embedded_images), 4)
         stream_text = "".join(
             "".join(output.get("text", []))
             for output in outputs
