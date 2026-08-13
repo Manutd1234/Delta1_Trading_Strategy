@@ -11,7 +11,7 @@ src/delta1_strategy/
   controls/      readiness, runtime risk, evidence and treasury validation
   execution/     cost calibration, order routing and operational controls
 docs/            model, methodology, architecture, findings and runbooks
-notebooks/       case research narrative and executed committee review
+notebooks/       the executed case research narrative
 scripts/         reproducible notebook builders and research runners
 examples/        fail-closed evidence examples
 outputs/         canonical generated research bundle and per-study subdirectories
@@ -175,16 +175,18 @@ adapter, funded-account simulation, live treasury ledger, or external launch
 record. The required operating evidence remains described in
 [`controls/funding-and-margin.md`](controls/funding-and-margin.md).
 
-`scripts/build_case_notebook.py` writes the case-facing research narrative,
-`notebooks/delta1_case_research.ipynb`, from the same canonical artifacts.
-`scripts/build_committee_notebook.py` writes
-`notebooks/global_futures_trend_basis_committee_review.ipynb`. The notebook is
-a read-only presentation layer: it imports the installed package version,
-requires that version to match both generated manifests, verifies source and
-output hashes, and only then reads the canonical CSV/JSON artifacts. Build it
-after running `delta1-strategy`; execute it only from a clean kernel after the
-integrity check passes. A manifest that names removed root-level modules or an
-earlier engine version is stale and must be regenerated, not waived.
+`scripts/build_case_notebook.py` writes the one notebook this repository
+keeps, `notebooks/delta1_case_research.ipynb`, from the canonical artifacts.
+The notebook is a read-only presentation layer: it reads the canonical CSV and
+JSON artifacts and computes nothing the engine has not already published.
+Build it after running `delta1-strategy`, and execute it from a clean kernel. A
+manifest that names removed root-level modules or an earlier engine version is
+stale and must be regenerated, not waived.
+
+A second, committee-facing notebook existed until 2026-08-13 and was removed:
+it presented the same frozen artifacts to a different audience, and one
+narrative that a reader can check against the CSVs beside it is worth more than
+two that must be kept in agreement.
 
 The ignored `Round1AllData/` directory remains an external local data mount.
 It is not packaged or committed. Only files listed and hashed in
