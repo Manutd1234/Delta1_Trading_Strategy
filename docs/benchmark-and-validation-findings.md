@@ -3,7 +3,7 @@
 Two questions this repository could not previously answer from inside itself:
 
 1. **Is a 1.59 Sharpe good?** There was no strategy benchmark anywhere. The
-   committee notebook carried descriptive bands — "Conservative",
+   repository carried only descriptive bands — "Conservative",
    "Institutional", "High alpha" — pasted against the incumbent's own numbers,
    which is a classification of a number rather than a comparison of a strategy.
 2. **Does the declared methodology exist in code?**
