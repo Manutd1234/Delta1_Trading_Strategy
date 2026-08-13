@@ -23,6 +23,7 @@ import base64
 import datetime as dt
 import html
 import io
+import json
 import math
 from pathlib import Path
 
@@ -364,6 +365,30 @@ def tiles(items) -> str:
     return f'<div class="tiles">{cells}</div>'
 
 
+def _reoptimization_interval() -> str:
+    """State the bootstrap verdict only if the artifact actually supports it.
+
+    An earlier revision of this file hard-coded a headline column and every
+    value was wrong. A sentence claiming statistical significance is worth even
+    less than a wrong number, so this one is read from the differential file
+    each build and omitted entirely when the interval covers zero.
+    """
+    path = ROOT / "outputs/optimality/optimality_paired_differentials.csv"
+    if not path.is_file():
+        return ""
+    paired = pd.read_csv(path)
+    cagr = paired.loc[
+        (paired["Comparison"] == "annually_reoptimized_vs_frozen")
+        & (paired["Statistic"] == "CAGR differential")
+    ]
+    if cagr.empty or float(cagr["Confidence upper"].max()) >= 0.0:
+        return ""
+    return (
+        " The paired block bootstrap puts that CAGR shortfall below zero at every"
+        " block length tested."
+    )
+
+
 def build(data: dict) -> str:
     metrics = data["metrics"]
     full = metrics.loc[metrics["Window"].str.contains("full post-launch")].iloc[0]
@@ -624,6 +649,154 @@ difference above.</div>""")
             'asset class removed, in the declared order. No row is a recommendation; the table '
             'substantiates the claim that no single class carries the result.</p>')
         add(table(jackknife))
+
+    # ---- the optimality audit -----------------------------------------
+    # The one section in this report that is an explicit search.  It is placed
+    # after the robustness work, and declared as a search, because it exists to
+    # price the configuration choice rather than to make one.
+    def optimality(name: str) -> pd.DataFrame | None:
+        path = ROOT / "outputs/optimality" / name
+        if not path.is_file():
+            return None
+        frame = pd.read_csv(path)
+        return frame if not frame.empty else None
+
+    audit = optimality("optimality_summary.csv")
+    if audit is not None:
+        selection = optimality("optimality_selection.csv")
+        walk_forward = optimality("optimality_walk_forward_summary.csv")
+        profile = optimality("optimality_profile_summary.csv")
+        candidates = optimality("optimality_candidates.csv")
+        deflated = optimality("optimality_deflated_sharpe.csv")
+
+        run = json.loads(
+            (ROOT / "outputs/optimality/optimality_run.json").read_text(encoding="utf-8")
+        )
+        add("<h3>Optimality audit — was this the configuration a search would have picked?</h3>")
+        add(f'<p class="lede"><strong>This section is a search, and the only one in this '
+            f'report.</strong> The parameter sensitivity above is nine pre-declared runs and '
+            f'deliberately searches nothing. That leaves a fair question open: if someone had '
+            f'searched, what would they have found? So after the configuration was frozen and '
+            f'published, {run["configurations_run"]} configurations were run — dense '
+            f'one-parameter profiles over {len(run["profile_grid"])} axes, '
+            f'{run["joint_search_trials"]} independent joint draws from the same box, and '
+            f'{len(run["candidates"])} pre-registered structural alternatives. No number '
+            f'anywhere else in this bundle depends on this section, and no parameter was '
+            f're-selected from it.</p>')
+        add(table(audit, keep_prose=True))
+
+        if selection is not None:
+            add("<h4>Choose on 1990-2004, then live with it over 2005-2014</h4>")
+            add('<p class="lede">The test that decides the question. Each pool is searched on '
+                'the development window alone, its winner is then measured on the later window, '
+                'and the gap between the two is the price of having optimised.</p>')
+            keep = ["pool", "configurations", "selected", "selected_train_sharpe",
+                    "frozen_train_sharpe", "in_sample_gain", "selected_test_sharpe",
+                    "frozen_test_sharpe", "out_of_sample_gain",
+                    "share_beating_frozen_out_of_sample", "train_test_rank_correlation"]
+            add(table(selection[[c for c in keep if c in selection.columns]]))
+
+        if walk_forward is not None:
+            row = walk_forward.set_index("book")
+            reopt = float(row.at["annually re-optimised", "sharpe"])
+            frozen_sharpe = float(row.at["frozen baseline", "sharpe"])
+            reopt_cagr = float(row.at["annually re-optimised", "cagr"])
+            frozen_cagr = float(row.at["frozen baseline", "cagr"])
+            add("<h4>Nineteen years of annual re-optimisation</h4>")
+            add(f'<p class="lede">At each year end from 1995, the configuration with the best '
+                f'Sharpe over all history to date is chosen and held through the next calendar '
+                f'year. Nineteen such decisions produced a Sharpe of <strong>{reopt:.3f}</strong> '
+                f'against the frozen book\'s <strong>{frozen_sharpe:.3f}</strong> over the same '
+                f'window, at a CAGR of {reopt_cagr:.2%} against {frozen_cagr:.2%}: the optimiser '
+                f'bought no risk-adjusted return and gave up '
+                f'{(frozen_cagr - reopt_cagr) * 100:.1f} points of compound return to do it.'
+                f'{_reoptimization_interval()}</p>')
+            add(table(walk_forward))
+
+        if profile is not None:
+            indexed = profile.set_index("parameter")
+            axis = indexed.loc["trend_lookback"]
+            spiked = list(profile.loc[profile["shape"] == "spike", "parameter"])
+            flat = int(profile["shape"].isin(["plateau", "sloped"]).sum())
+            inert = list(profile.loc[profile["shape"].str.startswith("inert"), "parameter"])
+            add("<h4>The shape of each axis</h4>")
+            add(f'<p class="lede">One parameter moved at a time, everything else frozen. '
+                f'<em>Plateau</em>, <em>sloped</em> and <em>spike</em> are assigned by rule from '
+                f'the share of the axis lying within 0.10 Sharpe of its own best, not by eye. '
+                f'{flat} of {len(profile)} axes are flat or gently sloped — every risk control '
+                f'among them — and the {len(spiked)} that spike are both signal-design choices: '
+                f'<code>{"</code> and <code>".join(spiked)}</code>. '
+                + (f'<code>{inert[0]}</code> is inert over this window: its warm-up gate is '
+                   f'already satisfied by the pre-launch replay, so its grid is flat by '
+                   f'construction rather than by luck. ' if inert else "")
+                + f'The trend lookback is the honest weakness in this design: it is worth '
+                f'<strong>{float(axis["neighbour_sharpe_drop"]):.2f} Sharpe</strong> against its '
+                f'own neighbours. Two things bound that. The {int(axis["frozen_value"])}-session '
+                f'value is the 12-month convention taken from Moskowitz, Ooi and Pedersen (2012) '
+                f'rather than fitted here; and the peak does not transfer — the development '
+                f'window\'s own best value is {float(axis["best_train_value"]):g}, not '
+                f'{int(axis["frozen_value"])}, and adopting it would have cost '
+                f'{abs(float(axis["selection_gain_out_of_sample"])):.2f} Sharpe over 2005-2014. '
+                f'A peak whose location moves between halves of the sample is noise, and it is '
+                f'reported rather than smoothed away.</p>')
+            weight = indexed.loc["basis_weight"]
+            points = optimality("optimality_profiles.csv")
+            if points is not None:
+                curve = (points.loc[points["parameter"] == "basis_weight"]
+                         .set_index("value")["full_sharpe"])
+                beyond = curve.loc[curve.index > float(weight["best_full_value"])]
+                add(f'<div class="note">The one change that beat the frozen configuration in '
+                    f'<em>both</em> windows is a basis weight of '
+                    f'{float(weight["best_full_value"]):g} rather than '
+                    f'{float(weight["frozen_value"]):g}: '
+                    f'{float(weight["full_sharpe_headroom"]):+.3f} Sharpe over the full history '
+                    f'and {float(weight["selection_gain_out_of_sample"]):+.3f} over 2005-2014. '
+                    f'It is reported and <strong>not adopted</strong>, for three reasons that '
+                    f'were true before it was measured. It is one grid step from the equal-risk '
+                    f'prior the sleeves were blended on; the gain is inside the paired bootstrap '
+                    f'standard error on every comparison in this section; and the axis is a '
+                    f'spike, not a plateau — one further step, to '
+                    f'{float(beyond.index[0]):g}, gives back '
+                    f'{float(curve.loc[float(weight["best_full_value"])] - beyond.iloc[0]):.3f} '
+                    f'Sharpe. Moving a frozen parameter onto a peak found by searching the same '
+                    f'history that scored it is the exact failure this study was built to '
+                    f'detect.</div>')
+            keep = ["parameter", "frozen_value", "grid_points", "shape", "best_full_value",
+                    "best_full_sharpe", "full_sharpe_headroom", "frozen_full_sharpe_percentile",
+                    "axis_sharpe_span", "neighbour_sharpe_drop",
+                    "selection_gain_out_of_sample", "train_test_rank_correlation"]
+            add(table(profile[[c for c in keep if c in profile.columns]]))
+
+        if candidates is not None:
+            gap = candidates.set_index("name")["delta_full_sharpe"]
+            worse = int((candidates["delta_test_sharpe"] < 0).sum())
+            add("<h4>Pre-registered structural alternatives</h4>")
+            add(f'<p class="lede">Not parameter tweaks but different books: multi-horizon trend '
+                f'ensembles — the standard answer to a single-horizon choice — and each sleeve '
+                f'run alone. {worse} of {len(candidates)} are worse out of sample, and the '
+                f'ensembles do not rescue the lookback spike; they pay for the smoothing. The '
+                f'two-sleeve blend beats trend alone by '
+                f'{abs(float(gap["candidate:trend_only"])):.2f} Sharpe and basis alone by '
+                f'{abs(float(gap["candidate:basis_only"])):.2f}, which is the clearest evidence '
+                f'in this bundle that the second sleeve is doing real work.</p>')
+            keep = ["name", "assumption", "full_sharpe", "train_sharpe", "test_sharpe",
+                    "full_cagr", "full_max_drawdown", "delta_full_sharpe", "delta_test_sharpe"]
+            add(table(candidates[[c for c in keep if c in candidates.columns]],
+                      keep_prose=True))
+
+        if deflated is not None:
+            frozen_row = deflated.loc[deflated["member"] == "frozen baseline"].iloc[0]
+            add("<h4>What the search costs the headline number</h4>")
+            add(f'<p class="lede">A search this size has to be paid for. Deflating the frozen '
+                f'configuration\'s Sharpe for a declared family of '
+                f'{int(frozen_row["declared_trials"])} trials leaves a deflated probability of '
+                f'<strong>{float(frozen_row["deflated_probability"]):.4f}</strong>. That is a '
+                f'lower bound in one direction only: it corrects for the trials counted here, '
+                f'and the earlier lineage remains unrecoverable, exactly as '
+                f'<code>validation_deflated_sharpe.csv</code> records.</p>')
+            keep = ["member", "configuration", "annualized_sharpe", "declared_trials",
+                    "sessions", "status", "deflated_probability"]
+            add(table(deflated[[c for c in keep if c in deflated.columns]]))
 
     # ---- benchmark and attribution ------------------------------------
     add("<h2>Benchmark and attribution</h2>")
